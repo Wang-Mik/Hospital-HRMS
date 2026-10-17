@@ -90,11 +90,11 @@ export const ShiftHandovers: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['shift_handovers'] });
       setShowCreateModal(false);
       resetForm();
-      setSuccessToast('Biên bản bàn giao ca trực đã được ghi nhận vào hệ thống thành công!');
+      setSuccessToast(t('handovers.create_success', 'Biên bản bàn giao ca trực đã được ghi nhận vào hệ thống thành công!'));
       setTimeout(() => setSuccessToast(null), 5000);
     },
     onError: (err: any) => {
-      setSuccessToast(`Lỗi: ${err.response?.data?.message || err.message}`);
+      setSuccessToast(`${t('common.error', 'Lỗi')}: ${err.response?.data?.message || err.message}`);
     }
   });
 
@@ -174,28 +174,28 @@ export const ShiftHandovers: React.FC = () => {
         return (
           <span className="badge rounded-pill bg-light text-primary border border-primary-subtle d-inline-flex align-items-center gap-1.5 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
             <BookOpen size={12} />
-            <span>Sổ Vật Lý</span>
+            <span>{t('handovers.source_physical', 'Sổ Vật Lý')}</span>
           </span>
         );
       case 'IMAGE_UPLOAD':
         return (
           <span className="badge rounded-pill bg-light text-success border border-success-subtle d-inline-flex align-items-center gap-1.5 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
             <Camera size={12} />
-            <span>Ảnh Chụp Trang Sổ</span>
+            <span>{t('handovers.source_upload', 'Ảnh Chụp Trang Sổ')}</span>
           </span>
         );
       case 'DOCUMENT_LINK':
         return (
           <span className="badge rounded-pill bg-light text-info border border-info-subtle d-inline-flex align-items-center gap-1.5 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
             <LinkIcon size={12} />
-            <span>Link Tài Liệu</span>
+            <span>{t('handovers.source_link', 'Link Tài Liệu')}</span>
           </span>
         );
       case 'TEXT_NOTES':
         return (
           <span className="badge rounded-pill bg-light text-secondary border d-inline-flex align-items-center gap-1.5 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
             <FileText size={12} />
-            <span>Ghi Chú Text</span>
+            <span>{t('handovers.source_text', 'Ghi Chú Text')}</span>
           </span>
         );
     }
@@ -207,13 +207,13 @@ export const ShiftHandovers: React.FC = () => {
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4 pb-2 border-bottom">
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
-            <h1 className="wd-page-title mb-0">Biên Bản Bàn Giao Ca Trực Lâm Sàng</h1>
+            <h1 className="wd-page-title mb-0">{t('handovers.page_title', 'Biên Bản Bàn Giao Ca Trực Lâm Sàng')}</h1>
             <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5" style={{ fontSize: '11px' }}>
-              Quy Chế Bệnh Viện (QĐ 1895/1997/QĐ-BYT)
+              {t('handovers.rule_badge', 'Quy Chế Bệnh Viện')}
             </span>
           </div>
           <p className="wd-page-subtitle mb-0">
-            Lưu vết bàn giao ca trực 24/7 theo sổ bàn giao vật lý, ảnh scan/chụp trang sổ có chữ ký hai bên, hoặc hồ sơ điện tử
+            {t('handovers.page_desc', 'Lưu vết bàn giao ca trực 24/7 theo sổ bàn giao vật lý, ảnh scan/chụp trang sổ có chữ ký hai bên, hoặc hồ sơ điện tử')}
           </p>
         </div>
         <div className="d-flex align-items-center gap-2">
@@ -223,14 +223,14 @@ export const ShiftHandovers: React.FC = () => {
             onClick={() => setShowCreateModal(true)}
           >
             <Plus size={15} />
-            <span>Ghi Sổ Bàn Giao Ca Mới</span>
+            <span>{t('handovers.create_btn', 'Ghi Sổ Bàn Giao Ca Mới')}</span>
           </button>
         </div>
       </div>
 
       {successToast && (
         <Alert
-          variant={successToast.startsWith('Lỗi') ? 'danger' : 'success'}
+          variant={successToast.startsWith(t('common.error', 'Lỗi')) ? 'danger' : 'success'}
           dismissible
           onClose={() => setSuccessToast(null)}
           className="d-flex align-items-center gap-2 py-2.5 mb-4 small rounded-2"
@@ -247,10 +247,10 @@ export const ShiftHandovers: React.FC = () => {
         </div>
         <div className="flex-grow-1">
           <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-            Quy Định Bàn Giao Giờ Trực (Khoản 3 Điều 39 - QĐ 1895/1997/QĐ-BYT)
+            {t('handovers.rule_title', 'Quy Định Bàn Giao Giờ Trực')}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            Người giao ca và người nhận ca phải trực tiếp đối chiếu tình hình người bệnh nặng, thuốc men, tài sản và ký xác nhận vào <strong>Sổ bàn giao trực khoa</strong>. Hệ thống hỗ trợ tra cứu vị trí lưu trữ sổ vật lý tại tủ trực, tải ảnh chụp trang sổ đã ký hoặc liên kết hồ sơ bệnh án.
+            {t('handovers.rule_desc', 'Người giao ca và người nhận ca phải trực tiếp đối chiếu tình hình người bệnh nặng, thuốc men, tài sản và ký xác nhận vào Sổ bàn giao trực khoa.')}
           </div>
         </div>
       </div>
@@ -264,7 +264,7 @@ export const ShiftHandovers: React.FC = () => {
             className={`wd-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
-            Tất Cả Biên Bản ({handovers.length})
+            {t('handovers.tab_all', 'Tất Cả Biên Bản')} ({handovers.length})
           </button>
           <button
             type="button"
@@ -272,7 +272,7 @@ export const ShiftHandovers: React.FC = () => {
             onClick={() => setActiveTab('physical')}
           >
             <BookOpen size={13} className="me-1 inline-block" />
-            Sổ Vật Lý ({handovers.filter((h) => h.doc_type === 'PHYSICAL_BOOK').length})
+            {t('handovers.tab_physical', 'Sổ Vật Lý')} ({handovers.filter((h) => h.doc_type === 'PHYSICAL_BOOK').length})
           </button>
           <button
             type="button"
@@ -280,7 +280,7 @@ export const ShiftHandovers: React.FC = () => {
             onClick={() => setActiveTab('image')}
           >
             <Camera size={13} className="me-1 inline-block" />
-            Ảnh Chụp Trang Sổ ({handovers.filter((h) => h.doc_type === 'IMAGE_UPLOAD').length})
+            {t('handovers.tab_image', 'Ảnh Chụp Trang Sổ')} ({handovers.filter((h) => h.doc_type === 'IMAGE_UPLOAD').length})
           </button>
           <button
             type="button"
@@ -288,7 +288,7 @@ export const ShiftHandovers: React.FC = () => {
             onClick={() => setActiveTab('link')}
           >
             <LinkIcon size={13} className="me-1 inline-block" />
-            Link / Ghi Chú ({handovers.filter((h) => h.doc_type === 'DOCUMENT_LINK' || h.doc_type === 'TEXT_NOTES').length})
+            {t('handovers.tab_link_notes', 'Link / Ghi Chú')} ({handovers.filter((h) => h.doc_type === 'DOCUMENT_LINK' || h.doc_type === 'TEXT_NOTES').length})
           </button>
         </div>
 
@@ -298,7 +298,7 @@ export const ShiftHandovers: React.FC = () => {
             <Search size={14} className="position-absolute text-muted" style={{ top: '10px', left: '10px' }} />
             <input
               type="text"
-              placeholder="Tìm theo sổ, người lập, nội dung..."
+              placeholder={t('handovers.search_placeholder', 'Tìm theo sổ, người lập, nội dung...')}
               className="wd-input ps-4 py-1.5 w-100"
               style={{ fontSize: '12px' }}
               value={searchQuery}
@@ -312,7 +312,7 @@ export const ShiftHandovers: React.FC = () => {
             value={selectedDeptFilter}
             onChange={(e) => setSelectedDeptFilter(e.target.value)}
           >
-            <option value="">-- Tất cả khoa phòng --</option>
+            <option value="">{t('handovers.all_departments', '-- Tất cả khoa phòng --')}</option>
             {departments?.map((d) => (
               <option key={d.department_code} value={d.department_code}>
                 {d.name}
@@ -328,25 +328,25 @@ export const ShiftHandovers: React.FC = () => {
           <table className="wd-table">
             <thead>
               <tr>
-                <th>MÃ BIÊN BẢN</th>
-                <th>KHOA PHÒNG &amp; CA TRỰC</th>
-                <th>HÌNH THỨC LƯU TRỮ</th>
-                <th>THÔNG TIN LƯU TRỮ SỔ</th>
-                <th>CÁN BỘ BÀN GIAO</th>
-                <th className="text-end">THAO TÁC</th>
+                <th>{t('handovers.th_code', 'MÃ BIÊN BẢN')}</th>
+                <th>{t('handovers.th_dept_shift', 'KHOA PHÒNG & CA TRỰC')}</th>
+                <th>{t('handovers.th_storage_type', 'HÌNH THỨC LƯU TRỮ')}</th>
+                <th>{t('handovers.th_storage_info', 'THÔNG TIN LƯU TRỮ SỔ')}</th>
+                <th>{t('handovers.th_staff', 'CÁN BỘ BÀN GIAO')}</th>
+                <th className="text-end">{t('common.actions', 'THAO TÁC')}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5 text-muted small">
-                    Đang tải danh sách biên bản bàn giao...
+                    {t('handovers.loading', 'Đang tải danh sách biên bản bàn giao...')}
                   </td>
                 </tr>
               ) : filteredHandovers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5 text-muted small">
-                    Chưa có biên bản bàn giao nào phù hợp với bộ lọc hiện tại.
+                    {t('handovers.empty', 'Chưa có biên bản bàn giao nào phù hợp với bộ lọc hiện tại.')}
                   </td>
                 </tr>
               ) : (
@@ -364,11 +364,11 @@ export const ShiftHandovers: React.FC = () => {
                       <div className="d-flex align-items-center gap-1.5">
                         <Building2 size={13} className="text-muted" />
                         <span className="fw-semibold text-dark" style={{ fontSize: '13px' }}>
-                          {item.department_name || item.department_code || 'Toàn Viện'}
+                          {item.department_name || item.department_code || t('handovers.entire_hospital', 'Toàn Viện')}
                         </span>
                       </div>
                       <div className="text-muted ps-3.5" style={{ fontSize: '11px' }}>
-                        {item.outgoing_shift_type ? `Ca ${item.outgoing_shift_type}` : 'Ca trực bàn giao'}
+                        {item.outgoing_shift_type ? `${t('handovers.shift_prefix', 'Ca')} ${item.outgoing_shift_type}` : t('handovers.default_shift', 'Ca trực bàn giao')}
                         {item.outgoing_start_time && ` (${item.outgoing_start_time.slice(11, 16)} - ${item.outgoing_end_time?.slice(11, 16)})`}
                       </div>
                     </td>
@@ -379,11 +379,11 @@ export const ShiftHandovers: React.FC = () => {
                       {item.doc_type === 'PHYSICAL_BOOK' && (
                         <div>
                           <div className="text-dark fw-medium" style={{ fontSize: '12px' }}>
-                            📖 {item.physical_book_name || 'Sổ bàn giao trực khoa'}
+                            📖 {item.physical_book_name || t('handovers.default_book', 'Sổ bàn giao trực khoa')}
                           </div>
                           <div className="text-muted" style={{ fontSize: '11px' }}>
-                            {item.physical_book_page ? `Trang: ${item.physical_book_page}` : ''}
-                            {item.physical_storage_location && ` • Vị trí: ${item.physical_storage_location}`}
+                            {item.physical_book_page ? `${t('handovers.book_page', 'Trang')}: ${item.physical_book_page}` : ''}
+                            {item.physical_storage_location && ` • ${t('handovers.location_prefix', 'Vị trí')}: ${item.physical_storage_location}`}
                           </div>
                         </div>
                       )}
@@ -393,7 +393,7 @@ export const ShiftHandovers: React.FC = () => {
                           {item.file_url ? (
                             <img
                               src={item.file_url}
-                              alt="Trang sổ bàn giao"
+                              alt={t('handovers.logbook_alt', 'Trang sổ bàn giao')}
                               className="rounded border"
                               style={{ width: '40px', height: '40px', objectFit: 'cover', cursor: 'pointer' }}
                               onClick={() => setPreviewImage(item.file_url || null)}
@@ -404,7 +404,7 @@ export const ShiftHandovers: React.FC = () => {
                             </div>
                           )}
                           <div style={{ fontSize: '11px' }} className="text-muted">
-                            Ảnh chụp trang sổ có chữ ký
+                            {t('handovers.signed_photo_desc', 'Ảnh chụp trang sổ có chữ ký')}
                           </div>
                         </div>
                       )}
@@ -417,7 +417,7 @@ export const ShiftHandovers: React.FC = () => {
                             rel="noopener noreferrer"
                             className="text-decoration-none d-inline-flex align-items-center gap-1 small text-info fw-medium"
                           >
-                            <span>Mở hồ sơ liên kết</span>
+                            <span>{t('handovers.open_link', 'Mở hồ sơ liên kết')}</span>
                             <ExternalLink size={12} />
                           </a>
                         </div>
@@ -425,7 +425,7 @@ export const ShiftHandovers: React.FC = () => {
 
                       {item.doc_type === 'TEXT_NOTES' && (
                         <div className="text-muted text-truncate" style={{ maxWidth: '240px', fontSize: '12px' }}>
-                          {item.critical_notes || 'Không có ghi chú thêm'}
+                          {item.critical_notes || t('handovers.no_extra_notes', 'Không có ghi chú thêm')}
                         </div>
                       )}
                     </td>
@@ -434,7 +434,7 @@ export const ShiftHandovers: React.FC = () => {
                         {item.logged_by_name || item.logged_by}
                       </div>
                       <div className="text-muted" style={{ fontSize: '11px' }}>
-                        {item.logged_by_role || 'Cán bộ trực giao ca'}
+                        {item.logged_by_role || t('handovers.default_role', 'Cán bộ trực giao ca')}
                       </div>
                     </td>
                     <td className="text-end">
@@ -443,7 +443,7 @@ export const ShiftHandovers: React.FC = () => {
                           <button
                             type="button"
                             className="btn btn-sm btn-light border py-1 px-2 text-dark"
-                            title="Xem ảnh chụp trang sổ"
+                            title={t('handovers.view_photo', 'Xem ảnh chụp trang sổ')}
                             onClick={() => setPreviewImage(item.file_url || null)}
                           >
                             <Eye size={13} />
@@ -454,7 +454,7 @@ export const ShiftHandovers: React.FC = () => {
                           className="wd-pill-btn-outline py-1 px-2.5"
                           onClick={() => openDetail(item)}
                         >
-                          <span>Xem Chi Tiết</span>
+                          <span>{t('handovers.view_details', 'Xem Chi Tiết')}</span>
                         </button>
                       </div>
                     </td>
@@ -479,7 +479,7 @@ export const ShiftHandovers: React.FC = () => {
               <div className="d-flex align-items-center gap-2">
                 <FileText size={18} style={{ color: 'var(--wd-blue)' }} />
                 <Modal.Title className="fs-6 fw-bold text-dark mb-0">
-                  Biên Bản Bàn Giao Ca #{selectedHandover.id.slice(0, 8)}
+                  {t('handovers.detail_title', 'Biên Bản Bàn Giao Ca')} #{selectedHandover.id.slice(0, 8)}
                 </Modal.Title>
                 <div className="ms-2">{renderDocTypeBadge(selectedHandover.doc_type)}</div>
               </div>
@@ -494,25 +494,25 @@ export const ShiftHandovers: React.FC = () => {
                 <Row className="g-2 small">
                   <Col md={6}>
                     <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>
-                      Khoa Phòng Thực Hiện
+                      {t('handovers.detail_dept', 'Khoa Phòng Thực Hiện')}
                     </div>
                     <div className="fw-semibold text-dark mt-0.5 fs-6">
-                      {selectedHandover.department_name || selectedHandover.department_code || 'Toàn Bệnh Viện'}
+                      {selectedHandover.department_name || selectedHandover.department_code || t('handovers.entire_hospital', 'Toàn Viện')}
                     </div>
                     <div className="text-secondary small mt-0.5">
-                      Thời điểm lập: {selectedHandover.created_at ? selectedHandover.created_at.slice(0, 16).replace('T', ' ') : ''}
+                      {t('handovers.detail_time', 'Thời điểm lập:')} {selectedHandover.created_at ? selectedHandover.created_at.slice(0, 16).replace('T', ' ') : ''}
                     </div>
                   </Col>
 
                   <Col md={6}>
                     <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>
-                      Cán Bộ Bàn Giao (Rời Ca)
+                      {t('handovers.outgoing', 'Cán Bộ Bàn Giao')}
                     </div>
                     <div className="fw-semibold text-dark mt-0.5">
                       {selectedHandover.logged_by_name || selectedHandover.logged_by}
                     </div>
                     <div className="text-secondary small mt-0.5">
-                      {selectedHandover.logged_by_role || 'Bác sĩ / Điều dưỡng trưởng ca'}
+                      {selectedHandover.logged_by_role || t('handovers.default_role', 'Bác sĩ / Điều dưỡng trưởng ca')}
                     </div>
                   </Col>
                 </Row>
@@ -523,20 +523,20 @@ export const ShiftHandovers: React.FC = () => {
                 <div className="p-3 rounded-2 border mb-3" style={{ backgroundColor: '#fffbeb', borderColor: '#fef3c7' }}>
                   <div className="d-flex align-items-center gap-2 mb-2 text-warning-emphasis fw-bold small">
                     <BookOpen size={16} />
-                    <span>HỒ SƠ SỔ BÀN GIAO VẬT LÝ TẠI KHOA</span>
+                    <span>{t('handovers.physical_book_section', 'HỒ SỔ SỔ BÀN GIAO VẬT LÝ TẠI KHOA')}</span>
                   </div>
                   <Row className="g-2 small text-dark">
                     <Col md={6}>
-                      <span className="text-muted">Tên quyển sổ:</span>{' '}
-                      <strong>{selectedHandover.physical_book_name || 'Sổ giao ca trực khoa'}</strong>
+                      <span className="text-muted">{t('handovers.book_name_label', 'Tên quyển sổ:')}</span>{' '}
+                      <strong>{selectedHandover.physical_book_name || t('handovers.default_book', 'Sổ giao ca trực khoa')}</strong>
                     </Col>
                     <Col md={6}>
-                      <span className="text-muted">Số trang biên bản:</span>{' '}
-                      <strong>{selectedHandover.physical_book_page || 'Chưa ghi trang'}</strong>
+                      <span className="text-muted">{t('handovers.book_page_label', 'Số trang biên bản:')}</span>{' '}
+                      <strong>{selectedHandover.physical_book_page || t('handovers.unspecified_page', 'Chưa ghi trang')}</strong>
                     </Col>
                     <Col md={12}>
-                      <span className="text-muted">Vị trí tủ/kệ lưu trữ:</span>{' '}
-                      <strong>{selectedHandover.physical_storage_location || 'Tủ hồ sơ phòng trực khoa'}</strong>
+                      <span className="text-muted">{t('handovers.book_location_label', 'Vị trí tủ/kệ lưu trữ:')}</span>{' '}
+                      <strong>{selectedHandover.physical_storage_location || t('handovers.default_cabinet', 'Tủ hồ sơ phòng trực khoa')}</strong>
                     </Col>
                   </Row>
                 </div>
@@ -554,7 +554,7 @@ export const ShiftHandovers: React.FC = () => {
                       style={{ maxHeight: '350px', cursor: 'pointer' }}
                       onClick={() => setPreviewImage(selectedHandover.file_url || null)}
                     />
-                    <div className="small text-muted mt-1">Nhấp vào ảnh để phóng to toàn màn hình</div>
+                    <div className="small text-muted mt-1">{t('handovers.click_to_zoom', 'Nhấp vào ảnh để phóng to toàn màn hình')}</div>
                   </div>
                 </div>
               )}
@@ -563,7 +563,7 @@ export const ShiftHandovers: React.FC = () => {
               {selectedHandover.doc_type === 'DOCUMENT_LINK' && selectedHandover.external_link && (
                 <div className="p-3 rounded-2 border mb-3 bg-light">
                   <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '10px' }}>
-                    Đường Dẫn Hồ Sơ Điện Tử
+                    {t('handovers.emr_link_title', 'Đường Dẫn Hồ Sơ Điện Tử')}
                   </div>
                   <a
                     href={selectedHandover.external_link}
@@ -579,7 +579,7 @@ export const ShiftHandovers: React.FC = () => {
 
               {/* Critical Notes */}
               <div className="mb-3">
-                <label className="wd-label">Tình Hình Người Bệnh Nặng &amp; Y Lệnh Bàn Giao</label>
+                <label className="wd-label">{t('handovers.patient_and_orders', 'Tình Hình Người Bệnh Nặng & Y Lệnh Bàn Giao')}</label>
                 <div
                   className="p-3 rounded-2 border text-dark"
                   style={{
@@ -590,7 +590,7 @@ export const ShiftHandovers: React.FC = () => {
                     whiteSpace: 'pre-line'
                   }}
                 >
-                  {selectedHandover.critical_notes || 'Không ghi nhận biến động bất thường.'}
+                  {selectedHandover.critical_notes || t('handovers.no_anomaly', 'Không ghi nhận biến động bất thường.')}
                 </div>
               </div>
             </Modal.Body>
@@ -601,7 +601,7 @@ export const ShiftHandovers: React.FC = () => {
                 className="wd-pill-btn-outline"
                 onClick={() => setShowDetailModal(false)}
               >
-                Đóng
+                {t('common.close', 'Đóng')}
               </button>
             </Modal.Footer>
           </>
@@ -641,10 +641,10 @@ export const ShiftHandovers: React.FC = () => {
                   onChange={(e) => setOutgoingShiftId(e.target.value)}
                   className="wd-select w-100"
                 >
-                  <option value="">{lang === 'vi' ? '-- Chọn ca trực nếu có trên lịch --' : '-- Select scheduled shift --'}</option>
+                  <option value="">{t('handovers.select_shift_placeholder', '-- Chọn ca trực nếu có trên lịch --')}</option>
                   {serverShifts?.map((s: any) => (
                     <option key={s.id} value={s.id}>
-                      {s.department_name || s.department_code} — Ca {s.shift_type} : {s.start_time?.slice(11, 16)} - {s.end_time?.slice(11, 16)}
+                      {s.department_name || s.department_code} — {t('handovers.shift_prefix', 'Ca')} {s.shift_type} : {s.start_time?.slice(11, 16)} - {s.end_time?.slice(11, 16)}
                     </option>
                   ))}
                 </select>
@@ -653,7 +653,7 @@ export const ShiftHandovers: React.FC = () => {
 
             {/* Document Option Radio Cards */}
             <div className="mb-3">
-              <label className="wd-label mb-2">Hình Thức Lưu Trữ Biên Bản Bàn Giao *</label>
+              <label className="wd-label mb-2">{t('handovers.form_storage_type', 'Hình Thức Lưu Trữ Biên Bản Bàn Giao')} *</label>
               <Row className="g-2">
                 <Col sm={6} md={3}>
                   <div
@@ -666,7 +666,7 @@ export const ShiftHandovers: React.FC = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <BookOpen size={18} className="mb-1 d-block mx-auto" />
-                    <span style={{ fontSize: '12px' }}>1. Sổ Vật Lý Tại Khoa</span>
+                    <span style={{ fontSize: '12px' }}>{t('handovers.opt_physical', '1. Sổ Vật Lý Tại Khoa')}</span>
                   </div>
                 </Col>
 
@@ -681,7 +681,7 @@ export const ShiftHandovers: React.FC = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <Camera size={18} className="mb-1 d-block mx-auto" />
-                    <span style={{ fontSize: '12px' }}>2. Tải Ảnh Chụp Sổ</span>
+                    <span style={{ fontSize: '12px' }}>{t('handovers.opt_image', '2. Tải Ảnh Chụp Sổ')}</span>
                   </div>
                 </Col>
 
@@ -696,7 +696,7 @@ export const ShiftHandovers: React.FC = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <LinkIcon size={18} className="mb-1 d-block mx-auto" />
-                    <span style={{ fontSize: '12px' }}>3. Dán Link Tài Liệu</span>
+                    <span style={{ fontSize: '12px' }}>{t('handovers.opt_link', '3. Dán Link Tài Liệu')}</span>
                   </div>
                 </Col>
 
@@ -711,7 +711,7 @@ export const ShiftHandovers: React.FC = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <FileText size={18} className="mb-1 d-block mx-auto" />
-                    <span style={{ fontSize: '12px' }}>4. Ghi Chú Trực Tiếp</span>
+                    <span style={{ fontSize: '12px' }}>{t('handovers.opt_text', '4. Ghi Chú Trực Tiếp')}</span>
                   </div>
                 </Col>
               </Row>
@@ -722,36 +722,36 @@ export const ShiftHandovers: React.FC = () => {
               <div className="p-3 rounded-2 border mb-3 bg-light">
                 <div className="fw-semibold text-dark small mb-2 d-flex align-items-center gap-1.5">
                   <BookOpen size={14} className="text-primary" />
-                  <span>Khai Báo Định Danh Sổ Bàn Giao Vật Lý</span>
+                  <span>{t('handovers.section_physical', 'Khai Báo Định Danh Sổ Bàn Giao Vật Lý')}</span>
                 </div>
                 <Row className="g-2">
                   <Col md={6}>
-                    <label className="form-label small text-muted mb-1">Tên Quyển Sổ *</label>
+                    <label className="form-label small text-muted mb-1">{t('handovers.book_name', 'Tên Quyển Sổ')} *</label>
                     <input
                       type="text"
                       required
-                      placeholder="VD: Sổ Giao Ca Cấp Cứu - Quyển 02/2026"
+                      placeholder={t('handovers.book_placeholder', 'VD: Sổ Giao Ca Cấp Cứu - Quyển 02/2026')}
                       className="wd-input w-100"
                       value={physicalBookName}
                       onChange={(e) => setPhysicalBookName(e.target.value)}
                     />
                   </Col>
                   <Col md={6}>
-                    <label className="form-label small text-muted mb-1">Số Trang Biên Bản *</label>
+                    <label className="form-label small text-muted mb-1">{t('handovers.book_page', 'Số Trang Biên Bản')} *</label>
                     <input
                       type="text"
                       required
-                      placeholder="VD: Trang 34 - 35"
+                      placeholder="Trang 34 - 35"
                       className="wd-input w-100"
                       value={physicalBookPage}
                       onChange={(e) => setPhysicalBookPage(e.target.value)}
                     />
                   </Col>
                   <Col md={12}>
-                    <label className="form-label small text-muted mb-1">Vị Trí Tủ / Kệ Lưu Trữ Tại Khoa</label>
+                    <label className="form-label small text-muted mb-1">{t('handovers.book_location', 'Vị Trí Tủ / Kệ Lưu Trữ Tại Khoa')}</label>
                     <input
                       type="text"
-                      placeholder="VD: Tủ hồ sơ phòng trực Bác sĩ, ngăn số 2"
+                      placeholder={t('handovers.location_placeholder', 'VD: Tủ hồ sơ phòng trực Bác sĩ, ngăn số 2')}
                       className="wd-input w-100"
                       value={physicalStorageLocation}
                       onChange={(e) => setPhysicalStorageLocation(e.target.value)}
@@ -765,7 +765,7 @@ export const ShiftHandovers: React.FC = () => {
               <div className="p-3 rounded-2 border mb-3 bg-light">
                 <div className="fw-semibold text-dark small mb-2 d-flex align-items-center gap-1.5">
                   <Camera size={14} className="text-success" />
-                  <span>Tải Lên Ảnh Chụp Trang Sổ Đã Ký Tên Hai Bên</span>
+                  <span>{t('handovers.section_upload', 'Tải Lên Ảnh Chụp Trang Sổ Đã Ký Tên Hai Bên')}</span>
                 </div>
                 <Form.Group className="mb-2">
                   <Form.Control
@@ -783,7 +783,7 @@ export const ShiftHandovers: React.FC = () => {
                       className="img-thumbnail"
                       style={{ maxHeight: '180px' }}
                     />
-                    <div className="small text-success mt-1">{lang === 'vi' ? 'Đã chọn ảnh thành công!' : 'Image selected successfully!'}</div>
+                    <div className="small text-success mt-1">{t('handovers.image_selected_success', 'Đã chọn ảnh thành công!')}</div>
                   </div>
                 )}
               </div>
@@ -798,7 +798,7 @@ export const ShiftHandovers: React.FC = () => {
                 <input
                   type="url"
                   required
-                  placeholder="https://drive.google.com/... hoặc link hệ thống EMR"
+                  placeholder={t('handovers.link_placeholder', 'VD: https://drive.google.com/... hoặc link hệ thống EMR')}
                   className="wd-input w-100"
                   value={externalLink}
                   onChange={(e) => setExternalLink(e.target.value)}
@@ -808,11 +808,11 @@ export const ShiftHandovers: React.FC = () => {
 
             <Form.Group className="mb-3">
               <label className="wd-label">
-                Tóm Tắt Tình Hình Bệnh Nhân Nặng &amp; Y Lệnh Bàn Giao
+                {t('handovers.section_notes', 'Tóm Tắt Tình Hình Bệnh Nhân Nặng & Y Lệnh Bàn Giao')}
               </label>
               <textarea
                 rows={4}
-                placeholder="Ghi nhận số lượng bệnh nhân nặng thở máy, các ca phẫu thuật cấp cứu cần theo dõi, thuốc đặc trị..."
+                placeholder={t('handovers.notes_placeholder', 'Ghi nhận số lượng bệnh nhân nặng thở máy, các ca phẫu thuật cấp cứu cần theo dõi, thuốc đặc trị...')}
                 value={criticalNotes}
                 onChange={(e) => setCriticalNotes(e.target.value)}
                 className="wd-input w-100"
@@ -822,9 +822,9 @@ export const ShiftHandovers: React.FC = () => {
             <div className="p-3 rounded-2 small text-muted border bg-light">
               <div className="d-flex align-items-center gap-1.5 fw-medium text-dark mb-0.5">
                 <ShieldCheck size={14} className="text-success" />
-                <span>Xác nhận tuân thủ Quy chế Bệnh viện:</span>
+                <span>{t('handovers.compliance_title', 'Xác nhận tuân thủ Quy chế Bệnh viện:')}</span>
               </div>
-              Bác sĩ và điều dưỡng giao - nhận ca đã trực tiếp kiểm tra và ký tay xác nhận trong sổ trực vật lý tại khoa phòng.
+              {t('handovers.compliance_desc', 'Bác sĩ và điều dưỡng giao - nhận ca đã trực tiếp kiểm tra và ký tay xác nhận trong sổ trực vật lý tại khoa phòng.')}
             </div>
           </Modal.Body>
           <Modal.Footer className="border-top py-2.5" style={{ borderColor: 'var(--wd-border)' }}>
@@ -833,14 +833,14 @@ export const ShiftHandovers: React.FC = () => {
               className="wd-pill-btn-outline"
               onClick={() => setShowCreateModal(false)}
             >
-              Hủy
+              {t('common.cancel', 'Hủy')}
             </button>
             <button
               type="submit"
               disabled={createHandoverMutation.isPending}
               className="wd-pill-btn-primary"
             >
-              {createHandoverMutation.isPending ? 'Đang lưu...' : 'Lưu Biên Bản Vào Hệ Thống'}
+              {createHandoverMutation.isPending ? t('handovers.saving', 'Đang lưu...') : t('handovers.save_btn', 'Lưu Biên Bản Vào Hệ Thống')}
             </button>
           </Modal.Footer>
         </Form>
@@ -849,7 +849,7 @@ export const ShiftHandovers: React.FC = () => {
       {/* Modal 3: Fullscreen Image Preview */}
       <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} size="lg" centered>
         <Modal.Header closeButton className="py-2">
-          <Modal.Title className="fs-6 fw-bold">Ảnh Chụp Sổ Bàn Giao Ca Trực</Modal.Title>
+          <Modal.Title className="fs-6 fw-bold">{t('handovers.photo_modal_title', 'Ảnh Chụp Sổ Bàn Giao Ca Trực')}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-2 text-center bg-dark">
           {previewImage && (

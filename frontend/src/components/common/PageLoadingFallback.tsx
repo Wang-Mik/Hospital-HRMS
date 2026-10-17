@@ -1,7 +1,10 @@
 import React from 'react';
 import { Spinner } from 'react-bootstrap';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export const PageLoadingFallback: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div
       className="d-flex flex-column align-items-center justify-content-center w-100"
@@ -11,7 +14,7 @@ export const PageLoadingFallback: React.FC = () => {
       }}
       role="status"
       aria-live="polite"
-      aria-label="Đang tải dữ liệu trang..."
+      aria-label={t('common.loading', 'Đang tải dữ liệu...')}
     >
       <div className="d-flex align-items-center gap-2 mb-2">
         <Spinner
@@ -21,7 +24,7 @@ export const PageLoadingFallback: React.FC = () => {
         />
       </div>
       <span className="small text-muted fw-semibold" style={{ fontSize: '12px' }}>
-        Đang tải trang...
+        {t('common.loading', 'Đang tải dữ liệu...')}
       </span>
     </div>
   );

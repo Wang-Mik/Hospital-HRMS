@@ -81,7 +81,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
 
   const displayName = employeeData
     ? `${employeeData.first_name} ${employeeData.last_name}`.trim()
-    : (user?.name || 'Cán Bộ Bệnh Viện');
+    : (user?.name || t('common.hospital_staff', 'Cán Bộ Bệnh Viện'));
 
   const nameParts = displayName.split(' ');
   const initials = nameParts.length >= 2
@@ -164,7 +164,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
                 </span>
                 {unreadNotificationsCount > 0 && (
                   <span className="badge bg-danger rounded-pill px-1.5 py-0.5" style={{ fontSize: '10px' }}>
-                    {unreadNotificationsCount} {lang === 'vi' ? 'mới' : 'new'}
+                    {unreadNotificationsCount} {t('nav.new_badge', 'mới')}
                   </span>
                 )}
               </div>
@@ -224,7 +224,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
                         {n.message}
                       </div>
                       <div className="text-muted mt-1" style={{ fontSize: '10px' }}>
-                        {n.created_at ? new Date(n.created_at).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US') : (lang === 'vi' ? 'Hôm nay' : 'Today')}
+                        {n.created_at ? new Date(n.created_at).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US') : t('common.today', 'Hôm nay')}
                       </div>
                     </div>
                   </div>

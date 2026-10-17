@@ -115,9 +115,9 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
 
   // New License form
   const [licStaff, setLicStaff] = useState('EMP-DOC-002');
-  const [licType, setLicType] = useState('Chứng chỉ Hồi sức Tim mạch Nâng cao (ACLS)');
+  const [licType, setLicType] = useState(t('directory.default_acls', 'Chứng chỉ Hồi sức Tim mạch Nâng cao (ACLS)'));
   const [licNumber, setLicNumber] = useState('');
-  const [licAuthority, setLicAuthority] = useState('Bộ Y tế Việt Nam');
+  const [licAuthority, setLicAuthority] = useState(t('directory.default_authority', 'Bộ Y tế Việt Nam'));
   const [licExpiry, setLicExpiry] = useState('2028-12-31');
 
   // Mutation: Enroll staff live in backend
@@ -126,12 +126,12 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setShowAddEmpModal(false);
-      setToastMessage(`Cán bộ y tế đã được tiếp nhận và lưu vào cơ sở dữ liệu bệnh viện!`);
+      setToastMessage(t('directory.onboard_success', 'Cán bộ y tế đã được tiếp nhận và lưu vào cơ sở dữ liệu bệnh viện!'));
       setTimeout(() => setToastMessage(null), 4000);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || err.message || 'Không thể tạo hồ sơ nhân viên';
-      setToastMessage(`Lỗi: ${msg}`);
+      const msg = err.response?.data?.message || err.message || t('directory.create_staff_error', 'Không thể tạo hồ sơ nhân viên');
+      setToastMessage(`${t('common.error', 'Lỗi')}: ${msg}`);
     }
   });
 
@@ -141,12 +141,12 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
       setShowAddLicenseModal(false);
-      setToastMessage(`Chứng chỉ hành nghề đã được lưu thành công vào cơ sở dữ liệu bệnh viện!`);
+      setToastMessage(t('directory.license_saved', 'Chứng chỉ hành nghề đã được lưu thành công vào cơ sở dữ liệu bệnh viện!'));
       setTimeout(() => setToastMessage(null), 4000);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || err.message || 'Không thể đăng ký chứng chỉ hành nghề';
-      setToastMessage(`Lỗi: ${msg}`);
+      const msg = err.response?.data?.message || err.message || t('directory.create_license_error', 'Không thể đăng ký chứng chỉ hành nghề');
+      setToastMessage(`${t('common.error', 'Lỗi')}: ${msg}`);
     }
   });
 
@@ -161,7 +161,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         phone: e.phone || '',
         department_code: e.department_code,
         department_id: e.department_id,
-        department_name: e.department_name || (e.department_code ? `Khoa ${e.department_code}` : `Khoa #${e.department_id}`),
+        department_name: e.department_name || (e.department_code ? `${t('directory.department', 'Khoa')} ${e.department_code}` : `${t('directory.department', 'Khoa')} #${e.department_id}`),
         role: e.role,
         specialty: e.specialty,
         hire_date: e.hire_date ? e.hire_date.slice(0, 10) : '2026-01-01',
@@ -176,10 +176,10 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         employee_id: l.employee_id,
         staff_code: l.staff_code,
         staff_name: l.staff_name,
-        department_name: l.department_name || 'Khoa Lâm Sàng',
+        department_name: l.department_name || t('directory.default_clinical_dept', 'Khoa Lâm Sàng'),
         license_type: l.license_type,
         license_number: l.license_number,
-        issuing_authority: l.issuing_authority || 'Bộ Y tế Việt Nam',
+        issuing_authority: l.issuing_authority || t('directory.default_authority', 'Bộ Y tế Việt Nam'),
         issue_date: l.issue_date ? l.issue_date.slice(0, 10) : '2026-01-01',
         expiration_date: l.expiration_date ? l.expiration_date.slice(0, 10) : '2028-12-31',
         days_until_expiry: Number(l.days_until_expiry) || 0,
@@ -239,13 +239,13 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
   const getRoleBadge = (role: EmployeeItem['role']) => {
     switch (role) {
       case 'DEPARTMENT_HEAD':
-        return <span className="wd-badge-blue">Trưởng Khoa</span>;
+        return <span className="wd-badge-blue">{t('directory.role_dept_head', 'Trưởng Khoa')}</span>;
       case 'DOCTOR':
-        return <span className="wd-badge-neutral">Bác Sĩ</span>;
+        return <span className="wd-badge-neutral">{t('directory.role_doctor', 'Bác Sĩ')}</span>;
       case 'NURSE':
-        return <span className="wd-badge-success">Điều Dưỡng</span>;
+        return <span className="wd-badge-success">{t('directory.role_nurse', 'Điều Dưỡng')}</span>;
       case 'HR_MANAGER':
-        return <span className="wd-badge-neutral">Quản Trị HR</span>;
+        return <span className="wd-badge-neutral">{t('directory.role_hr_manager', 'Quản Trị HR')}</span>;
       default:
         return <span className="wd-badge-neutral">{role}</span>;
     }
@@ -269,7 +269,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               onClick={() => setShowAddEmpModal(true)}
             >
               <Plus size={15} />
-              <span>Tiếp Nhận Cán Bộ Y Tế</span>
+              <span>{t('directory.btn_onboard', 'Tiếp Nhận Cán Bộ Y Tế')}</span>
             </button>
           ) : (
             <button
@@ -278,7 +278,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               onClick={() => setShowAddLicenseModal(true)}
             >
               <Award size={15} />
-              <span>Đăng Ký Chứng Chỉ Y Tế</span>
+              <span>{t('directory.btn_register_license', 'Đăng Ký Chứng Chỉ Y Tế')}</span>
             </button>
           )}
         </div>
@@ -286,7 +286,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
 
       {toastMessage && (
         <Alert
-          variant={toastMessage.startsWith('Lỗi') ? 'danger' : 'success'}
+          variant={toastMessage.startsWith(t('common.error', 'Lỗi')) || toastMessage.toLowerCase().startsWith('error') ? 'danger' : 'success'}
           dismissible
           onClose={() => setToastMessage(null)}
           className="d-flex align-items-center gap-2 py-2.5 mb-4 small rounded-2"
@@ -303,10 +303,10 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         </div>
         <div className="flex-grow-1">
           <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-            Hỗ trợ Cấp phép &amp; Quản trị Nhân sự (AskHR Credentialing)
+            {t('directory.credentialing_title', 'Hỗ trợ Cấp phép & Quản trị Nhân sự')}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            Cần đối chiếu số chứng chỉ hành nghề, bổ nhiệm chức danh chuyên môn hoặc điều chuyển khoa phòng? Liên hệ{' '}
+            {t('directory.credentialing_desc', 'Cần đối chiếu số chứng chỉ hành nghề, bổ nhiệm chức danh chuyên môn hoặc điều chuyển khoa phòng? Liên hệ')}{' '}
             <a href="mailto:credentialing@hospital.vn" className="fw-semibold text-decoration-none" style={{ color: 'var(--wd-blue)' }}>
               credentialing@hospital.vn
             </a>
@@ -321,14 +321,14 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
           className={`wd-tab-btn ${activeTab === 'staff' ? 'active' : ''}`}
           onClick={() => setActiveTab('staff')}
         >
-          Danh Bạ Đồng Nghiệp ({employees.length})
+          {t('directory.tab_colleagues', 'Danh Bạ Đồng Nghiệp')} ({employees.length})
         </button>
         <button
           type="button"
           className={`wd-tab-btn ${activeTab === 'licenses' ? 'active' : ''}`}
           onClick={() => setActiveTab('licenses')}
         >
-          Chứng Chỉ Hành Nghề &amp; Giám Sát Tuân Thủ ({licenses.length})
+          {t('directory.tab_compliance', 'Chứng Chỉ Hành Nghề & Giám Sát Tuân Thủ')} ({licenses.length})
         </button>
       </div>
 
@@ -342,8 +342,8 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                 type="text"
                 placeholder={
                   activeTab === 'staff'
-                    ? 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...'
-                    : 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...'
+                    ? t('directory.search_staff_placeholder', 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...')
+                    : t('directory.search_license_placeholder', 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...')
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -359,7 +359,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                   onChange={(e) => setSelectedDept(e.target.value)}
                   className="wd-select w-100"
                 >
-                  <option value="ALL">Tất Cả Khoa Phòng</option>
+                  <option value="ALL">{t('directory.all_departments', 'Tất Cả Khoa Phòng')}</option>
                   {serverDepartments.map((dept) => (
                     <option key={dept.department_code} value={dept.department_code}>
                       {dept.name}
@@ -373,10 +373,10 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="wd-select w-100"
                 >
-                  <option value="ALL">Tất Cả Chức Danh</option>
-                  <option value="DEPARTMENT_HEAD">Trưởng Khoa</option>
-                  <option value="DOCTOR">Bác Sĩ Điều Trị</option>
-                  <option value="NURSE">Điều Dưỡng</option>
+                  <option value="ALL">{t('directory.all_roles', 'Tất Cả Chức Danh')}</option>
+                  <option value="DEPARTMENT_HEAD">{t('directory.role_dept_head', 'Trưởng Khoa')}</option>
+                  <option value="DOCTOR">{t('directory.doctor_attending', 'Bác Sĩ Điều Trị')}</option>
+                  <option value="NURSE">{t('directory.role_nurse', 'Điều Dưỡng')}</option>
                 </select>
               </Col>
               <Col xs={12} md={2} className="text-md-end">
@@ -418,7 +418,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                         <div className="d-flex align-items-center gap-2">
                           {getRoleBadge(emp.role)}
                           <span className={emp.status === 'ACTIVE' ? 'wd-badge-success' : 'wd-badge-warning'}>
-                            {emp.status === 'ACTIVE' ? 'Đang Công Tác' : emp.status}
+                            {emp.status === 'ACTIVE' ? t('directory.status_active', 'Đang Công Tác') : emp.status}
                           </span>
                         </div>
                       </div>
@@ -454,7 +454,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                           <Phone size={13} className="text-muted flex-shrink-0" />
                           <span>{emp.phone}</span>
                         </span>
-                        <span className="font-mono text-muted">Nhận việc: {emp.hire_date}</span>
+                        <span className="font-mono text-muted">{t('directory.hire_date_prefix', 'Nhận việc:')} {emp.hire_date}</span>
                       </div>
 
                       <button
@@ -462,7 +462,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                         className="wd-pill-btn-outline w-100 py-2 justify-content-center mt-2"
                         onClick={() => setSelectedProfile(emp)}
                       >
-                        Xem Hồ Sơ Chi Tiết
+                        {t('directory.view_profile_btn', 'Xem Hồ Sơ Chi Tiết')}
                       </button>
                     </div>
                   </div>
@@ -475,13 +475,13 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                 <table className="wd-table">
                   <thead>
                     <tr>
-                      <th>CÁN BỘ Y TẾ</th>
-                      <th>KHOA PHÒNG</th>
-                      <th>CHỨC DANH &amp; CHUYÊN MÔN</th>
-                      <th>LIÊN HỆ</th>
-                      <th>NGÀY TIẾP NHẬN</th>
-                      <th>TRẠNG THÁI</th>
-                      <th className="text-end">THAO TÁC</th>
+                      <th>{t('directory.th_staff', 'CÁN BỘ Y TẾ')}</th>
+                      <th>{t('directory.th_department', 'KHOA PHÒNG')}</th>
+                      <th>{t('directory.th_role_specialty', 'CHỨC DANH & CHUYÊN MÔN')}</th>
+                      <th>{t('directory.th_contact', 'LIÊN HỆ')}</th>
+                      <th>{t('directory.th_hire_date', 'NGÀY TIẾP NHẬN')}</th>
+                      <th>{t('directory.th_status', 'TRẠNG THÁI')}</th>
+                      <th className="text-end">{t('directory.th_actions', 'THAO TÁC')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -505,7 +505,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                         </td>
                         <td>
                           <div>{getRoleBadge(e.role)}</div>
-                          <small className="text-muted">{e.specialty || 'Đa khoa lâm sàng'}</small>
+                          <small className="text-muted">{e.specialty || t('directory.default_specialty', 'Đa khoa lâm sàng')}</small>
                         </td>
                         <td>
                           <div style={{ fontSize: '12px' }}>{e.email}</div>
@@ -516,7 +516,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                         </td>
                         <td>
                           <span className={e.status === 'ACTIVE' ? 'wd-badge-success' : 'wd-badge-warning'}>
-                            {e.status === 'ACTIVE' ? 'Đang Công Tác' : e.status}
+                            {e.status === 'ACTIVE' ? t('directory.status_active', 'Đang Công Tác') : e.status}
                           </span>
                         </td>
                         <td className="text-end">
@@ -525,7 +525,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                             className="wd-pill-btn-outline"
                             onClick={() => setSelectedProfile(e)}
                           >
-                            Hồ Sơ
+                            {t('directory.profile_short_btn', 'Hồ Sơ')}
                           </button>
                         </td>
                       </tr>
@@ -546,52 +546,52 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             <Col xs={12} sm={6} lg={3}>
               <div className="wd-card mb-0 p-4">
                 <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-                  Tổng Chứng Chỉ Giám Sát
+                  {t('directory.kpi_total_licenses', 'Tổng Chứng Chỉ Giám Sát')}
                 </div>
                 <div className="fw-bold text-dark my-2 font-mono" style={{ fontSize: '24px' }}>
                   {licenses.length}
                 </div>
                 <div className="text-muted" style={{ fontSize: '12px' }}>
-                  Bác sĩ, dược sĩ &amp; điều dưỡng
+                  {t('directory.kpi_total_sub', 'Bác sĩ, dược sĩ & điều dưỡng')}
                 </div>
               </div>
             </Col>
             <Col xs={12} sm={6} lg={3}>
               <div className="wd-card mb-0 p-4">
                 <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-                  Hiệu Lực Pháp Lý Hợp Lệ
+                  {t('directory.kpi_valid', 'Hiệu Lực Pháp Lý Hợp Lệ')}
                 </div>
                 <div className="fw-bold my-2 font-mono" style={{ fontSize: '24px', color: 'var(--wd-green)' }}>
                   {licenses.filter((l) => l.verification_status === 'VERIFIED').length}
                 </div>
                 <div className="text-muted" style={{ fontSize: '12px' }}>
-                  Đã xác thực với Bộ Y tế
+                  {t('directory.kpi_valid_sub', 'Đã xác thực với Bộ Y tế')}
                 </div>
               </div>
             </Col>
             <Col xs={12} sm={6} lg={3}>
               <div className="wd-card mb-0 p-4">
                 <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-                  Hết Hạn Trong &lt; 60 Ngày
+                  {t('directory.kpi_expiring', 'Hết Hạn Trong < 60 Ngày')}
                 </div>
                 <div className="fw-bold my-2 font-mono" style={{ fontSize: '24px', color: 'var(--wd-amber)' }}>
                   {licenses.filter((l) => l.days_until_expiry > 0 && l.days_until_expiry <= 60).length}
                 </div>
                 <div className="text-muted" style={{ fontSize: '12px' }}>
-                  Cần liên hệ gia hạn kịp thời
+                  {t('directory.kpi_expiring_sub', 'Cần liên hệ gia hạn kịp thời')}
                 </div>
               </div>
             </Col>
             <Col xs={12} sm={6} lg={3}>
               <div className="wd-card mb-0 p-4">
                 <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-                  Hết Hiệu Lực / Quá Hạn
+                  {t('directory.kpi_expired', 'Hết Hiệu Lực / Quá Hạn')}
                 </div>
                 <div className="fw-bold my-2 font-mono" style={{ fontSize: '24px', color: 'var(--wd-red)' }}>
                   {licenses.filter((l) => l.days_until_expiry <= 0).length}
                 </div>
                 <div className="text-muted" style={{ fontSize: '12px' }}>
-                  Đình chỉ công tác lâm sàng
+                  {t('directory.kpi_expired_sub', 'Đình chỉ công tác lâm sàng')}
                 </div>
               </div>
             </Col>
@@ -606,13 +606,13 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               <table className="wd-table">
                 <thead>
                   <tr>
-                    <th>{lang === 'vi' ? 'BÁC SĨ / ĐIỀU DƯỠNG' : 'CLINICIAN'}</th>
-                    <th>{lang === 'vi' ? 'LOẠI CHỨNG CHỈ HÀNH NGHỀ' : 'PRACTICING LICENSE TYPE'}</th>
-                    <th>{lang === 'vi' ? 'SỐ HIỆU CHỨNG CHỈ' : 'LICENSE NUMBER'}</th>
-                    <th>CƠ QUAN CẤP PHÉP</th>
-                    <th>NGÀY HẾT HẠN</th>
-                    <th>GIÁM SÁT HẠN DÙNG</th>
-                    <th>TRẠNG THÁI</th>
+                    <th>{t('directory.th_clinician', 'BÁC SĨ / ĐIỀU DƯỠNG')}</th>
+                    <th>{t('directory.th_license_type', 'LOẠI CHỨNG CHỈ HÀNH NGHỀ')}</th>
+                    <th>{t('directory.th_license_num', 'SỐ HIỆU CHỨNG CHỈ')}</th>
+                    <th>{t('directory.th_issuing_auth', 'CƠ QUAN CẤP PHÉP')}</th>
+                    <th>{t('directory.th_expiry_date', 'NGÀY HẾT HẠN')}</th>
+                    <th>{t('directory.th_expiry_monitor', 'GIÁM SÁT HẠN DÙNG')}</th>
+                    <th>{t('directory.th_lic_status', 'TRẠNG THÁI')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -640,23 +640,23 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                         {lic.days_until_expiry <= 0 ? (
                           <span className="wd-badge-urgent">
                             <AlertTriangle size={11} />
-                            Hết hạn ({Math.abs(lic.days_until_expiry)} ngày trước)
+                            {t('directory.status_expired_prefix', 'Hết hạn')} ({Math.abs(lic.days_until_expiry)} {t('directory.days_ago', 'ngày trước')})
                           </span>
                         ) : lic.days_until_expiry <= 60 ? (
                           <span className="wd-badge-warning">
                             <Clock size={11} />
-                            Còn {lic.days_until_expiry} ngày
+                            {t('directory.remaining_prefix', 'Còn')} {lic.days_until_expiry} {t('directory.days', 'ngày')}
                           </span>
                         ) : (
                           <span className="wd-badge-success">
                             <CheckCircle2 size={11} />
-                            Hợp lệ ({lic.days_until_expiry} ngày)
+                            {t('directory.valid_prefix', 'Hợp lệ')} ({lic.days_until_expiry} {t('directory.days', 'ngày')})
                           </span>
                         )}
                       </td>
                       <td>
                         <span className={lic.verification_status === 'VERIFIED' ? 'wd-badge-success' : 'wd-badge-warning'}>
-                          {lic.verification_status === 'VERIFIED' ? 'Đã Xác Thực' : 'Chờ Đối Chiếu'}
+                          {lic.verification_status === 'VERIFIED' ? t('directory.status_verified', 'Đã Xác Thực') : t('directory.status_pending_verify', 'Chờ Đối Chiếu')}
                         </span>
                       </td>
                     </tr>
@@ -673,7 +673,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         <Modal show={true} onHide={() => setSelectedProfile(null)} size="lg" centered>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark">
-              Hồ Sơ Cán Bộ Y Tế &bull; Workday Worker Profile
+              {t('directory.modal_profile_title', 'Hồ Sơ Cán Bộ Y Tế')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
@@ -693,25 +693,25 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
 
             <Row className="g-3 mb-3">
               <Col xs={6}>
-                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>Hòm Thư Nội Bộ</div>
+                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>{t('directory.lbl_internal_mail', 'Hòm Thư Nội Bộ')}</div>
                 <div className="fw-medium text-dark">{selectedProfile.email}</div>
               </Col>
               <Col xs={6}>
-                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>Điện Thoại Trực Ca</div>
+                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>{t('directory.lbl_shift_phone', 'Điện Thoại Trực Ca')}</div>
                 <div className="fw-medium text-dark">{selectedProfile.phone}</div>
               </Col>
               <Col xs={6}>
-                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>Chuyên Khoa Lâm Sàng</div>
-                <div className="fw-medium text-dark">{selectedProfile.specialty || 'Khám bệnh đa khoa'}</div>
+                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>{t('directory.lbl_clinical_spec', 'Chuyên Khoa Lâm Sàng')}</div>
+                <div className="fw-medium text-dark">{selectedProfile.specialty || t('directory.default_general_spec', 'Khám bệnh đa khoa')}</div>
               </Col>
               <Col xs={6}>
-                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>Ngày Tiếp Nhận Nhân Sự</div>
+                <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px' }}>{t('directory.lbl_hire_date', 'Ngày Tiếp Nhận Nhân Sự')}</div>
                 <div className="fw-medium font-mono text-dark">{selectedProfile.hire_date}</div>
               </Col>
             </Row>
 
             <div className="p-3 rounded-2 small text-muted border" style={{ backgroundColor: '#f9fafb', borderColor: 'var(--wd-border)' }}>
-              Nhân viên y tế được bảo trợ pháp lý bởi Bệnh viện Đa khoa Quốc tế và đăng ký hành nghề với Sở Y tế.
+              {t('directory.compliance_disclaimer', 'Nhân viên y tế được bảo trợ pháp lý bởi Bệnh viện Đa khoa Quốc tế và đăng ký hành nghề với Sở Y tế.')}
             </div>
           </Modal.Body>
           <Modal.Footer className="border-top py-2.5" style={{ borderColor: 'var(--wd-border)' }}>
@@ -720,7 +720,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               className="wd-pill-btn-outline"
               onClick={() => setSelectedProfile(null)}
             >
-              Đóng
+              {t('directory.btn_close', 'Đóng')}
             </button>
           </Modal.Footer>
         </Modal>
@@ -731,12 +731,12 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         <Form onSubmit={handleAddEmployee}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark">
-              Tiếp Nhận Nhân Viên Y Tế Mới
+              {t('directory.modal_new_emp_title', 'Tiếp Nhận Nhân Viên Y Tế Mới')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
             <Form.Group className="mb-3">
-              <label className="wd-label">Mã Cán Bộ Y Tế</label>
+              <label className="wd-label">{t('directory.lbl_emp_code', 'Mã Cán Bộ Y Tế')}</label>
               <input
                 required
                 value={newCode}
@@ -747,20 +747,20 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
 
             <Row className="g-3 mb-3">
               <Col xs={6}>
-                <label className="wd-label">Họ &amp; Tên Đệm</label>
+                <label className="wd-label">{t('directory.lbl_first_name', 'Họ & Tên Đệm')}</label>
                 <input
                   required
-                  placeholder="VD: Nguyễn Văn"
+                  placeholder={t('directory.placeholder_first_name', 'VD: Nguyễn Văn')}
                   value={newFirstName}
                   onChange={(e) => setNewFirstName(e.target.value)}
                   className="wd-input w-100"
                 />
               </Col>
               <Col xs={6}>
-                <label className="wd-label">Tên</label>
+                <label className="wd-label">{t('directory.lbl_last_name', 'Tên')}</label>
                 <input
                   required
-                  placeholder="VD: An"
+                  placeholder={t('directory.placeholder_last_name', 'VD: An')}
                   value={newLastName}
                   onChange={(e) => setNewLastName(e.target.value)}
                   className="wd-input w-100"
@@ -769,7 +769,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             </Row>
 
             <Form.Group className="mb-3">
-              <label className="wd-label">Email Nội Bộ</label>
+              <label className="wd-label">{t('directory.lbl_internal_email', 'Email Nội Bộ')}</label>
               <input
                 type="email"
                 required
@@ -781,7 +781,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <label className="wd-label">Khoa Phòng Phân Công</label>
+              <label className="wd-label">{t('directory.lbl_assign_dept', 'Khoa Phòng Phân Công')}</label>
               <select
                 value={newDept}
                 onChange={(e) => setNewDept(e.target.value)}
@@ -797,22 +797,22 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
 
             <Row className="g-3 mb-3">
               <Col xs={6}>
-                <label className="wd-label">Chức Vụ Chuyên Môn</label>
+                <label className="wd-label">{t('directory.lbl_role_title', 'Chức Vụ Chuyên Môn')}</label>
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as any)}
                   className="wd-select w-100"
                 >
-                  <option value="DOCTOR">Bác Sĩ</option>
-                  <option value="NURSE">Điều Dưỡng</option>
-                  <option value="DEPARTMENT_HEAD">Trưởng Khoa</option>
-                  <option value="HR_MANAGER">Nhân Sự HR</option>
+                  <option value="DOCTOR">{t('directory.role_doctor', 'Bác Sĩ')}</option>
+                  <option value="NURSE">{t('directory.role_nurse', 'Điều Dưỡng')}</option>
+                  <option value="DEPARTMENT_HEAD">{t('directory.role_dept_head', 'Trưởng Khoa')}</option>
+                  <option value="HR_MANAGER">{t('directory.role_hr_manager', 'Nhân Sự HR')}</option>
                 </select>
               </Col>
               <Col xs={6}>
-                <label className="wd-label">Chuyên Khoa Cụ Thể</label>
+                <label className="wd-label">{t('directory.lbl_specific_spec', 'Chuyên Khoa Cụ Thể')}</label>
                 <input
-                  placeholder="VD: Hồi Sức Cấp Cứu"
+                  placeholder={t('directory.placeholder_spec', 'VD: Hồi Sức Cấp Cứu')}
                   value={newSpecialty}
                   onChange={(e) => setNewSpecialty(e.target.value)}
                   className="wd-input w-100"
@@ -826,14 +826,14 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               className="wd-pill-btn-outline"
               onClick={() => setShowAddEmpModal(false)}
             >
-              Hủy
+              {t('directory.btn_cancel', 'Hủy')}
             </button>
             <button
               type="submit"
               disabled={createEmployeeMutation.isPending}
               className="wd-pill-btn-primary"
             >
-              {createEmployeeMutation.isPending ? 'Đang lưu...' : 'Lưu Hồ Sơ Nhân Viên'}
+              {createEmployeeMutation.isPending ? t('directory.btn_saving', 'Đang lưu...') : t('directory.btn_save_emp', 'Lưu Hồ Sơ Nhân Viên')}
             </button>
           </Modal.Footer>
         </Form>
@@ -844,12 +844,12 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         <Form onSubmit={handleAddLicense}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark">
-              Đăng Ký Chứng Chỉ Hành Nghề Y Tế Mới
+              {t('directory.modal_new_lic_title', 'Đăng Ký Chứng Chỉ Hành Nghề Y Tế Mới')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
             <Form.Group className="mb-3">
-              <label className="wd-label">Cán Bộ Y Tế Đăng Ký</label>
+              <label className="wd-label">{t('directory.lbl_lic_staff', 'Cán Bộ Y Tế Đăng Ký')}</label>
               <select
                 value={licStaff}
                 onChange={(e) => setLicStaff(e.target.value)}
@@ -864,7 +864,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <label className="wd-label">Tên Loại Chứng Chỉ</label>
+              <label className="wd-label">{t('directory.lbl_lic_type', 'Tên Loại Chứng Chỉ')}</label>
               <input
                 required
                 value={licType}
@@ -886,7 +886,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
 
             <Row className="g-3 mb-3">
               <Col xs={6}>
-                <label className="wd-label">Cơ Quan Cấp</label>
+                <label className="wd-label">{t('directory.lbl_authority', 'Cơ Quan Cấp')}</label>
                 <input
                   required
                   value={licAuthority}
@@ -895,7 +895,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                 />
               </Col>
               <Col xs={6}>
-                <label className="wd-label">Ngày Hết Hạn</label>
+                <label className="wd-label">{t('directory.lbl_expiry', 'Ngày Hết Hạn')}</label>
                 <input
                   type="date"
                   required
@@ -912,13 +912,13 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               className="wd-pill-btn-outline"
               onClick={() => setShowAddLicenseModal(false)}
             >
-              Hủy
+              {t('directory.btn_cancel', 'Hủy')}
             </button>
             <button
               type="submit"
               className="wd-pill-btn-primary"
             >
-              Đăng Ký Chứng Chỉ
+              {t('directory.btn_register_lic', 'Đăng Ký Chứng Chỉ')}
             </button>
           </Modal.Footer>
         </Form>

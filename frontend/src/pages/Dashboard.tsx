@@ -37,7 +37,7 @@ export const Dashboard: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
 
-  const currentStaffName = user?.name || (isHRorAdmin ? 'Cán Bộ Quản Trị Nhân Sự' : 'BS. Nguyễn Văn A');
+  const currentStaffName = user?.name || (isHRorAdmin ? t('dashboard.hr_admin_title', 'Cán Bộ Quản Trị Nhân Sự') : t('dashboard.doctor_default', 'BS. Nguyễn Văn A'));
   const currentStaffCode = user?.employee_code || (isHRorAdmin ? 'EMP-HR-001' : 'EMP-DOC-001');
 
   // Queries for all users
@@ -133,18 +133,18 @@ export const Dashboard: React.FC = () => {
           <div className="position-relative z-1 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div>
               <span className="badge rounded-pill bg-white text-primary fw-semibold px-2.5 py-1 mb-2 text-uppercase" style={{ fontSize: '11px' }}>
-                KHỐI TỔ CHỨC CÁN BỘ &bull; BAN GIÁM ĐỐC
+                {t('dashboard.banner_hr_dept', 'KHỐI TỔ CHỨC CÁN BỘ • BAN GIÁM ĐỐC')}
               </span>
               <h4 className="fw-bold mb-1 text-white" style={{ letterSpacing: '-0.02em' }}>
-                Trung Tâm Chỉ Huy Quản Trị Nhân Sự Bệnh Viện
+                {t('dashboard.banner_hr_title', 'Trung Tâm Chỉ Huy Quản Trị Nhân Sự Bệnh Viện')}
               </h4>
               <p className="text-white text-opacity-85 mb-0 small" style={{ maxWidth: '640px', fontSize: '13px' }}>
-                Điều hành hồ sơ cán bộ, quản trị tài khoản IAM, duyệt nghỉ phép, định mức chi trả lương VND và tuân thủ chứng chỉ hành nghề y tế.
+                {t('dashboard.banner_hr_desc', 'Điều hành hồ sơ cán bộ, quản trị tài khoản IAM, duyệt nghỉ phép, định mức chi trả lương VND và tuân thủ chứng chỉ hành nghề y tế.')}
               </p>
             </div>
             <div className="d-flex gap-2 flex-shrink-0">
               <Link to="/admin" className="btn btn-sm btn-light fw-semibold text-primary px-3.5 py-2 rounded-pill shadow-sm">
-                Vào Cổng Quản Trị Toàn Diện &rarr;
+                {t('dashboard.banner_hr_btn', 'Vào Cổng Quản Trị Toàn Diện')} &rarr;
               </Link>
             </div>
           </div>
@@ -153,30 +153,30 @@ export const Dashboard: React.FC = () => {
         {/* 2. Welcome Title & HR Quick Action Pills */}
         <div className="text-center my-4 py-1">
           <h3 className="fw-bold text-dark mb-1" style={{ letterSpacing: '-0.02em', fontSize: '24px' }}>
-            Chào mừng, {currentStaffName}
+            {t('top_nav.welcome', 'Chào mừng')}, {currentStaffName}
           </h3>
           <p className="text-muted small mb-3">
-            {user?.role === 'SUPER_ADMIN' ? 'Ban Giám Đốc Bệnh Viện (Super Admin)' : 'Trưởng Phòng Tổ Chức Cán Bộ (HR Manager)'}
+            {user?.role === 'SUPER_ADMIN' ? t('dashboard.role_super_admin', 'Ban Giám Đốc Bệnh Viện') : t('dashboard.role_hr_manager', 'Trưởng Phòng Tổ Chức Cán Bộ')}
           </p>
 
           <div className="d-flex flex-wrap justify-content-center gap-2">
             <Link to="/admin" className="wd-pill-btn text-primary fw-semibold">
-              <ShieldCheck size={14} className="me-1" /> Quản trị hệ thống &amp; IAM
+              <ShieldCheck size={14} className="me-1" /> {t('dashboard.quick_iam', 'Quản trị hệ thống & IAM')}
             </Link>
             <Link to="/leave" className="wd-pill-btn">
-              <Calendar size={14} className="me-1" /> Duyệt phép ({kpis.pending_leaves} chờ duyệt)
+              <Calendar size={14} className="me-1" /> {t('dashboard.quick_leave_review', 'Duyệt phép')} ({kpis.pending_leaves} {t('dashboard.pending_approval_count', 'chờ duyệt')})
             </Link>
             <Link to="/payroll" className="wd-pill-btn">
-              <CreditCard size={14} className="me-1" /> Định mức lương VND
+              <CreditCard size={14} className="me-1" /> {t('dashboard.quick_pay_vnd', 'Định mức lương VND')}
             </Link>
             <Link to="/employees" className="wd-pill-btn">
-              <Users size={14} className="me-1" /> Hồ sơ cán bộ ({kpis.total_employees})
+              <Users size={14} className="me-1" /> {t('dashboard.quick_staff_records', 'Hồ sơ cán bộ')} ({kpis.total_employees})
             </Link>
             <Link to="/licenses" className="wd-pill-btn">
-              <Award size={14} className="me-1" /> Giám sát CCHN y tế
+              <Award size={14} className="me-1" /> {t('dashboard.quick_cchn', 'Giám sát CCHN y tế')}
             </Link>
             <Link to="/notifications" className="wd-pill-btn">
-              <Bell size={14} className="me-1" /> Phát lệnh thông báo
+              <Bell size={14} className="me-1" /> {t('dashboard.quick_broadcast', 'Phát lệnh thông báo')}
             </Link>
           </div>
         </div>
@@ -189,10 +189,10 @@ export const Dashboard: React.FC = () => {
             <div className="mb-4">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <h5 className="fw-bold text-dark mb-0" style={{ fontSize: '17px' }}>
-                  Cần HR Xử Lý Ngay (Awaiting HR Action)
+                  {t('dashboard.awaiting_hr', 'Cần HR Xử Lý Ngay')}
                 </h5>
                 <span className="text-muted small">
-                  {kpis.pending_leaves + kpis.expiring_licenses_30d} mục ưu tiên
+                  {kpis.pending_leaves + kpis.expiring_licenses_30d} {t('dashboard.priority_items', 'mục ưu tiên')}
                 </span>
               </div>
 
@@ -211,18 +211,18 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
-                              Đơn xin nghỉ phép: {l.staff_name || l.staff_id}
+                              {t('dashboard.leave_request_prefix', 'Đơn xin nghỉ phép:')} {l.staff_name || l.staff_id}
                             </div>
                             <div className="text-muted small mt-0.5" style={{ fontSize: '12.5px' }}>
-                              Khoa: <span className="text-dark fw-medium">{l.department_name || l.department_code}</span> &bull; {l.leave_type} ({l.days_requested || '1'} ngày) &bull; Lý do: {l.reason || 'Không có'}
+                              {t('dashboard.dept_prefix', 'Khoa:')} <span className="text-dark fw-medium">{l.department_name || l.department_code}</span> &bull; {l.leave_type} ({l.days_requested || '1'} {t('dashboard.days_unit', 'ngày')}) &bull; {t('dashboard.reason_prefix', 'Lý do:')} {l.reason || t('dashboard.none', 'Không có')}
                             </div>
                             <div className="mt-2">
-                              <span className="badge bg-warning bg-opacity-20 text-dark fw-normal">CHỜ PHÊ DUYỆT</span>
+                              <span className="badge bg-warning bg-opacity-20 text-dark fw-normal">{t('leave.status_pending', 'Chờ phê duyệt').toUpperCase()}</span>
                             </div>
                           </div>
                         </div>
                         <Link to="/leave" className="wd-pill-btn-primary flex-shrink-0" style={{ fontSize: '12px', padding: '5px 14px' }}>
-                          Xét duyệt &gt;
+                          {t('dashboard.review_btn', 'Xét duyệt')} &gt;
                         </Link>
                       </Card.Body>
                     </Card>
@@ -231,7 +231,7 @@ export const Dashboard: React.FC = () => {
                   <Card className="wd-card mb-0">
                     <Card.Body className="p-3 text-center text-muted">
                       <CheckCircle2 size={24} className="text-success mb-1" />
-                      <div className="fw-semibold text-dark small">Không có đơn xin nghỉ phép nào tồn đọng</div>
+                      <div className="fw-semibold text-dark small">{t('dashboard.no_pending_leaves', 'Không có đơn xin nghỉ phép nào tồn đọng')}</div>
                     </Card.Body>
                   </Card>
                 )}
@@ -249,15 +249,15 @@ export const Dashboard: React.FC = () => {
                         </div>
                         <div>
                           <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
-                            {kpis.expiring_licenses_30d} Chứng chỉ hành nghề sắp hết hạn (&lt; 30 ngày)
+                            {kpis.expiring_licenses_30d} {t('dashboard.expiring_licenses', 'Chứng chỉ hành nghề sắp hết hạn')}
                           </div>
                           <div className="text-muted small mt-0.5" style={{ fontSize: '12.5px' }}>
-                            Cần yêu cầu cán bộ hoàn tất hồ sơ gia hạn với Sở Y Tế để bảo đảm điều kiện tham gia trực lâm sàng.
+                            {t('dashboard.expiring_desc', 'Cần yêu cầu cán bộ hoàn tất hồ sơ gia hạn với Sở Y Tế để bảo đảm điều kiện tham gia trực lâm sàng.')}
                           </div>
                         </div>
                       </div>
                       <Link to="/licenses" className="wd-pill-btn flex-shrink-0 text-danger" style={{ fontSize: '12px', padding: '5px 14px' }}>
-                        Kiểm tra &gt;
+                        {t('dashboard.inspect_btn', 'Kiểm tra')} &gt;
                       </Link>
                     </Card.Body>
                   </Card>
@@ -265,7 +265,7 @@ export const Dashboard: React.FC = () => {
 
                 <div className="text-start ps-1 pt-1">
                   <Link to="/leave" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
-                    <span>Vào toàn bộ danh sách phê duyệt nghỉ phép viện &gt;</span>
+                    <span>{t('dashboard.view_all_leave_requests', 'Vào toàn bộ danh sách phê duyệt nghỉ phép viện')} &gt;</span>
                     <ChevronRight size={14} />
                   </Link>
                 </div>
@@ -276,10 +276,10 @@ export const Dashboard: React.FC = () => {
             <div className="mb-4">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <h5 className="fw-bold text-dark mb-0" style={{ fontSize: '17px' }}>
-                  Cơ Cấu Nhân Lực 8 Khoa Phòng Bệnh Viện
+                  {t('dashboard.dept_structure_title', 'Cơ Cấu Nhân Lực 8 Khoa Phòng Bệnh Viện')}
                 </h5>
                 <Link to="/admin" className="text-decoration-none fw-semibold text-primary small">
-                  Quản lý khoa phòng &gt;
+                  {t('dashboard.manage_depts', 'Quản lý khoa phòng')} &gt;
                 </Link>
               </div>
 
@@ -288,11 +288,11 @@ export const Dashboard: React.FC = () => {
                   <table className="wd-table">
                     <thead>
                       <tr>
-                        <th>Mã Khoa</th>
-                        <th>Tên Khoa / Phòng Chuyên Môn</th>
-                        <th>Vị Trí Khu Nhà</th>
-                        <th>Nhân Lực Thực Tế</th>
-                        <th>Trạng Thái</th>
+                        <th>{t('dashboard.th_dept_code', 'Mã Khoa')}</th>
+                        <th>{t('dashboard.th_dept_name', 'Tên Khoa / Phòng Chuyên Môn')}</th>
+                        <th>{t('dashboard.th_dept_location', 'Vị Trí Khu Nhà')}</th>
+                        <th>{t('dashboard.th_dept_headcount', 'Nhân Lực Thực Tế')}</th>
+                        <th>{t('dashboard.th_status', 'Trạng Thái')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -300,13 +300,13 @@ export const Dashboard: React.FC = () => {
                         <tr key={d.department_code}>
                           <td className="font-monospace fw-semibold text-primary">{d.department_code}</td>
                           <td className="fw-medium text-dark">{d.name}</td>
-                          <td className="small text-muted">{d.location || 'Khu nhà khám chữa bệnh'}</td>
+                          <td className="small text-muted">{d.location || t('dashboard.default_building', 'Khu nhà khám chữa bệnh')}</td>
                           <td>
-                            <strong className="text-dark">{d.employee_count ?? 0} cán bộ</strong>
+                            <strong className="text-dark">{d.employee_count ?? 0} {t('dashboard.staff_count', 'cán bộ')}</strong>
                           </td>
                           <td>
                             <span className="badge bg-success bg-opacity-10 text-success fw-normal">
-                              {d.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
+                              {d.status === 'ACTIVE' ? t('common.active', 'Hoạt động') : t('common.inactive', 'Tạm dừng')}
                             </span>
                           </td>
                         </tr>
@@ -323,9 +323,9 @@ export const Dashboard: React.FC = () => {
             {/* Card: Announcements */}
             <Card className="wd-card mb-4">
               <Card.Header className="wd-card-header d-flex align-items-center justify-content-between">
-                <span className="wd-card-title">{lang === 'vi' ? 'Thông Báo Bệnh Viện' : 'Hospital Announcements'}</span>
+                <span className="wd-card-title">{t('dashboard.hospital_announcements', 'Thông Báo Bệnh Viện')}</span>
                 <Link to="/notifications" className="text-primary text-decoration-none small fw-semibold" style={{ fontSize: '12px' }}>
-                  {lang === 'vi' ? 'Xem tất cả' : 'View all'} • {notifications.length}
+                  {t('dashboard.view_all', 'Xem tất cả')} • {notifications.length}
                 </Link>
               </Card.Header>
               <Card.Body className="p-3">
@@ -337,7 +337,7 @@ export const Dashboard: React.FC = () => {
                     }}
                   >
                     <div className="small text-white text-opacity-75 text-uppercase fw-semibold mb-1" style={{ fontSize: '11px' }}>
-                      {notifications[0].type || 'Hệ thống'} &bull; {notifications[0].created_at ? new Date(notifications[0].created_at).toLocaleDateString('vi-VN') : 'Hôm nay'}
+                      {notifications[0].type || t('dashboard.system_notice', 'Hệ thống')} &bull; {notifications[0].created_at ? new Date(notifications[0].created_at).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US') : t('dashboard.today', 'Hôm nay')}
                     </div>
                     <div className="fw-bold mb-1" style={{ fontSize: '14px' }}>
                       {notifications[0].title}
@@ -348,15 +348,15 @@ export const Dashboard: React.FC = () => {
                   </div>
                 ) : (
                   <div className="p-3 text-center text-muted small bg-light rounded-2 mb-3">
-                    Chưa có thông báo mới nào.
+                    {t('dashboard.no_announcements', 'Chưa có thông báo mới nào.')}
                   </div>
                 )}
                 <div className="d-flex align-items-center justify-content-between pt-1">
                   <Link to="/notifications" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
-                    <span>Mở trung tâm thông báo &gt;</span>
+                    <span>{t('dashboard.open_notifications', 'Mở trung tâm thông báo')} &gt;</span>
                   </Link>
                   <Link to="/admin" className="btn btn-sm btn-outline-primary py-0.5 px-2" style={{ fontSize: '11.5px' }}>
-                    Phát thông báo
+                    {t('dashboard.publish_notice', 'Phát thông báo')}
                   </Link>
                 </div>
               </Card.Body>
@@ -365,20 +365,20 @@ export const Dashboard: React.FC = () => {
             {/* Card: Payroll Fund Summary */}
             <Card className="wd-card mb-4">
               <Card.Header className="wd-card-header">
-                <span className="wd-card-title">{lang === 'vi' ? 'Quỹ Lương & Đãi Ngộ Cán Bộ' : 'Payroll & Staff Compensation'}</span>
+                <span className="wd-card-title">{t('dashboard.payroll_summary_title', 'Quỹ Lương & Đãi Ngộ Cán Bộ')}</span>
               </Card.Header>
               <Card.Body className="p-3">
                 <div className="p-3 bg-light rounded-2 border mb-3">
-                  <div className="text-muted small mb-1">Tổng Lũy Kế Chi Lương Thực Nhận</div>
+                  <div className="text-muted small mb-1">{t('dashboard.total_net_payroll', 'Tổng Lũy Kế Chi Lương Thực Nhận')}</div>
                   <div className="h4 fw-bold text-success mb-1">
                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(kpis.total_disbursed_vnd || 0))}
                   </div>
-                  <div className="text-muted small">Quy chuẩn 176 giờ làm việc / tháng tiêu chuẩn Việt Nam</div>
+                  <div className="text-muted small">{t('dashboard.payroll_hours_note', 'Quy chuẩn 176 giờ làm việc / tháng tiêu chuẩn Việt Nam')}</div>
                 </div>
 
                 <div className="d-flex align-items-center justify-content-between">
                   <Link to="/payroll" className="text-decoration-none fw-semibold text-primary small">
-                    Quản lý kỳ lương &amp; phiếu lương &gt;
+                    {t('dashboard.manage_payroll_btn', 'Quản lý kỳ lương & phiếu lương')} &gt;
                   </Link>
                 </div>
               </Card.Body>
@@ -387,20 +387,20 @@ export const Dashboard: React.FC = () => {
             {/* Card: Quick Admin Links */}
             <Card className="wd-card">
               <Card.Header className="wd-card-header">
-                <span className="wd-card-title">Lối Tắt Quản Trị Hệ Thống</span>
+                <span className="wd-card-title">{t('dashboard.admin_shortcuts', 'Lối Tắt Quản Trị Hệ Thống')}</span>
               </Card.Header>
               <Card.Body className="p-3">
                 <div className="d-flex flex-column gap-2">
                   <Link to="/admin" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">🛡️ Cổng Quản Trị Hệ Thống &amp; IAM</span>
+                    <span className="small fw-semibold">{t('dashboard.shortcut_iam', '🛡️ Cổng Quản Trị Hệ Thống & IAM')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
                   <Link to="/employees" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">👥 Danh Bạ Cán Bộ &amp; Bổ Nhiệm</span>
+                    <span className="small fw-semibold">{t('dashboard.shortcut_staff', '👥 Danh Bạ Cán Bộ & Bổ Nhiệm')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
                   <Link to="/licenses" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">📜 Giám Sát Chứng Chỉ Hành Nghề</span>
+                    <span className="small fw-semibold">{t('dashboard.shortcut_cchn', '📜 Giám Sát Chứng Chỉ Hành Nghề')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
                 </div>
@@ -435,18 +435,18 @@ export const Dashboard: React.FC = () => {
         <div className="position-relative z-1 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
           <div>
             <span className="badge rounded-pill bg-white text-primary fw-semibold px-2.5 py-1 mb-2 text-uppercase" style={{ fontSize: '11px' }}>
-              KHỐI KHÁM CHỮA BỆNH LÂM SÀNG
+              {t('dashboard.clinical_banner_category', 'KHỐI KHÁM CHỮA BỆNH LÂM SÀNG')}
             </span>
             <h4 className="fw-bold mb-1 text-white" style={{ letterSpacing: '-0.02em' }}>
-              Bàn Làm Việc Lâm Sàng &bull; Bệnh viện Đa khoa Quốc tế
+              {t('dashboard.clinical_banner_title', 'Bàn Làm Việc Lâm Sàng • Bệnh viện Đa khoa Quốc tế')}
             </h4>
             <p className="text-white text-opacity-85 mb-0 small" style={{ maxWidth: '640px', fontSize: '13px' }}>
-              Theo dõi lịch trực 24/7, điểm danh vào ca trực, thực hiện y lệnh buồng bệnh và ký số biên bản bàn giao ca y tế.
+              {t('dashboard.clinical_banner_desc', 'Theo dõi lịch trực 24/7, điểm danh vào ca trực, thực hiện y lệnh buồng bệnh và ký số biên bản bàn giao ca y tế.')}
             </p>
           </div>
           <div className="d-flex gap-2 flex-shrink-0">
             <Link to="/attendance" className="btn btn-sm btn-light fw-semibold text-primary px-3.5 py-2 rounded-pill shadow-sm">
-              Chấm công ca trực
+              {t('dashboard.clock_in_btn', 'Chấm công ca trực')}
             </Link>
           </div>
         </div>
@@ -455,31 +455,31 @@ export const Dashboard: React.FC = () => {
       {/* 2. Doctor Center Header */}
       <div className="text-center my-4 py-1">
         <h3 className="fw-bold text-dark mb-1" style={{ letterSpacing: '-0.02em', fontSize: '24px' }}>
-          Chào mừng, {currentStaffName}
+          {t('top_nav.welcome', 'Chào mừng')}, {currentStaffName}
         </h3>
         <p className="text-muted small mb-3">
-          Mã số cán bộ: <strong>{currentStaffCode}</strong> &bull; Chức vụ: {user?.role || 'DOCTOR'}
+          {t('dashboard.staff_code_label', 'Mã số cán bộ:')} <strong>{currentStaffCode}</strong> &bull; {t('dashboard.staff_role_label', 'Chức vụ:')} {user?.role || 'DOCTOR'}
         </p>
 
         {/* Workday Quick Action Pill Row for Doctors/Nurses */}
         <div className="d-flex flex-wrap justify-content-center gap-2">
           <Link to="/leave" className="wd-pill-btn">
-            Quản lý nghỉ phép
+            {t('dashboard.action_manage_leaves', 'Quản lý nghỉ phép')}
           </Link>
           <Link to="/attendance" className="wd-pill-btn">
-            Chấm công ca trực
+            {t('dashboard.action_clock_in', 'Chấm công ca trực')}
           </Link>
           <Link to="/shifts" className="wd-pill-btn">
-            Lịch trực khoa phòng
+            {t('dashboard.action_roster', 'Lịch trực khoa phòng')}
           </Link>
           <Link to="/tasks" className="wd-pill-btn">
-            Y lệnh &amp; Nhiệm vụ
+            {t('dashboard.action_orders', 'Y lệnh & Nhiệm vụ')}
           </Link>
           <Link to="/handovers" className="wd-pill-btn">
-            Biên bản bàn giao ca
+            {t('dashboard.action_handovers', 'Biên bản bàn giao ca')}
           </Link>
           <Link to="/payroll" className="wd-pill-btn">
-            Phiếu lương của tôi
+            {t('dashboard.action_my_payroll', 'Phiếu lương của tôi')}
           </Link>
         </div>
       </div>
@@ -492,10 +492,10 @@ export const Dashboard: React.FC = () => {
           <div className="mb-4">
             <div className="d-flex align-items-center justify-content-between mb-2">
               <h5 className="fw-bold text-dark mb-0" style={{ fontSize: '17px' }}>
-                Đang chờ xử lý lâm sàng (Awaiting Your Action)
+                {t('dashboard.clinical_awaiting', 'Đang chờ xử lý lâm sàng')}
               </h5>
               <span className="text-muted small">
-                {pendingHandovers.length + pendingTasks.length} mục cần xác nhận
+                {pendingHandovers.length + pendingTasks.length} {t('dashboard.items_need_confirm', 'mục cần xác nhận')}
               </span>
             </div>
 
@@ -504,8 +504,8 @@ export const Dashboard: React.FC = () => {
                 <Card className="wd-card mb-0">
                   <Card.Body className="p-4 text-center text-muted">
                     <ShieldCheck size={28} className="text-success mb-2" />
-                    <div className="fw-semibold text-dark">Bạn đã hoàn tất tất cả công việc cần xác nhận</div>
-                    <div className="small text-muted mt-1">Không có ca trực cần ký bàn giao hay nhiệm vụ lâm sàng tồn đọng.</div>
+                    <div className="fw-semibold text-dark">{t('dashboard.all_tasks_completed', 'Bạn đã hoàn tất tất cả công việc cần xác nhận')}</div>
+                    <div className="small text-muted mt-1">{t('dashboard.no_pending_handovers_tasks', 'Không có ca trực cần ký bàn giao hay nhiệm vụ lâm sàng tồn đọng.')}</div>
                   </Card.Body>
                 </Card>
               ) : (
@@ -523,18 +523,18 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
-                              Ký số bàn giao ca trực #{h.id?.slice(0, 8)}
+                              {t('dashboard.sign_handover_prefix', 'Ký số bàn giao ca trực #')}{h.id?.slice(0, 8)}
                             </div>
                             <div className="text-muted small mt-0.5" style={{ fontSize: '12.5px' }}>
-                              Bàn giao bởi: <span className="text-dark fw-medium">{h.logged_by_name || 'Bác sĩ trực trước'}</span> &bull; Ghi chú: {h.general_notes || 'a'}
+                              {t('dashboard.handed_over_by', 'Bàn giao bởi:')} <span className="text-dark fw-medium">{h.logged_by_name || t('dashboard.previous_doctor', 'Bác sĩ trực trước')}</span> &bull; {t('dashboard.notes_prefix', 'Ghi chú:')} {h.general_notes || '-'}
                             </div>
                             <div className="mt-2">
-                              <span className="badge bg-danger bg-opacity-10 text-danger fw-normal">CẦN KÝ XÁC NHẬN</span>
+                              <span className="badge bg-danger bg-opacity-10 text-danger fw-normal">{t('dashboard.need_signature_badge', 'CẦN KÝ XÁC NHẬN')}</span>
                             </div>
                           </div>
                         </div>
                         <Link to="/handovers" className="wd-pill-btn-primary flex-shrink-0" style={{ fontSize: '12px', padding: '5px 14px' }}>
-                          Ký nhận &gt;
+                          {t('dashboard.sign_confirm_btn', 'Ký nhận')} &gt;
                         </Link>
                       </Card.Body>
                     </Card>
@@ -556,12 +556,12 @@ export const Dashboard: React.FC = () => {
                               {t.title}
                             </div>
                             <div className="text-muted small mt-0.5" style={{ fontSize: '12.5px' }}>
-                              {t.description || 'Y lệnh chăm sóc buồng bệnh'}
+                              {t.description || t('dashboard.ward_order_default', 'Y lệnh chăm sóc buồng bệnh')}
                             </div>
                           </div>
                         </div>
                         <Link to="/tasks" className="wd-pill-btn flex-shrink-0" style={{ fontSize: '12px', padding: '5px 14px' }}>
-                          Chi tiết &gt;
+                          {t('dashboard.detail_btn', 'Chi tiết')} &gt;
                         </Link>
                       </Card.Body>
                     </Card>
@@ -571,7 +571,7 @@ export const Dashboard: React.FC = () => {
 
               <div className="text-start ps-1 pt-1">
                 <Link to="/tasks" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
-                  <span>Chuyển đến Toàn bộ Nhiệm vụ của tôi ({pendingTasks.length + pendingHandovers.length})</span>
+                  <span>{t('dashboard.go_to_all_tasks', 'Chuyển đến Toàn bộ Nhiệm vụ của tôi')} ({pendingTasks.length + pendingHandovers.length})</span>
                   <ChevronRight size={14} />
                 </Link>
               </div>
@@ -581,7 +581,7 @@ export const Dashboard: React.FC = () => {
           {/* Section: Timely Suggestions */}
           <div className="mb-4">
             <h5 className="fw-bold text-dark mb-2" style={{ fontSize: '17px' }}>
-              Gợi ý kịp thời (Timely Suggestions)
+              {t('dashboard.timely_suggestions', 'Gợi ý kịp thời')}
             </h5>
             <Card className="wd-card">
               <Card.Body className="p-3.5 d-flex align-items-center justify-content-between">
@@ -595,16 +595,16 @@ export const Dashboard: React.FC = () => {
                   <div>
                     <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
                       {upcomingLeave
-                        ? `Lịch nghỉ phép: từ ${upcomingLeave.start_date} đến ${upcomingLeave.end_date}`
-                        : `Kế hoạch nghỉ phép thường niên năm 2026`}
+                        ? `${t('dashboard.leave_schedule_prefix', 'Lịch nghỉ phép: từ')} ${upcomingLeave.start_date} ${t('dashboard.to_date', 'đến')} ${upcomingLeave.end_date}`
+                        : t('dashboard.annual_plan_2026', 'Kế hoạch nghỉ phép thường niên')}
                     </div>
                     <div className="text-muted small" style={{ fontSize: '12.5px' }}>
-                      Quỹ phép năm của bạn hiện còn {annualRemaining} ngày. Hãy đăng ký sớm để khoa xếp lịch trực.
+                      {t('dashboard.leave_pool_desc1', 'Quỹ phép năm của bạn hiện còn')} {annualRemaining} {t('dashboard.leave_pool_desc2', 'ngày. Hãy đăng ký sớm để khoa xếp lịch trực.')}
                     </div>
                   </div>
                 </div>
                 <Link to="/leave" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1 flex-shrink-0">
-                  <span>Xem Lịch Nghỉ &gt;</span>
+                  <span>{t('dashboard.view_leave_calendar', 'Xem Lịch Nghỉ')} &gt;</span>
                 </Link>
               </Card.Body>
             </Card>
@@ -614,10 +614,10 @@ export const Dashboard: React.FC = () => {
           <div className="mb-4">
             <div className="d-flex align-items-center justify-content-between mb-2">
               <h5 className="fw-bold text-dark mb-0" style={{ fontSize: '17px' }}>
-                Ca trực Bệnh viện Đang Hoạt động
+                {t('dashboard.active_hospital_shifts', 'Ca trực Bệnh viện Đang Hoạt động')}
               </h5>
               <Link to="/shifts" className="text-decoration-none fw-semibold text-primary small">
-                Xem toàn bộ lịch trực &gt;
+                {t('dashboard.view_all_shifts', 'Xem toàn bộ lịch trực')} &gt;
               </Link>
             </div>
 
@@ -626,11 +626,11 @@ export const Dashboard: React.FC = () => {
                 <table className="wd-table">
                   <thead>
                     <tr>
-                      <th>Nhân sự Y tế</th>
-                      <th>Khoa / Phòng</th>
-                      <th>Ca trực</th>
-                      <th>Thời gian</th>
-                      <th>Trạng thái</th>
+                      <th>{t('dashboard.th_clinical_staff', 'Nhân sự Y tế')}</th>
+                      <th>{t('dashboard.th_department', 'Khoa / Phòng')}</th>
+                      <th>{t('dashboard.th_shift', 'Ca trực')}</th>
+                      <th>{t('dashboard.th_time', 'Thời gian')}</th>
+                      <th>{t('dashboard.th_status', 'Trạng Thái')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -649,7 +649,7 @@ export const Dashboard: React.FC = () => {
                         </td>
                         <td>
                           <Badge bg={s.status === 'IN_PROGRESS' ? 'success' : 'secondary'} className="fw-normal">
-                            {s.status === 'IN_PROGRESS' ? 'Đang trực' : 'Đã xếp lịch'}
+                            {s.status === 'IN_PROGRESS' ? t('dashboard.shift_active', 'Đang trực') : t('dashboard.shift_scheduled', 'Đã xếp lịch')}
                           </Badge>
                         </td>
                       </tr>
@@ -666,9 +666,9 @@ export const Dashboard: React.FC = () => {
           {/* Card: Announcements (Link to /notifications, NOT /handovers!) */}
           <Card className="wd-card mb-4">
             <Card.Header className="wd-card-header">
-              <span className="wd-card-title">{lang === 'vi' ? 'Thông Báo Bệnh Viện' : 'Hospital Announcements'}</span>
+              <span className="wd-card-title">{t('dashboard.hospital_announcements', 'Thông Báo Bệnh Viện')}</span>
               <span className="text-muted" style={{ fontSize: '11px' }}>
-                {notifications.length > 0 ? (lang === 'vi' ? `1 trên ${notifications.length}` : `1 of ${notifications.length}`) : (lang === 'vi' ? '0 thông báo' : '0 announcements')}
+                {notifications.length > 0 ? (lang === 'vi' ? `1 ${t('dashboard.of', 'trên')} ${notifications.length}` : `1 ${t('dashboard.of', 'of')} ${notifications.length}`) : (lang === 'vi' ? `0 ${t('dashboard.notice_count', 'thông báo')}` : `0 ${t('dashboard.notice_count', 'announcements')}`)}
               </span>
             </Card.Header>
             <Card.Body className="p-3">
@@ -680,7 +680,7 @@ export const Dashboard: React.FC = () => {
                   }}
                 >
                   <div className="small text-white text-opacity-75 text-uppercase fw-semibold mb-1" style={{ fontSize: '11px' }}>
-                    {notifications[0].type || 'Hệ thống'} &bull; {notifications[0].created_at ? new Date(notifications[0].created_at).toLocaleDateString('vi-VN') : 'Hôm nay'}
+                    {notifications[0].type || t('dashboard.system_notice', 'Hệ thống')} &bull; {notifications[0].created_at ? new Date(notifications[0].created_at).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US') : t('dashboard.today', 'Hôm nay')}
                   </div>
                   <div className="fw-bold mb-1" style={{ fontSize: '14px' }}>
                     {notifications[0].title}
@@ -691,13 +691,13 @@ export const Dashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="p-3 text-center text-muted small bg-light rounded-2 mb-3">
-                  Không có thông báo mới từ ban giám đốc viện.
+                  {t('dashboard.no_director_notices', 'Không có thông báo mới từ ban giám đốc viện.')}
                 </div>
               )}
               {/* IMPORTANT: Link to /notifications, NOT /handovers */}
               <div className="text-end">
                 <Link to="/notifications" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
-                  <span>Xem tất cả thông báo viện &gt;</span>
+                  <span>{t('dashboard.view_all', 'Xem tất cả')} &gt;</span>
                 </Link>
               </div>
             </Card.Body>
@@ -706,7 +706,7 @@ export const Dashboard: React.FC = () => {
           {/* Card: Important Dates */}
           <Card className="wd-card mb-4">
             <Card.Header className="wd-card-header">
-              <span className="wd-card-title">{lang === 'vi' ? 'Ngày Quan Trọng' : 'Important Dates'}</span>
+              <span className="wd-card-title">{t('dashboard.important_dates', 'Ngày Quan Trọng')}</span>
             </Card.Header>
             <Card.Body className="p-3">
               <div className="d-flex flex-column gap-3">
@@ -715,15 +715,15 @@ export const Dashboard: React.FC = () => {
                     className="rounded-2 text-center p-1.5 flex-shrink-0"
                     style={{ width: '42px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb' }}
                   >
-                    <div className="fw-bold text-uppercase text-danger" style={{ fontSize: '9.5px' }}>T10</div>
+                    <div className="fw-bold text-uppercase text-danger" style={{ fontSize: '9.5px' }}>{lang === 'vi' ? 'T10' : 'OCT'}</div>
                     <div className="fw-bold text-dark" style={{ fontSize: '15px', lineHeight: 1.1 }}>01</div>
                   </div>
                   <div>
                     <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-                      Kỳ chuyển giao ca trực Tháng 10
+                      {t('dashboard.shift_transition_event', 'Kỳ chuyển giao ca trực Tháng 10')}
                     </div>
                     <div className="text-muted small" style={{ fontSize: '11.5px' }}>
-                      Toàn viện &bull; Điều chỉnh định mức làm thêm giờ và trực đêm
+                      {t('dashboard.shift_transition_desc', 'Toàn viện • Điều chỉnh định mức làm thêm giờ và trực đêm')}
                     </div>
                   </div>
                 </div>

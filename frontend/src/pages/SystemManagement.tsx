@@ -167,10 +167,10 @@ export const SystemManagement: React.FC = () => {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      showToast(`Đã ${vars.is_locked ? 'khóa' : 'mở khóa'} tài khoản thành công!`);
+      showToast(vars.is_locked ? t('admin.toast_lock_success', 'Đã cập nhật trạng thái khóa tài khoản thành công!') : t('admin.toast_lock_updated', 'Đã cập nhật trạng thái khóa tài khoản thành công!'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi: ${err.message || 'Không thể cập nhật trạng thái khóa'}`, 'danger');
+      showToast(`${t('admin.toast_lock_failed', 'Không thể cập nhật trạng thái khóa')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -180,10 +180,10 @@ export const SystemManagement: React.FC = () => {
     onSuccess: () => {
       setShowResetPasswordModal(false);
       setNewPasswordValue('');
-      showToast('Đặt lại mật khẩu tài khoản thành công!');
+      showToast(t('admin.toast_password_success', 'Đã đặt lại mật khẩu mới thành công!'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi: ${err.message || 'Không thể đặt lại mật khẩu'}`, 'danger');
+      showToast(`${t('admin.toast_pwd_failed', 'Không thể đặt lại mật khẩu')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -193,10 +193,10 @@ export const SystemManagement: React.FC = () => {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
       setShowRoleModal(false);
-      showToast(`Đã cập nhật phân quyền tài khoản thành "${vars.role_code}" thành công!`);
+      showToast(`${t('admin.toast_role_success', 'Đã cập nhật phân quyền tài khoản thành công!')} (${vars.role_code})`);
     },
     onError: (err: any) => {
-      showToast(`Lỗi: ${err.message || 'Không thể cập nhật phân quyền'}`, 'danger');
+      showToast(`${t('admin.toast_role_failed', 'Không thể cập nhật phân quyền')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -207,10 +207,10 @@ export const SystemManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setShowEditProfileModal(false);
-      showToast('Hồ sơ nhân viên đã được cập nhật toàn diện!');
+      showToast(t('admin.btn_save_profile', 'Lưu Thay Đổi Hồ Sơ'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi cập nhật: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_update_failed', 'Lỗi cập nhật')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -220,10 +220,10 @@ export const SystemManagement: React.FC = () => {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      showToast(`Đã cập nhật yêu cầu nghỉ phép thành "${vars.status === 'APPROVED' ? 'Đã Phê Duyệt' : 'Từ Chối'}"!`);
+      showToast(vars.status === 'APPROVED' ? t('admin.toast_leave_status_approved', 'Đã Phê Duyệt') : t('admin.toast_leave_status_rejected', 'Từ Chối'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi duyệt phép: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_leave_failed', 'Lỗi duyệt phép')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -233,10 +233,10 @@ export const SystemManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['licenses'] });
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      showToast('Đã cập nhật trạng thái chứng chỉ hành nghề!');
+      showToast(t('admin.cchn_title', 'Giám Sát Chứng Chỉ Hành Nghề Y Tế'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_update_failed', 'Lỗi')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -252,10 +252,10 @@ export const SystemManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
       setShowDeptModal(false);
       setEditingDept(null);
-      showToast('Thông tin khoa/phòng đã được lưu vào cơ sở dữ liệu!');
+      showToast(t('admin.btn_save_dept', 'Lưu Khoa Phòng'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi khoa phòng: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_dept_failed', 'Lỗi khoa phòng')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -265,10 +265,10 @@ export const SystemManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-pay-rates'] });
       setShowPayRateModal(false);
-      showToast('Định mức lương cán bộ đã được cập nhật thành công!');
+      showToast(t('admin.btn_update_rate', 'Cập Nhật Lương'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi cập nhật lương: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_rate_failed', 'Lỗi cập nhật lương')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -279,10 +279,10 @@ export const SystemManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
       setShowNewRunModal(false);
-      showToast('Kỳ lương mới và các phiếu lương đã được tự động khởi tạo thành công!');
+      showToast(t('admin.modal_create_run_title', 'Khởi Tạo Kỳ Lương Mới Bệnh Viện'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi khởi tạo kỳ lương: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_run_failed', 'Lỗi khởi tạo kỳ lương')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -291,18 +291,18 @@ export const SystemManagement: React.FC = () => {
       adminApi.updatePayrollRunStatus(id, status),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
-      showToast(`Trạng thái kỳ lương đã chuyển sang "${vars.status}"!`);
+      showToast(`${t('admin.toast_run_status_changed', 'Trạng thái kỳ lương đã chuyển sang')} ${vars.status}`);
     }
   });
 
   const broadcastMutation = useMutation({
     mutationFn: (data: any) => adminApi.broadcastNotification(data),
     onSuccess: (res: any) => {
-      showToast(res.message || 'Đã phát thông báo thành công toàn viện!');
+      showToast(res.message || t('admin.toast_broadcast_success', 'Đã phát thông báo thành công toàn viện!'));
       setBroadcastData({ title: '', message: '', type: 'ANNOUNCEMENT', department_code: 'ALL' });
     },
     onError: (err: any) => {
-      showToast(`Lỗi phát thông báo: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_broadcast_failed', 'Lỗi phát thông báo')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -314,10 +314,10 @@ export const SystemManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
       queryClient.invalidateQueries({ queryKey: ['admin-pay-rates'] });
       setShowOnboardModal(false);
-      showToast(`Tiếp nhận thành công nhân sự ${res.staff_name} (${res.employee_code})! Mật khẩu khởi tạo: ${res.temporary_password}`);
+      showToast(`${t('admin.toast_onboard_success', 'Tiếp nhận thành công nhân sự')} ${res.staff_name} (${res.employee_code}) - ${t('admin.toast_temp_pwd', 'Mật khẩu khởi tạo')}: ${res.temporary_password}`);
     },
     onError: (err: any) => {
-      showToast(`Lỗi tiếp nhận: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_onboard_failed', 'Lỗi tiếp nhận')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -327,10 +327,10 @@ export const SystemManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['shifts'] });
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
       setShowAddShiftModal(false);
-      showToast('Phân ca trực mới thành công!');
+      showToast(t('admin.btn_confirm_shift', 'Xác Nhận Phân Ca'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi phân ca: ${err.message}`, 'danger');
+      showToast(`${t('admin.toast_shift_failed', 'Lỗi phân ca')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -346,20 +346,20 @@ export const SystemManagement: React.FC = () => {
       specialty: acc.specialty || '',
       department_code: acc.department_code || '',
       status: acc.employee_status || 'ACTIVE',
-      work_location: 'Bệnh viện Đa khoa Trung tâm',
+      work_location: 'Central General Hospital',
       office_location: acc.department_name || '',
       hire_date: '2026-01-01',
       dob: '1985-05-15',
       gender: 'MALE',
       national_id: '001085001234',
-      nationality: 'Việt Nam',
+      nationality: 'Vietnam',
       marital_status: 'MARRIED',
       personal_email: acc.email || '',
       personal_phone: acc.phone || '',
       home_phone: acc.phone || '',
-      home_address: 'Hà Nội',
-      district: 'Ba Đình',
-      city_province: 'Hà Nội'
+      home_address: 'Hanoi',
+      district: 'Ba Dinh',
+      city_province: 'Hanoi'
     });
     setShowEditProfileModal(true);
   };
@@ -367,7 +367,7 @@ export const SystemManagement: React.FC = () => {
   const handleOpenPayRateEdit = (pr: AdminPayRate) => {
     setSelectedPayRate(pr);
     setNewHourlyRate(String(pr.base_hourly_rate));
-    setNewTaxTier(pr.tax_tier || 'Bậc 1');
+    setNewTaxTier(pr.tax_tier || 'Tier 1');
     setShowPayRateModal(true);
   };
 
@@ -427,10 +427,10 @@ export const SystemManagement: React.FC = () => {
           </div>
           <div>
             <h1 className="h4 fw-bold text-dark mb-1">
-              Cổng Quản Trị Hệ Thống &amp; Nhân Sự Bệnh Viện
+              {t('admin.page_title', 'Cổng Quản Trị Hệ Thống & Nhân Sự Bệnh Viện')}
             </h1>
             <p className="text-muted small mb-0">
-              Trung tâm chỉ huy HR &amp; IAM: Phê duyệt phép, điều hành ca trực, định mức lương VND, giám sát CCHN và phân quyền tài khoản
+              {t('admin.page_subtitle', 'Trung tâm chỉ huy HR & IAM: Phê duyệt phép, điều hành ca trực, định mức lương VND, giám sát CCHN và phân quyền tài khoản')}
             </p>
           </div>
         </div>
@@ -440,10 +440,10 @@ export const SystemManagement: React.FC = () => {
             type="button"
             className="wd-pill-btn d-flex align-items-center gap-2 px-3 py-1.5"
             onClick={handleRefreshAll}
-            title="Đồng bộ dữ liệu mới nhất"
+            title={t('admin.sync_tooltip', 'Đồng bộ dữ liệu mới nhất')}
           >
             <RefreshCw size={15} />
-            <span>Làm Mới</span>
+            <span>{t('admin.refresh', 'Làm Mới')}</span>
           </button>
 
           <button
@@ -452,7 +452,7 @@ export const SystemManagement: React.FC = () => {
             onClick={() => setShowOnboardModal(true)}
           >
             <UserCheck size={16} />
-            <span>Tiếp Nhận Cán Bộ Mới</span>
+            <span>{t('admin.onboard_new_staff', 'Tiếp Nhận Cán Bộ Mới')}</span>
           </button>
         </div>
       </div>
@@ -475,14 +475,14 @@ export const SystemManagement: React.FC = () => {
         <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
           <div className="wd-card p-3.5 h-100 border-start border-4 border-primary">
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">Tổng Cán Bộ Y Tế</span>
+              <span className="text-muted small fw-semibold">{t('admin.kpi_total_staff', 'Tổng Cán Bộ Y Tế')}</span>
               <div className="p-1.5 rounded-2 bg-primary bg-opacity-10 text-primary">
                 <Users size={16} />
               </div>
             </div>
             <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.total_employees}</div>
             <div className="d-flex align-items-center gap-1.5 small text-muted mt-2">
-              <span className="badge bg-success bg-opacity-10 text-success fw-normal">100% Đang hoạt động</span>
+              <span className="badge bg-success bg-opacity-10 text-success fw-normal">{t('admin.kpi_active_100', '100% Đang hoạt động')}</span>
             </div>
           </div>
         </Col>
@@ -491,13 +491,13 @@ export const SystemManagement: React.FC = () => {
         <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
           <div className="wd-card p-3.5 h-100 border-start border-4 border-info">
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">Khoa / Phòng Chức Năng</span>
+              <span className="text-muted small fw-semibold">{t('admin.kpi_departments', 'Khoa / Phòng Chức Năng')}</span>
               <div className="p-1.5 rounded-2 bg-info bg-opacity-10 text-info">
                 <Building2 size={16} />
               </div>
             </div>
             <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.total_departments}</div>
-            <div className="small text-muted mt-2">Cơ cấu tổ chức hoàn chỉnh</div>
+            <div className="small text-muted mt-2">{t('admin.kpi_org_complete', 'Cơ cấu tổ chức hoàn chỉnh')}</div>
           </div>
         </Col>
 
@@ -505,7 +505,7 @@ export const SystemManagement: React.FC = () => {
         <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
           <div className={`wd-card p-3.5 h-100 border-start border-4 ${kpis.pending_leaves > 0 ? 'border-warning' : 'border-secondary'}`}>
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">Phép Chờ HR Duyệt</span>
+              <span className="text-muted small fw-semibold">{t('admin.kpi_pending_leaves', 'Phép Chờ HR Duyệt')}</span>
               <div className={`p-1.5 rounded-2 ${kpis.pending_leaves > 0 ? 'bg-warning bg-opacity-10 text-warning' : 'bg-secondary bg-opacity-10 text-secondary'}`}>
                 <CalendarCheck size={16} />
               </div>
@@ -513,9 +513,9 @@ export const SystemManagement: React.FC = () => {
             <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.pending_leaves}</div>
             <div className="small mt-2">
               {kpis.pending_leaves > 0 ? (
-                <span className="badge bg-warning bg-opacity-15 text-dark fw-normal">Cần duyệt ngay</span>
+                <span className="badge bg-warning bg-opacity-15 text-dark fw-normal">{t('admin.kpi_action_needed', 'Cần duyệt ngay')}</span>
               ) : (
-                <span className="text-muted">Không tồn đọng</span>
+                <span className="text-muted">{t('admin.kpi_no_backlog', 'Không tồn đọng')}</span>
               )}
             </div>
           </div>
@@ -525,7 +525,7 @@ export const SystemManagement: React.FC = () => {
         <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
           <div className={`wd-card p-3.5 h-100 border-start border-4 ${kpis.expiring_licenses_30d > 0 ? 'border-danger' : 'border-success'}`}>
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">{lang === 'vi' ? 'CCHN Sắp Hết Hạn' : 'Expiring Licenses'}</span>
+              <span className="text-muted small fw-semibold">{t('admin.kpi_cchn_expiring', 'CCHN Sắp Hết Hạn')}</span>
               <div className={`p-1.5 rounded-2 ${kpis.expiring_licenses_30d > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'}`}>
                 <Award size={16} />
               </div>
@@ -533,9 +533,9 @@ export const SystemManagement: React.FC = () => {
             <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.expiring_licenses_30d}</div>
             <div className="small mt-2">
               {kpis.expiring_licenses_30d > 0 ? (
-                <span className="badge bg-danger bg-opacity-10 text-danger fw-normal">Yêu cầu gia hạn khẩn</span>
+                <span className="badge bg-danger bg-opacity-10 text-danger fw-normal">{t('admin.kpi_urgent_renewal', 'Yêu cầu gia hạn khẩn')}</span>
               ) : (
-                <span className="text-success fw-medium">Đạt chuẩn 100%</span>
+                <span className="text-success fw-medium">{t('admin.kpi_compliant_100', 'Đạt chuẩn 100%')}</span>
               )}
             </div>
           </div>
@@ -545,7 +545,7 @@ export const SystemManagement: React.FC = () => {
         <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
           <div className="wd-card p-3.5 h-100 border-start border-4 border-success">
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">Quỹ Lương Đã Chi Trả</span>
+              <span className="text-muted small fw-semibold">{t('admin.kpi_total_disbursed', 'Quỹ Lương Đã Chi Trả')}</span>
               <div className="p-1.5 rounded-2 bg-success bg-opacity-10 text-success">
                 <CreditCard size={16} />
               </div>
@@ -553,7 +553,7 @@ export const SystemManagement: React.FC = () => {
             <div className="h4 fw-bold text-success my-1 font-mono" style={{ fontSize: '18px' }}>
               {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(kpis.total_disbursed_vnd))}
             </div>
-            <div className="small text-muted mt-2">Tổng tích lũy thực nhận</div>
+            <div className="small text-muted mt-2">{t('admin.kpi_net_cumulative', 'Tổng tích lũy thực nhận')}</div>
           </div>
         </Col>
       </Row>
@@ -566,7 +566,7 @@ export const SystemManagement: React.FC = () => {
           onClick={() => setActiveTab('staff_iam')}
         >
           <Users size={15} className="me-2" />
-          Cán Bộ &amp; Tài Khoản IAM ({accounts.length})
+          {t('admin.tab_staff_iam', 'Cán Bộ & Tài Khoản IAM')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{accounts.length}</span>
         </button>
 
         <button
@@ -575,7 +575,7 @@ export const SystemManagement: React.FC = () => {
           onClick={() => setActiveTab('departments')}
         >
           <Building2 size={15} className="me-2" />
-          Khoa Phòng &amp; Cơ Cấu ({departments.length})
+          {t('admin.tab_departments', 'Khoa Phòng & Cơ Cấu')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{departments.length}</span>
         </button>
 
         <button
@@ -584,7 +584,7 @@ export const SystemManagement: React.FC = () => {
           onClick={() => setActiveTab('compensation')}
         >
           <DollarSign size={15} className="me-2" />
-          Định Mức Lương &amp; Kỳ Lương ({payRates.length})
+          {t('admin.tab_pay_rates', 'Định Mức Lương & Kỳ Lương')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{payRates.length}</span>
         </button>
 
         <button
@@ -593,7 +593,7 @@ export const SystemManagement: React.FC = () => {
           onClick={() => setActiveTab('leaves')}
         >
           <CalendarCheck size={15} className="me-2" />
-          Phê Duyệt Nghỉ Phép ({leaveRequests.length})
+          {t('admin.tab_leave_approvals', 'Phê Duyệt Nghỉ Phép')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{leaveRequests.length}</span>
           {kpis.pending_leaves > 0 && (
             <Badge bg="warning" text="dark" pill className="ms-2">
               {kpis.pending_leaves}
@@ -607,7 +607,7 @@ export const SystemManagement: React.FC = () => {
           onClick={() => setActiveTab('shifts_handover')}
         >
           <Clock size={15} className="me-2" />
-          Lịch Trực &amp; Bàn Giao Ca ({shifts.length})
+          {t('admin.tab_shifts_handovers', 'Lịch Trực & Bàn Giao Ca')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{shifts.length}</span>
         </button>
 
         <button
@@ -616,7 +616,7 @@ export const SystemManagement: React.FC = () => {
           onClick={() => setActiveTab('licensing')}
         >
           <Award size={15} className="me-2" />
-          Tuân Thủ CCHN ({licenses.length})
+          {t('admin.tab_cchn_compliance', 'Tuân Thủ CCHN')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{licenses.length}</span>
         </button>
 
         <button
@@ -625,7 +625,7 @@ export const SystemManagement: React.FC = () => {
           onClick={() => setActiveTab('broadcast')}
         >
           <Bell size={15} className="me-2" />
-          Phát Lệnh Thông Báo
+          {t('admin.tab_broadcast', 'Phát Lệnh Thông Báo')}
         </button>
       </div>
 
@@ -638,7 +638,7 @@ export const SystemManagement: React.FC = () => {
                 <Search size={15} className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
                 <input
                   type="text"
-                  placeholder="Tìm kiếm họ tên cán bộ, mã NV, username hoặc email..."
+                  placeholder={t('admin.search_staff_placeholder', 'Tìm kiếm họ tên cán bộ, mã NV, username hoặc email...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="wd-input w-100 ps-5"
@@ -651,7 +651,7 @@ export const SystemManagement: React.FC = () => {
                 value={selectedDeptFilter}
                 onChange={(e) => setSelectedDeptFilter(e.target.value)}
               >
-                <option value="ALL">-- Tất Cả Khoa Phòng --</option>
+                <option value="ALL">{t('admin.all_departments_filter', '-- Tất Cả Khoa Phòng --')}</option>
                 {departments.map((d) => (
                   <option key={d.department_code} value={d.department_code}>
                     {d.name}
@@ -661,7 +661,7 @@ export const SystemManagement: React.FC = () => {
             </div>
 
             <div className="text-muted small">
-              Hiển thị <strong>{filteredAccounts.length}</strong> / {accounts.length} tài khoản
+              {t('admin.showing_accounts', 'Hiển thị')} <strong>{filteredAccounts.length}</strong> / {accounts.length} {t('admin.of_accounts', 'tài khoản')}
             </div>
           </div>
 
@@ -669,12 +669,12 @@ export const SystemManagement: React.FC = () => {
             <table className="wd-table w-100">
               <thead>
                 <tr>
-                  <th>Cán Bộ Y Tế</th>
-                  <th>Tài Khoản IAM</th>
-                  <th>Khoa / Phòng Chuyên Môn</th>
-                  <th>Chức Danh &amp; Phân Quyền</th>
-                  <th>Trạng Thái</th>
-                  <th className="text-end">Thao Tác Quản Trị</th>
+                  <th>{t('admin.col_medical_staff', 'Cán Bộ Y Tế')}</th>
+                  <th>{t('admin.col_iam_account', 'Tài Khoản IAM')}</th>
+                  <th>{t('admin.col_department', 'Khoa / Phòng Chuyên Môn')}</th>
+                  <th>{t('admin.col_role_permissions', 'Chức Danh & Phân Quyền')}</th>
+                  <th>{t('admin.col_status_col', 'Trạng Thái')}</th>
+                  <th className="text-end">{t('admin.col_admin_actions', 'Thao Tác Quản Trị')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -705,13 +705,13 @@ export const SystemManagement: React.FC = () => {
                         @{acc.username}
                       </div>
                       <div className="text-muted small">
-                        Đăng nhập cuối: {acc.last_login ? acc.last_login.slice(0, 16) : 'Chưa có'}
+                        {t('admin.last_login', 'Đăng nhập cuối')}: {acc.last_login ? acc.last_login.slice(0, 16) : t('admin.last_login_none', 'Chưa có')}
                       </div>
                     </td>
 
                     <td>
                       <div className="fw-medium text-dark">{acc.department_name || acc.department_code}</div>
-                      <div className="text-muted small">{acc.specialty || 'Chưa cập nhật chuyên môn'}</div>
+                      <div className="text-muted small">{acc.specialty || t('admin.no_specialty', 'Chưa cập nhật chuyên môn')}</div>
                     </td>
 
                     <td>
@@ -745,11 +745,11 @@ export const SystemManagement: React.FC = () => {
                     <td>
                       {acc.is_locked ? (
                         <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2.5 py-1 rounded-pill">
-                          <Lock size={12} className="me-1" /> Đã Khóa
+                          <Lock size={12} className="me-1" /> {t('admin.status_locked', 'Đã Khóa')}
                         </span>
                       ) : (
                         <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2.5 py-1 rounded-pill">
-                          <CheckCircle2 size={12} className="me-1" /> Hoạt Động
+                          <CheckCircle2 size={12} className="me-1" /> {t('admin.status_active', 'Hoạt Động')}
                         </span>
                       )}
                     </td>
@@ -776,10 +776,10 @@ export const SystemManagement: React.FC = () => {
                           type="button"
                           className="btn btn-sm btn-outline-primary py-1.5 px-2.5 rounded-2 d-inline-flex align-items-center gap-1.5"
                           onClick={() => handleOpenMasterEdit(acc)}
-                          title={t('common.edit', 'Sửa Hồ Sơ')}
+                          title={t('admin.btn_edit_profile_tooltip', 'Sửa Toàn Bộ Hồ Sơ Nhân Viên')}
                         >
                           <Edit2 size={13} />
-                          <span>{t('common.edit', 'Sửa Hồ Sơ')}</span>
+                          <span>{t('common.edit', 'Sửa')}</span>
                         </button>
 
                         {/* Lock / Unlock */}
@@ -792,7 +792,7 @@ export const SystemManagement: React.FC = () => {
                               is_locked: !acc.is_locked
                             })
                           }
-                          title={acc.is_locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
+                          title={acc.is_locked ? t('admin.btn_unlock_tooltip', 'Mở khóa tài khoản') : t('admin.btn_lock_tooltip', 'Khóa tài khoản')}
                         >
                           {acc.is_locked ? <Unlock size={14} /> : <Lock size={14} />}
                         </button>
@@ -805,7 +805,7 @@ export const SystemManagement: React.FC = () => {
                             setSelectedAccountForPassword(acc);
                             setShowResetPasswordModal(true);
                           }}
-                          title="Đặt lại mật khẩu"
+                          title={t('admin.btn_reset_pwd_tooltip', 'Đặt lại mật khẩu')}
                         >
                           <Key size={14} />
                         </button>
@@ -823,7 +823,7 @@ export const SystemManagement: React.FC = () => {
       {activeTab === 'departments' && (
         <div>
           <div className="d-flex align-items-center justify-content-between mb-3">
-            <h2 className="h5 fw-bold mb-0">Danh Mục 8 Khoa Phòng Bệnh Viện</h2>
+            <h2 className="h5 fw-bold mb-0">{t('admin.dept_catalog_title', 'Danh Mục 8 Khoa Phòng Bệnh Viện')}</h2>
             <button
               type="button"
               className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
@@ -831,14 +831,14 @@ export const SystemManagement: React.FC = () => {
                 setEditingDept({
                   department_code: `DEP-NEW-${Math.floor(Math.random() * 900 + 100)}`,
                   name: '',
-                  location: 'Tầng 1 - Khu Nhà Lâm Sàng',
+                  location: 'Building A',
                   description: '',
                   status: 'ACTIVE'
                 });
                 setShowDeptModal(true);
               }}
             >
-              <Plus size={16} /> Thêm Khoa Phòng
+              <Plus size={16} /> {t('admin.btn_add_dept', 'Thêm Khoa Phòng')}
             </button>
           </div>
 
@@ -856,24 +856,24 @@ export const SystemManagement: React.FC = () => {
                           dept.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'
                         } bg-opacity-10 text-${dept.status === 'ACTIVE' ? 'success' : 'secondary'}`}
                       >
-                        {dept.status === 'ACTIVE' ? 'Đang Hoạt Động' : 'Tạm Dừng'}
+                        {dept.status === 'ACTIVE' ? t('admin.dept_active', 'Đang Hoạt Động') : t('admin.dept_paused', 'Tạm Dừng')}
                       </span>
                     </div>
 
                     <h3 className="h6 fw-bold text-dark mb-1">{dept.name}</h3>
                     <p className="text-muted small mb-2" style={{ minHeight: '36px' }}>
-                      {dept.description || 'Chưa cập nhật chức năng nhiệm vụ.'}
+                      {dept.description || t('admin.dept_no_desc', 'Chưa cập nhật chức năng nhiệm vụ.')}
                     </p>
 
                     <div className="small text-muted mb-3">
-                      <div>📍 {dept.location || 'Khu nhà khám chữa bệnh'}</div>
+                      <div>📍 {dept.location || t('admin.dept_default_location', 'Khu nhà khám chữa bệnh')}</div>
                     </div>
                   </div>
 
                   <div className="border-top pt-2.5 d-flex align-items-center justify-content-between">
                     <div className="small">
-                      <span className="text-muted">Nhân lực: </span>
-                      <strong className="text-primary">{dept.employee_count ?? 0} cán bộ</strong>
+                      <span className="text-muted">{t('admin.dept_headcount', 'Nhân lực')}: </span>
+                      <strong className="text-primary">{dept.employee_count ?? 0} {t('admin.dept_staff_count', 'cán bộ')}</strong>
                     </div>
                     <button
                       type="button"
@@ -883,7 +883,7 @@ export const SystemManagement: React.FC = () => {
                         setShowDeptModal(true);
                       }}
                     >
-                      Chỉnh sửa &rarr;
+                      {t('admin.btn_edit_dept', 'Chỉnh sửa')} &rarr;
                     </button>
                   </div>
                 </div>
@@ -899,9 +899,9 @@ export const SystemManagement: React.FC = () => {
           {/* Top Actions */}
           <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
             <div>
-              <h2 className="h5 fw-bold mb-1">Định Mức Lương &amp; Bảng Lương Bệnh Viện</h2>
+              <h2 className="h5 fw-bold mb-1">{t('admin.payrates_title', 'Định Mức Lương & Bảng Lương Bệnh Viện')}</h2>
               <p className="text-muted small mb-0">
-                Toàn bộ định mức lương được thiết lập chuẩn tiền tệ Việt Nam Đồng (VND), tính theo giờ và tháng tiêu chuẩn (176h)
+                {t('admin.payrates_subtitle', 'Toàn bộ định mức lương được thiết lập chuẩn tiền tệ Việt Nam Đồng (VND), tính theo giờ và tháng tiêu chuẩn (176h)')}
               </p>
             </div>
 
@@ -910,23 +910,23 @@ export const SystemManagement: React.FC = () => {
               className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
               onClick={() => setShowNewRunModal(true)}
             >
-              <Plus size={16} /> Tạo Kỳ Lương Mới (Chạy Bảng Lương)
+              <Plus size={16} /> {t('admin.btn_create_run', 'Tạo Kỳ Lương Mới (Chạy Bảng Lương)')}
             </button>
           </div>
 
           {/* Section A: Pay Rates table */}
           <div className="wd-card p-3 mb-4">
-            <h3 className="h6 fw-bold text-dark mb-3">{lang === 'vi' ? 'Bảng Định Mức Lương Theo Giờ / Chức Danh' : 'Hourly Pay Rates by Role'}</h3>
+            <h3 className="h6 fw-bold text-dark mb-3">{t('admin.table_rates_title', 'Bảng Định Mức Lương Theo Giờ / Chức Danh')}</h3>
             <div className="table-responsive">
               <table className="wd-table w-100">
                 <thead>
                   <tr>
-                    <th>{lang === 'vi' ? 'Cán Bộ Y Tế' : 'Medical Staff'}</th>
-                    <th>{lang === 'vi' ? 'Khoa / Phòng' : 'Department'}</th>
-                    <th>{lang === 'vi' ? 'Chức Danh' : 'Role'}</th>
-                    <th>{lang === 'vi' ? 'Mức Lương Cơ Bản / Giờ' : 'Base Hourly Rate'}</th>
-                    <th>{lang === 'vi' ? 'Ước Tính Tháng' : 'Monthly Estimate'}</th>
-                    <th>{lang === 'vi' ? 'Bậc Thuế / Chế Độ' : 'Tax Tier'}</th>
+                    <th>{t('admin.col_medical_staff', 'Cán Bộ Y Tế')}</th>
+                    <th>{t('admin.col_department', 'Khoa / Phòng')}</th>
+                    <th>{t('admin.col_role', 'Chức Danh')}</th>
+                    <th>{t('admin.col_base_hourly', 'Mức Lương Cơ Bản / Giờ')}</th>
+                    <th>{t('admin.col_monthly_est', 'Ước Tính Tháng')}</th>
+                    <th>{t('admin.col_tax_tier', 'Bậc Thuế / Chế Độ')}</th>
                     <th className="text-end">{t('common.actions', 'Hành Động')}</th>
                   </tr>
                 </thead>
@@ -948,12 +948,12 @@ export const SystemManagement: React.FC = () => {
                         </td>
                         <td>
                           <strong className="text-dark">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(hourly)} / giờ
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(hourly)} / {t('admin.per_hour', 'giờ')}
                           </strong>
                         </td>
                         <td>
                           <span className="text-success fw-semibold">
-                            ~{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(monthly)} / tháng
+                            ~{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(monthly)} / {t('admin.per_month', 'tháng')}
                           </span>
                         </td>
                         <td>
@@ -965,7 +965,7 @@ export const SystemManagement: React.FC = () => {
                             className="btn btn-sm btn-outline-primary py-1 px-2.5"
                             onClick={() => handleOpenPayRateEdit(pr)}
                           >
-                            <Edit2 size={13} className="me-1" /> {lang === 'vi' ? 'Sửa Lương' : 'Edit Rate'}
+                            <Edit2 size={13} className="me-1" /> {t('admin.btn_edit_rate', 'Sửa Lương')}
                           </button>
                         </td>
                       </tr>
@@ -978,17 +978,17 @@ export const SystemManagement: React.FC = () => {
 
           {/* Section B: Payroll Runs History */}
           <div className="wd-card p-3">
-            <h3 className="h6 fw-bold text-dark mb-3">{lang === 'vi' ? 'Lịch Sử Kỳ Lương Bệnh Viện' : 'Hospital Payroll Run History'}</h3>
+            <h3 className="h6 fw-bold text-dark mb-3">{t('admin.table_runs_title', 'Lịch Sử Kỳ Lương Bệnh Viện')}</h3>
             <div className="table-responsive">
               <table className="wd-table w-100">
                 <thead>
                   <tr>
-                    <th>{lang === 'vi' ? 'Mã Kỳ Lương' : 'Run ID'}</th>
-                    <th>{lang === 'vi' ? 'Khoảng Thời Gian' : 'Date Range'}</th>
-                    <th>{lang === 'vi' ? 'Số Cán Bộ' : 'Staff Count'}</th>
-                    <th>{lang === 'vi' ? 'Tổng Tiền Chi Trả' : 'Total Net Payout'}</th>
+                    <th>{t('admin.col_run_id', 'Mã Kỳ Lương')}</th>
+                    <th>{t('admin.col_date_range', 'Khoảng Thời Gian')}</th>
+                    <th>{t('admin.col_staff_count', 'Số Cán Bộ')}</th>
+                    <th>{t('admin.col_total_payout', 'Tổng Tiền Chi Trả')}</th>
                     <th>{t('common.status', 'Trạng Thái')}</th>
-                    <th className="text-end">{lang === 'vi' ? 'Thao Tác Duyệt' : 'Actions'}</th>
+                    <th className="text-end">{t('admin.col_run_actions', 'Thao Tác Duyệt')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -998,7 +998,7 @@ export const SystemManagement: React.FC = () => {
                       <td>
                         {run.start_date?.slice(0, 10)} &rarr; {run.end_date?.slice(0, 10)}
                       </td>
-                      <td>{run.employee_count ?? 10} người</td>
+                      <td>{run.employee_count ?? 10} {t('admin.people_unit', 'người')}</td>
                       <td>
                         <strong className="text-success">
                           {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(run.total_disbursed || 0))}
@@ -1029,7 +1029,7 @@ export const SystemManagement: React.FC = () => {
                                 className="btn btn-sm btn-outline-warning py-1 px-2"
                                 onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'PROCESSING' })}
                               >
-                                Tính Toán
+                                {t('admin.btn_calculate', 'Tính Toán')}
                               </button>
                             )}
                             {run.status === 'PROCESSING' && (
@@ -1038,7 +1038,7 @@ export const SystemManagement: React.FC = () => {
                                 className="btn btn-sm btn-outline-primary py-1 px-2"
                                 onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'APPROVED' })}
                               >
-                                Phê Duyệt
+                                {t('admin.btn_approve_run', 'Phê Duyệt')}
                               </button>
                             )}
                             {run.status === 'APPROVED' && (
@@ -1047,7 +1047,7 @@ export const SystemManagement: React.FC = () => {
                                 className="btn btn-sm btn-success py-1 px-2"
                                 onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'COMPLETED' })}
                               >
-                                Hoàn Tất Chi Lương
+                                {t('admin.btn_complete_payout', 'Hoàn Tất Chi Lương')}
                               </button>
                             )}
                           </div>
@@ -1067,9 +1067,9 @@ export const SystemManagement: React.FC = () => {
         <div className="wd-card p-3 mb-4">
           <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
             <div>
-              <h2 className="h5 fw-bold mb-1">Xét Duyệt Đơn Nghỉ Phép &amp; Hạn Mức Thường Niên</h2>
+              <h2 className="h5 fw-bold mb-1">{t('admin.leave_approvals_title', 'Xét Duyệt Đơn Nghỉ Phép & Hạn Mức Thường Niên')}</h2>
               <p className="text-muted small mb-0">
-                1-click phê duyệt hoặc từ chối đơn nghỉ phép. Hệ thống tự động trừ hạn mức trong cơ sở dữ liệu.
+                {t('admin.leave_approvals_subtitle', '1-click phê duyệt hoặc từ chối đơn nghỉ phép. Hệ thống tự động trừ hạn mức trong cơ sở dữ liệu.')}
               </p>
             </div>
 
@@ -1081,7 +1081,7 @@ export const SystemManagement: React.FC = () => {
                   className={`btn btn-sm ${leaveFilter === st ? 'btn-primary' : 'btn-outline-secondary'} py-1 px-2.5`}
                   onClick={() => setLeaveFilter(st)}
                 >
-                  {st === 'ALL' ? 'Tất Cả' : st === 'PENDING' ? 'Chờ Duyệt' : st === 'APPROVED' ? 'Đã Duyệt' : 'Từ Chối'}
+                  {st === 'ALL' ? t('admin.filter_all', 'Tất Cả') : st === 'PENDING' ? t('admin.filter_pending', 'Chờ Duyệt') : st === 'APPROVED' ? t('admin.filter_approved', 'Đã Duyệt') : t('admin.filter_rejected', 'Từ Chối')}
                 </button>
               ))}
             </div>
@@ -1091,14 +1091,14 @@ export const SystemManagement: React.FC = () => {
             <table className="wd-table w-100">
               <thead>
                 <tr>
-                  <th>Cán Bộ Y Tế</th>
-                  <th>Khoa Phòng</th>
-                  <th>Loại Phép</th>
-                  <th>Thời Gian Nghỉ</th>
-                  <th>Số Ngày</th>
-                  <th>Lý Do</th>
-                  <th>Trạng Thái</th>
-                  <th className="text-end">Phê Duyệt</th>
+                  <th>{t('admin.col_medical_staff', 'Cán Bộ Y Tế')}</th>
+                  <th>{t('admin.col_department', 'Khoa Phòng')}</th>
+                  <th>{t('admin.col_leave_type', 'Loại Phép')}</th>
+                  <th>{t('admin.col_leave_time', 'Thời Gian Nghỉ')}</th>
+                  <th>{t('admin.col_leave_days', 'Số Ngày')}</th>
+                  <th>{t('admin.col_leave_reason', 'Lý Do')}</th>
+                  <th>{t('common.status', 'Trạng Thái')}</th>
+                  <th className="text-end">{t('admin.btn_approve', 'Phê Duyệt')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1108,7 +1108,7 @@ export const SystemManagement: React.FC = () => {
                       <div className="fw-semibold text-dark">{lr.staff_name || lr.staff_id}</div>
                       <div className="text-muted small">{lr.staff_id}</div>
                     </td>
-                    <td>{lr.department_name || lr.department_code || 'Khoa Lâm Sàng'}</td>
+                    <td>{lr.department_name || lr.department_code || t('admin.col_department', 'Khoa Lâm Sàng')}</td>
                     <td>
                       <span className="badge bg-light text-dark border">{lr.leave_type}</span>
                     </td>
@@ -1118,13 +1118,13 @@ export const SystemManagement: React.FC = () => {
                     </td>
                     <td>
                       <strong className="text-dark">
-                        {lr.days_requested || (lr.day_part !== 'FULL' ? '0.5' : '1.0')} ngày
+                        {lr.days_requested || (lr.day_part !== 'FULL' ? '0.5' : '1.0')} {t('admin.days_unit', 'ngày')}
                       </strong>
-                      {lr.day_part === 'FIRST_HALF' && <span className="text-muted small d-block">Buổi sáng</span>}
-                      {lr.day_part === 'SECOND_HALF' && <span className="text-muted small d-block">Buổi chiều</span>}
+                      {lr.day_part === 'FIRST_HALF' && <span className="text-muted small d-block">{t('admin.morning_half', 'Buổi sáng')}</span>}
+                      {lr.day_part === 'SECOND_HALF' && <span className="text-muted small d-block">{t('admin.afternoon_half', 'Buổi chiều')}</span>}
                     </td>
                     <td style={{ maxWidth: '200px' }} className="text-truncate" title={lr.reason}>
-                      {lr.reason || 'Không có lý do'}
+                      {lr.reason || t('admin.no_reason', 'Không có lý do')}
                     </td>
                     <td>
                       <Badge
@@ -1132,7 +1132,7 @@ export const SystemManagement: React.FC = () => {
                         text={lr.status === 'PENDING' ? 'dark' : 'white'}
                         className="fw-normal px-2 py-1"
                       >
-                        {lr.status === 'APPROVED' ? 'Đã Duyệt' : lr.status === 'PENDING' ? 'Chờ Phê Duyệt' : 'Từ Chối'}
+                        {lr.status === 'APPROVED' ? t('admin.filter_approved', 'Đã Duyệt') : lr.status === 'PENDING' ? t('admin.filter_pending', 'Chờ Duyệt') : t('admin.filter_rejected', 'Từ Chối')}
                       </Badge>
                     </td>
                     <td className="text-end">
@@ -1143,18 +1143,18 @@ export const SystemManagement: React.FC = () => {
                             className="btn btn-sm btn-success py-1 px-2.5"
                             onClick={() => updateLeaveStatusMutation.mutate({ id: lr.id, status: 'APPROVED' })}
                           >
-                            Duyệt
+                            {t('admin.btn_approve', 'Duyệt')}
                           </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger py-1 px-2"
                             onClick={() => updateLeaveStatusMutation.mutate({ id: lr.id, status: 'REJECTED' })}
                           >
-                            Từ Chối
+                            {t('admin.btn_reject', 'Từ Chối')}
                           </button>
                         </div>
                       ) : (
-                        <span className="text-muted small">Đã xử lý</span>
+                        <span className="text-muted small">{t('admin.status_processed', 'Đã xử lý')}</span>
                       )}
                     </td>
                   </tr>
@@ -1170,9 +1170,9 @@ export const SystemManagement: React.FC = () => {
         <div>
           <div className="d-flex align-items-center justify-content-between mb-3">
             <div>
-              <h2 className="h5 fw-bold mb-1">Giám Sát Lịch Trực 24/7 &amp; Nhật Ký Bàn Giao Ca</h2>
+              <h2 className="h5 fw-bold mb-1">{t('admin.shifts_handovers_title', 'Giám Sát Lịch Trực 24/7 & Nhật Ký Bàn Giao Ca')}</h2>
               <p className="text-muted small mb-0">
-                Điều phối ca cấp cứu, theo dõi ghi chú bàn giao lâm sàng và danh mục an toàn người bệnh
+                {t('admin.shifts_handovers_subtitle', 'Điều phối ca cấp cứu, theo dõi ghi chú bàn giao lâm sàng và danh mục an toàn người bệnh')}
               </p>
             </div>
 
@@ -1181,7 +1181,7 @@ export const SystemManagement: React.FC = () => {
               className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
               onClick={() => setShowAddShiftModal(true)}
             >
-              <Plus size={16} /> Phân Ca Trực Khẩn Cấp
+              <Plus size={16} /> {t('admin.btn_assign_urgent_shift', 'Phân Ca Trực Khẩn Cấp')}
             </button>
           </div>
 
@@ -1190,18 +1190,18 @@ export const SystemManagement: React.FC = () => {
             <Col xs={12} lg={6}>
               <div className="wd-card p-3 h-100">
                 <h3 className="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-                  <span>{lang === 'vi' ? 'Ca Trực Hiện Diện' : 'Active Shifts'}</span>
+                  <span>{t('admin.active_shifts_card', 'Ca Trực Hiện Diện')}</span>
                   <Badge bg="secondary" pill className="fw-normal">{shifts.length}</Badge>
                 </h3>
                 <div className="table-responsive">
                   <table className="wd-table w-100">
                     <thead>
                       <tr>
-                        <th>Cán Bộ</th>
-                        <th>Khoa Phòng</th>
-                        <th>Thời Gian Trực</th>
-                        <th>Loại Ca</th>
-                        <th>Trạng Thái</th>
+                        <th>{t('admin.col_shift_staff', 'Cán Bộ')}</th>
+                        <th>{t('admin.col_shift_dept', 'Khoa Phòng')}</th>
+                        <th>{t('admin.col_shift_time', 'Thời Gian Trực')}</th>
+                        <th>{t('admin.col_shift_type', 'Loại Ca')}</th>
+                        <th>{t('common.status', 'Trạng Thái')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1239,17 +1239,17 @@ export const SystemManagement: React.FC = () => {
             <Col xs={12} lg={6}>
               <div className="wd-card p-3 h-100">
                 <h3 className="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-                  <span>{lang === 'vi' ? 'Nhật Ký Bàn Giao Ca Lâm Sàng' : 'Clinical Handovers Log'}</span>
+                  <span>{t('admin.clinical_handovers_card', 'Nhật Ký Bàn Giao Ca Lâm Sàng')}</span>
                   <Badge bg="secondary" pill className="fw-normal">{handovers.length}</Badge>
                 </h3>
                 <div className="table-responsive">
                   <table className="wd-table w-100">
                     <thead>
                       <tr>
-                        <th>Bàn Giao &rarr; Tiếp Nhận</th>
-                        <th>Ghi Chú Bàn Giao Ca</th>
-                        <th>Bệnh Nhân Cần Chú Ý</th>
-                        <th>Ký Biên Bản</th>
+                        <th>{t('admin.col_handover_transfer', 'Bàn Giao → Tiếp Nhận')}</th>
+                        <th>{t('admin.col_handover_notes', 'Ghi Chú Bàn Giao Ca')}</th>
+                        <th>{t('admin.col_critical_patients', 'Bệnh Nhân Cần Chú Ý')}</th>
+                        <th>{t('admin.col_sign_protocol', 'Ký Biên Bản')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1268,16 +1268,16 @@ export const SystemManagement: React.FC = () => {
                           </td>
                           <td>
                             <span className="badge bg-warning bg-opacity-15 text-dark">
-                              {h.critical_patients_count ?? 0} ca nặng
+                              {h.critical_patients_count ?? 0} {t('admin.critical_patients_unit', 'ca nặng')}
                             </span>
                           </td>
                           <td>
                             {h.status === 'COMPLETED' || h.status === 'SIGNED' ? (
                               <span className="badge bg-success bg-opacity-10 text-success">
-                                <CheckCircle2 size={12} className="me-1" /> Đã Ký
+                                <CheckCircle2 size={12} className="me-1" /> {t('admin.status_signed', 'Đã Ký')}
                               </span>
                             ) : (
-                              <span className="badge bg-warning bg-opacity-10 text-warning">Chờ Ký</span>
+                              <span className="badge bg-warning bg-opacity-10 text-warning">{t('admin.status_awaiting_signature', 'Chờ Ký')}</span>
                             )}
                           </td>
                         </tr>
@@ -1296,9 +1296,9 @@ export const SystemManagement: React.FC = () => {
         <div className="wd-card p-3 mb-4">
           <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
             <div>
-              <h2 className="h5 fw-bold mb-1">{lang === 'vi' ? 'Giám Sát Chứng Chỉ Hành Nghề Y Tế' : 'Medical Practicing Licenses Compliance'}</h2>
+              <h2 className="h5 fw-bold mb-1">{t('admin.cchn_title', 'Giám Sát Chứng Chỉ Hành Nghề Y Tế')}</h2>
               <p className="text-muted small mb-0">
-                Tuân thủ quy định Bộ Y Tế. Tự động cảnh báo trước 30 ngày và kiểm soát quyền trực lâm sàng.
+                {t('admin.cchn_subtitle', 'Tuân thủ quy định Bộ Y Tế. Tự động cảnh báo trước 30 ngày và kiểm soát quyền trực lâm sàng.')}
               </p>
             </div>
           </div>
@@ -1307,14 +1307,14 @@ export const SystemManagement: React.FC = () => {
             <table className="wd-table w-100">
               <thead>
                 <tr>
-                  <th>Bác Sĩ / Cán Bộ</th>
-                  <th>Khoa Chuyên Môn</th>
-                  <th>Số Hiệu CCHN</th>
-                  <th>Cơ Quan Cấp</th>
-                  <th>Thời Hạn Hiệu Lực</th>
-                  <th>Đếm Ngược</th>
-                  <th>Trạng Thái Pháp Lý</th>
-                  <th className="text-end">Xác Thực CCHN</th>
+                  <th>{t('admin.col_cchn_doctor', 'Bác Sĩ / Cán Bộ')}</th>
+                  <th>{t('admin.col_cchn_specialty', 'Khoa Chuyên Môn')}</th>
+                  <th>{t('admin.col_cchn_number', 'Số Hiệu CCHN')}</th>
+                  <th>{t('admin.col_cchn_authority', 'Cơ Quan Cấp')}</th>
+                  <th>{t('admin.col_cchn_expiry', 'Thời Hạn Hiệu Lực')}</th>
+                  <th>{t('admin.col_cchn_countdown', 'Đếm Ngược')}</th>
+                  <th>{t('admin.col_cchn_legal', 'Trạng Thái Pháp Lý')}</th>
+                  <th className="text-end">{t('admin.col_cchn_actions', 'Xác Thực CCHN')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1337,11 +1337,11 @@ export const SystemManagement: React.FC = () => {
                       </td>
                       <td>
                         {daysLeft < 30 ? (
-                          <Badge bg="danger">Còn {daysLeft} ngày</Badge>
+                          <Badge bg="danger">{t('admin.days_remaining', 'Còn {days} ngày').replace('{days}', String(daysLeft))}</Badge>
                         ) : daysLeft < 90 ? (
-                          <Badge bg="warning" text="dark">Còn {daysLeft} ngày</Badge>
+                          <Badge bg="warning" text="dark">{t('admin.days_remaining', 'Còn {days} ngày').replace('{days}', String(daysLeft))}</Badge>
                         ) : (
-                          <Badge bg="success">Còn {daysLeft} ngày</Badge>
+                          <Badge bg="success">{t('admin.days_remaining', 'Còn {days} ngày').replace('{days}', String(daysLeft))}</Badge>
                         )}
                       </td>
                       <td>
@@ -1366,7 +1366,7 @@ export const SystemManagement: React.FC = () => {
                               className="btn btn-sm btn-outline-success py-0.5 px-2"
                               onClick={() => updateLicenseStatusMutation.mutate({ id: lic.id, status: 'VERIFIED' })}
                             >
-                              Xác Thực
+                              {t('admin.btn_verify_cchn', 'Xác Thực')}
                             </button>
                           )}
                           {lic.verification_status !== 'EXPIRED' && (
@@ -1375,7 +1375,7 @@ export const SystemManagement: React.FC = () => {
                               className="btn btn-sm btn-outline-danger py-0.5 px-2"
                               onClick={() => updateLicenseStatusMutation.mutate({ id: lic.id, status: 'EXPIRED' })}
                             >
-                              Hết Hạn
+                              {t('admin.btn_expired_cchn', 'Hết Hạn')}
                             </button>
                           )}
                         </div>
@@ -1394,9 +1394,9 @@ export const SystemManagement: React.FC = () => {
         <Row className="g-4">
           <Col xs={12} md={6}>
             <div className="wd-card p-4 h-100">
-              <h2 className="h5 fw-bold text-dark mb-2">Phát Lệnh Thông Báo Nội Bộ Bệnh Viện</h2>
+              <h2 className="h5 fw-bold text-dark mb-2">{t('admin.broadcast_title', 'Phát Lệnh Thông Báo Nội Bộ Bệnh Viện')}</h2>
               <p className="text-muted small mb-4">
-                Thông báo sẽ xuất hiện trực tiếp trên bảng điều khiển Dashboard và thanh thông báo của các cán bộ mục tiêu.
+                {t('admin.broadcast_subtitle', 'Thông báo sẽ xuất hiện trực tiếp trên bảng điều khiển Dashboard và thanh thông báo của các cán bộ mục tiêu.')}
               </p>
 
               <Form
@@ -1406,7 +1406,7 @@ export const SystemManagement: React.FC = () => {
                 }}
               >
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">Phạm Vi Tiếp Nhận Thông Báo</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.broadcast_scope_label', 'Phạm Vi Tiếp Nhận Thông Báo')}</Form.Label>
                   <Form.Select
                     value={broadcastData.department_code}
                     onChange={(e) => setBroadcastData({ ...broadcastData, department_code: e.target.value })}
@@ -1422,7 +1422,7 @@ export const SystemManagement: React.FC = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Phân Loại Thông Báo' : 'Announcement Type'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.broadcast_type_label', 'Phân Loại Thông Báo')}</Form.Label>
                   <Form.Select
                     value={broadcastData.type}
                     onChange={(e) => setBroadcastData({ ...broadcastData, type: e.target.value as any })}
@@ -1439,7 +1439,7 @@ export const SystemManagement: React.FC = () => {
                   <Form.Control
                     type="text"
                     required
-                    placeholder={lang === 'vi' ? 'Thông báo lịch trực tăng cường...' : 'Enter announcement title...'}
+                    placeholder={t('admin.broadcast_title_placeholder', 'Thông báo lịch trực tăng cường...')}
                     value={broadcastData.title}
                     onChange={(e) => setBroadcastData({ ...broadcastData, title: e.target.value })}
                     className="wd-input"
@@ -1447,12 +1447,12 @@ export const SystemManagement: React.FC = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-4">
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Nội Dung Chi Tiết' : 'Message Details'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.broadcast_body_label', 'Nội Dung Chi Tiết')}</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={4}
                     required
-                    placeholder={lang === 'vi' ? 'Nhập nội dung thông điệp gửi tới cán bộ y tế...' : 'Enter broadcast message...'}
+                    placeholder={t('admin.broadcast_body_placeholder', 'Nhập nội dung thông điệp gửi tới cán bộ y tế...')}
                     value={broadcastData.message}
                     onChange={(e) => setBroadcastData({ ...broadcastData, message: e.target.value })}
                     className="wd-input"
@@ -1465,7 +1465,7 @@ export const SystemManagement: React.FC = () => {
                   className="wd-pill-btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2"
                 >
                   <Send size={16} />
-                  <span>{broadcastMutation.isPending ? (lang === 'vi' ? 'Đang gửi...' : 'Sending...') : (lang === 'vi' ? 'Phát Lệnh Thông Báo Ngay' : 'Send Broadcast Now')}</span>
+                  <span>{broadcastMutation.isPending ? t('admin.btn_sending_broadcast', 'Đang gửi...') : t('admin.btn_send_broadcast', 'Phát Lệnh Thông Báo Ngay')}</span>
                 </Button>
               </Form>
             </div>
@@ -1473,21 +1473,21 @@ export const SystemManagement: React.FC = () => {
 
           <Col xs={12} md={6}>
             <div className="wd-card p-4 h-100">
-              <h3 className="h6 fw-bold text-dark mb-3">{lang === 'vi' ? 'Quy Chuẩn Thông Báo Nội Bộ Bệnh Viện' : 'Internal Hospital Communication Standards'}</h3>
+              <h3 className="h6 fw-bold text-dark mb-3">{t('admin.broadcast_standards_title', 'Quy Chuẩn Thông Báo Nội Bộ Bệnh Viện')}</h3>
               <div className="d-flex flex-column gap-3 text-muted small">
                 <div className="p-3 bg-light rounded-2 border">
                   <strong className="text-dark d-block mb-1">🚨 {t('admin.announcement_emergency', 'Cảnh Báo Khẩn Cấp')}:</strong>
-                  {lang === 'vi' ? 'Áp dụng cho báo động đỏ nội viện, tiếp nhận thảm họa hoặc dịch bệnh đột xuất.' : 'Used for critical emergency alerts, internal Code Blue/Red, or urgent incident response.'}
+                  {t('admin.broadcast_standards_urgent', 'Áp dụng cho báo động đỏ nội viện, tiếp nhận thảm họa hoặc dịch bệnh đột xuất.')}
                 </div>
 
                 <div className="p-3 bg-light rounded-2 border">
                   <strong className="text-dark d-block mb-1">📢 {t('admin.announcement_general', 'Thông Báo Chung')}:</strong>
-                  {lang === 'vi' ? 'Áp dụng cho quy chế lương thưởng, chính sách cấp phép chứng chỉ, kế hoạch đào tạo y khoa liên tục.' : 'Used for hospital announcements, CME training schedules, and general HR directives.'}
+                  {t('admin.broadcast_standards_info', 'Áp dụng cho quy chế lương thưởng, chính sách cấp phép chứng chỉ, kế hoạch đào tạo y khoa liên tục.')}
                 </div>
 
                 <div className="p-3 bg-light rounded-2 border">
                   <strong className="text-dark d-block mb-1">📋 {t('admin.announcement_task', 'Giao Việc Điều Hành')}:</strong>
-                  {lang === 'vi' ? 'Áp dụng cho yêu cầu hoàn thiện hồ sơ bệnh án, rà soát trang thiết bị y tế và chuẩn bị kiểm tra chất lượng bệnh viện.' : 'Used for administrative directives, patient medical record reviews, and quality audits.'}
+                  {t('admin.broadcast_standards_task', 'Áp dụng cho yêu cầu hoàn thiện hồ sơ bệnh án, rà soát trang thiết bị y tế và chuẩn bị kiểm tra chất lượng bệnh viện.')}
                 </div>
               </div>
             </div>
@@ -1502,7 +1502,7 @@ export const SystemManagement: React.FC = () => {
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <Edit2 size={18} className="text-primary" />
-            Sửa Toàn Bộ Hồ Sơ Nhân Viên (Quyền Quản Trị HR)
+            {t('admin.modal_edit_profile_title', 'Sửa Toàn Bộ Hồ Sơ Nhân Viên')}
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -1518,14 +1518,14 @@ export const SystemManagement: React.FC = () => {
         >
           <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
             <Alert variant="info" className="py-2 small mb-3">
-              Quyền Admin cho phép chỉnh sửa toàn bộ các trường nhân sự, bao gồm cả khoa phòng, chức vụ, trạng thái và ngày vào làm.
+              {t('admin.modal_edit_profile_subtitle', 'Quyền Admin cho phép chỉnh sửa toàn bộ các trường nhân sự, bao gồm cả khoa phòng, chức vụ, trạng thái và ngày vào làm.')}
             </Alert>
 
-            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">1. Thông Tin Chuyên Môn &amp; Tổ Chức</h6>
+            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">{t('admin.sec_clinical_org', '1. Thông Tin Chuyên Môn & Tổ Chức')}</h6>
             <Row className="g-3 mb-3">
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Khoa / Phòng Chuyên Môn</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')}</Form.Label>
                   <Form.Select
                     value={profileFormData.department_code || ''}
                     onChange={(e) => setProfileFormData({ ...profileFormData, department_code: e.target.value })}
@@ -1542,7 +1542,7 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Chức Danh Phân Quyền' : 'Assigned Role'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_assigned_role', 'Chức Danh Phân Quyền')}</Form.Label>
                   <Form.Select
                     value={profileFormData.role || 'STAFF'}
                     onChange={(e) => setProfileFormData({ ...profileFormData, role: e.target.value })}
@@ -1561,7 +1561,7 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Chuyên Khoa / Bổ Nhiệm' : 'Specialty / Appointment'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_specialty', 'Chuyên Khoa / Bổ Nhiệm')}</Form.Label>
                   <Form.Control
                     type="text"
                     value={profileFormData.specialty || ''}
@@ -1573,7 +1573,7 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Trạng Thái Nhân Sự' : 'Staff Status'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_staff_status', 'Trạng Thái Nhân Sự')}</Form.Label>
                   <Form.Select
                     value={profileFormData.status || 'ACTIVE'}
                     onChange={(e) => setProfileFormData({ ...profileFormData, status: e.target.value })}
@@ -1581,18 +1581,18 @@ export const SystemManagement: React.FC = () => {
                   >
                     <option value="ACTIVE">{t('common.active', 'Đang làm việc')}</option>
                     <option value="INACTIVE">{t('common.inactive', 'Đã nghỉ việc')}</option>
-                    <option value="SUSPENDED">{lang === 'vi' ? 'Tạm đình chỉ' : 'Suspended'}</option>
-                    <option value="ON_LEAVE">{lang === 'vi' ? 'Nghỉ dài hạn' : 'On Leave'}</option>
+                    <option value="SUSPENDED">{t('admin.status_suspended', 'Tạm đình chỉ')}</option>
+                    <option value="ON_LEAVE">{t('admin.status_on_leave', 'Nghỉ dài hạn')}</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
             </Row>
 
-            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">2. Thông Tin Định Danh &amp; Liên Hệ</h6>
+            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">{t('admin.sec_identity_contact', '2. Thông Tin Định Danh & Liên Hệ')}</h6>
             <Row className="g-3 mb-3">
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Họ và Tên Đệm</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_last_name', 'Họ và Tên Đệm')}</Form.Label>
                   <Form.Control
                     type="text"
                     value={profileFormData.last_name || ''}
@@ -1604,7 +1604,7 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Tên Gọi</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_first_name', 'Tên Gọi')}</Form.Label>
                   <Form.Control
                     type="text"
                     value={profileFormData.first_name || ''}
@@ -1616,7 +1616,7 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Email Công Vụ</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_official_email', 'Email Công Vụ')}</Form.Label>
                   <Form.Control
                     type="email"
                     value={profileFormData.email || ''}
@@ -1628,7 +1628,7 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Số Điện Thoại</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_phone', 'Số Điện Thoại')}</Form.Label>
                   <Form.Control
                     type="text"
                     value={profileFormData.phone || ''}
@@ -1640,7 +1640,7 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Số CCCD / Hộ Chiếu</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_id_card', 'Số CCCD / Hộ Chiếu')}</Form.Label>
                   <Form.Control
                     type="text"
                     value={profileFormData.national_id || ''}
@@ -1652,10 +1652,10 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Quốc Tịch</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_nationality', 'Quốc Tịch')}</Form.Label>
                   <Form.Control
                     type="text"
-                    value={profileFormData.nationality || 'Việt Nam'}
+                    value={profileFormData.nationality || 'Vietnam'}
                     onChange={(e) => setProfileFormData({ ...profileFormData, nationality: e.target.value })}
                     className="wd-input"
                   />
@@ -1665,10 +1665,10 @@ export const SystemManagement: React.FC = () => {
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowEditProfileModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="primary" disabled={adminUpdateEmployeeMutation.isPending}>
-              {adminUpdateEmployeeMutation.isPending ? 'Đang lưu...' : 'Lưu Thay Đổi Hồ Sơ'}
+              {adminUpdateEmployeeMutation.isPending ? t('admin.btn_saving', 'Đang lưu...') : t('admin.btn_save_profile', 'Lưu Thay Đổi Hồ Sơ')}
             </Button>
           </Modal.Footer>
         </Form>
@@ -1681,7 +1681,7 @@ export const SystemManagement: React.FC = () => {
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <UserCheck size={18} className="text-primary" />
-            Tiếp Nhận Cán Bộ Y Tế &amp; Khởi Tạo Tài Khoản IAM
+            {t('admin.modal_onboard_title', 'Tiếp Nhận Cán Bộ Y Tế & Khởi Tạo Tài Khoản IAM')}
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -1704,19 +1704,19 @@ export const SystemManagement: React.FC = () => {
               annual_leave_days: Number((form.elements.namedItem('annual_leave_days') as HTMLInputElement).value) || 12,
               medical_license: {
                 license_number: (form.elements.namedItem('license_number') as HTMLInputElement).value,
-                license_type: 'Chứng chỉ hành nghề Khám bệnh, chữa bệnh',
-                issuing_authority: 'Sở Y Tế'
+                license_type: 'Medical Practicing Certificate',
+                issuing_authority: 'Department of Health'
               }
             };
             onboardMutation.mutate(data);
           }}
         >
           <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">1. Thông Tin Cán Bộ</h6>
+            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">{t('admin.sec_staff_info', '1. Thông Tin Cán Bộ')}</h6>
             <Row className="g-3 mb-3">
               <Col xs={12} md={4}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Mã Cán Bộ *</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_emp_code_req', 'Mã Cán Bộ *')}</Form.Label>
                   <Form.Control
                     name="employee_code"
                     required
@@ -1727,33 +1727,33 @@ export const SystemManagement: React.FC = () => {
               </Col>
               <Col xs={12} md={4}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Họ và Tên Đệm *</Form.Label>
-                  <Form.Control name="last_name" required placeholder="Nguyễn Văn" className="wd-input" />
+                  <Form.Label className="small fw-semibold">{t('admin.field_last_name_req', 'Họ và Tên Đệm *')}</Form.Label>
+                  <Form.Control name="last_name" required placeholder="Nguyen Van" className="wd-input" />
                 </Form.Group>
               </Col>
               <Col xs={12} md={4}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Tên Gọi *</Form.Label>
-                  <Form.Control name="first_name" required placeholder="L" className="wd-input" />
+                  <Form.Label className="small fw-semibold">{t('admin.field_first_name_req', 'Tên Gọi *')}</Form.Label>
+                  <Form.Control name="first_name" required placeholder="An" className="wd-input" />
                 </Form.Group>
               </Col>
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Email Công Vụ *</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_email_req', 'Email Công Vụ *')}</Form.Label>
                   <Form.Control name="email" type="email" required placeholder="bacsi@hospital.vn" className="wd-input" />
                 </Form.Group>
               </Col>
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">Số Điện Thoại</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_phone', 'Số Điện Thoại')}</Form.Label>
                   <Form.Control name="phone" placeholder="0901234..." className="wd-input" />
                 </Form.Group>
               </Col>
 
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('nav.department', 'Khoa / Phòng Chuyên Môn')} *</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')} *</Form.Label>
                   <Form.Select name="department_code" className="wd-input">
                     {departments.map((d) => (
                       <option key={d.department_code} value={d.department_code}>
@@ -1765,7 +1765,7 @@ export const SystemManagement: React.FC = () => {
               </Col>
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Chức Vụ *' : 'Role *'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_role_req', 'Chức Vụ *')}</Form.Label>
                   <Form.Select name="role" defaultValue="DOCTOR" className="wd-input">
                     <option value="DOCTOR">{t('roles.doctor', 'Bác Sĩ Điều Trị')}</option>
                     <option value="NURSE">{t('roles.nurse', 'Điều Dưỡng Viên')}</option>
@@ -1779,49 +1779,49 @@ export const SystemManagement: React.FC = () => {
 
               <Col xs={12}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Chuyên Khoa / Bằng Cấp Chuyên Môn' : 'Specialty / Medical Degrees'}</Form.Label>
-                  <Form.Control name="specialty" placeholder="VD: Bác sĩ Đa khoa, CKI Hồi sức cấp cứu..." className="wd-input" />
+                  <Form.Label className="small fw-semibold">{t('admin.field_specialty_req', 'Chuyên Khoa / Bằng Cấp Chuyên Môn')}</Form.Label>
+                  <Form.Control name="specialty" placeholder={t('admin.placeholder_specialty', 'VD: Bác sĩ Đa khoa, CKI Hồi sức cấp cứu...')} className="wd-input" />
                 </Form.Group>
               </Col>
             </Row>
 
-            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">2. Tài Khoản IAM Đăng Nhập</h6>
+            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">{t('admin.sec_iam_account', '2. Tài Khoản IAM Đăng Nhập')}</h6>
             <Row className="g-3 mb-3">
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Tên Đăng Nhập' : 'Username'}</Form.Label>
-                  <Form.Control name="username" placeholder="Để trống tự tạo theo mã NV" className="wd-input font-monospace" />
+                  <Form.Label className="small fw-semibold">{t('admin.col_username', 'Tên Đăng Nhập')}</Form.Label>
+                  <Form.Control name="username" placeholder={t('admin.placeholder_username', 'Để trống tự tạo theo mã NV')} className="wd-input font-monospace" />
                 </Form.Group>
               </Col>
               <Col xs={12} md={6}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Mật Khẩu Khởi Tạo' : 'Initial Password'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.placeholder_initial_pwd', 'Mật Khẩu Khởi Tạo')}</Form.Label>
                   <Form.Control name="password" defaultValue="bv123456" className="wd-input" />
                 </Form.Group>
               </Col>
             </Row>
 
-            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">3. Chế Độ Lương &amp; Cấp Phép</h6>
+            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">{t('admin.sec_payroll_license', '3. Chế Độ Lương & Cấp Phép')}</h6>
             <Row className="g-3">
               <Col xs={12} md={4}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Lương Cơ Bản / Giờ' : 'Base Hourly Rate'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_base_hourly', 'Lương Cơ Bản / Giờ')}</Form.Label>
                   <Form.Control name="base_hourly_rate" type="number" defaultValue="120000" step="5000" className="wd-input" />
                 </Form.Group>
               </Col>
               <Col xs={12} md={4}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Bậc Thuế / Chế Độ' : 'Tax Tier'}</Form.Label>
-                  <Form.Select name="tax_tier" defaultValue="Bậc 1" className="wd-input">
-                    <option value="Bậc 1 - Nhân viên">Bậc 1 - Nhân viên</option>
-                    <option value="Bậc 2 - Bác sĩ">Bậc 2 - Bác sĩ</option>
-                    <option value="Bậc 3 - Trưởng khoa">Bậc 3 - Trưởng khoa</option>
+                  <Form.Label className="small fw-semibold">{t('admin.field_tax_tier', 'Bậc Thuế / Chế Độ')}</Form.Label>
+                  <Form.Select name="tax_tier" defaultValue="Tier 1" className="wd-input">
+                    <option value="Tier 1 - Staff">Tier 1 - Staff</option>
+                    <option value="Tier 2 - Doctor">Tier 2 - Doctor</option>
+                    <option value="Tier 3 - Head of Dept">Tier 3 - Head of Dept</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
               <Col xs={12} md={4}>
                 <Form.Group>
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Phép Năm Khởi Tạo' : 'Initial Annual Leave'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_annual_leave', 'Phép Năm Khởi Tạo')}</Form.Label>
                   <Form.Control name="annual_leave_days" type="number" defaultValue="12" className="wd-input" />
                 </Form.Group>
               </Col>
@@ -1829,17 +1829,17 @@ export const SystemManagement: React.FC = () => {
               <Col xs={12}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('personal.license_number', 'Số Hiệu Chứng Chỉ')}</Form.Label>
-                  <Form.Control name="license_number" placeholder="VD: 009876/HN-CCHN" className="wd-input font-monospace" />
+                  <Form.Control name="license_number" placeholder="009876/HN-CCHN" className="wd-input font-monospace" />
                 </Form.Group>
               </Col>
             </Row>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowOnboardModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="primary" disabled={onboardMutation.isPending}>
-              {onboardMutation.isPending ? 'Đang tiếp nhận...' : 'Hoàn Tất Tiếp Nhận'}
+              {onboardMutation.isPending ? t('admin.btn_onboarding', 'Đang tiếp nhận...') : t('admin.btn_finish_onboarding', 'Hoàn Tất Tiếp Nhận')}
             </Button>
           </Modal.Footer>
         </Form>
@@ -1852,7 +1852,7 @@ export const SystemManagement: React.FC = () => {
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <Key size={18} className="text-warning" />
-            Đặt Lại Mật Khẩu Tài Khoản
+            {t('admin.modal_reset_pwd_title', 'Đặt Lại Mật Khẩu Tài Khoản')}
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -1868,30 +1868,30 @@ export const SystemManagement: React.FC = () => {
         >
           <Modal.Body>
             <p className="small text-muted mb-3">
-              Đặt lại mật khẩu truy cập hệ thống cho cán bộ{' '}
-              <strong>{selectedAccountForPassword?.staff_name}</strong> (Tài khoản:{' '}
-              <code>{selectedAccountForPassword?.username}</code>).
+              {t('admin.modal_reset_pwd_desc', 'Đặt lại mật khẩu truy cập hệ thống cho cán bộ')}{' '}
+              <strong>{selectedAccountForPassword?.staff_name}</strong> — {t('admin.account_label', 'Tài khoản')}:{' '}
+              <code>{selectedAccountForPassword?.username}</code>.
             </p>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Mật Khẩu Mới' : 'New Password'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_new_pwd', 'Mật Khẩu Mới')}</Form.Label>
               <Form.Control
                 type="password"
                 required
                 minLength={6}
                 value={newPasswordValue}
                 onChange={(e) => setNewPasswordValue(e.target.value)}
-                placeholder="Nhập mật khẩu mới..."
+                placeholder={t('admin.placeholder_new_pwd', 'Nhập mật khẩu mới...')}
                 className="wd-input"
               />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowResetPasswordModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="warning" disabled={resetPasswordMutation.isPending}>
-              {resetPasswordMutation.isPending ? 'Đang cập nhật...' : 'Xác Nhận Đặt Lại Mật Khẩu'}
+              {resetPasswordMutation.isPending ? t('admin.btn_updating', 'Đang cập nhật...') : t('admin.btn_confirm_reset_pwd', 'Xác Nhận Đặt Lại Mật Khẩu')}
             </Button>
           </Modal.Footer>
         </Form>
@@ -1904,7 +1904,7 @@ export const SystemManagement: React.FC = () => {
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <Building2 size={18} className="text-primary" />
-            {editingDept?.id ? 'Chỉnh Sửa Khoa Phòng' : 'Thêm Khoa Phòng Mới'}
+            {editingDept?.id ? t('admin.modal_edit_dept_title', 'Chỉnh Sửa Khoa Phòng') : t('admin.modal_add_dept_title', 'Thêm Khoa Phòng Mới')}
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -1917,7 +1917,7 @@ export const SystemManagement: React.FC = () => {
         >
           <Modal.Body>
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Mã Khoa Phòng *' : 'Department Code *'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_dept_code_req', 'Mã Khoa Phòng *')}</Form.Label>
               <Form.Control
                 type="text"
                 required
@@ -1929,11 +1929,11 @@ export const SystemManagement: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Tên Khoa Phòng *' : 'Department Name *'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_dept_name_req', 'Tên Khoa Phòng *')}</Form.Label>
               <Form.Control
                 type="text"
                 required
-                placeholder="VD: Khoa Khám Bệnh..."
+                placeholder={t('admin.placeholder_dept_name', 'VD: Khoa Khám Bệnh...')}
                 value={editingDept?.name || ''}
                 onChange={(e) => setEditingDept({ ...editingDept, name: e.target.value })}
                 className="wd-input"
@@ -1941,10 +1941,10 @@ export const SystemManagement: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Vị Trí / Khu Nhà' : 'Location / Building'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_dept_location', 'Vị Trí / Khu Nhà')}</Form.Label>
               <Form.Control
                 type="text"
-                placeholder="VD: Tầng 2 - Khu Nhà B..."
+                placeholder={t('admin.placeholder_dept_location', 'VD: Tầng 2 - Khu Nhà B...')}
                 value={editingDept?.location || ''}
                 onChange={(e) => setEditingDept({ ...editingDept, location: e.target.value })}
                 className="wd-input"
@@ -1952,7 +1952,7 @@ export const SystemManagement: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Chức Năng & Nhiệm Vụ' : 'Function & Responsibilities'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_dept_functions', 'Chức Năng & Nhiệm Vụ')}</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
@@ -1963,7 +1963,7 @@ export const SystemManagement: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Trạng Thái Hoạt Động' : 'Operating Status'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_dept_status', 'Trạng Thái Hoạt Động')}</Form.Label>
               <Form.Select
                 value={editingDept?.status || 'ACTIVE'}
                 onChange={(e) => setEditingDept({ ...editingDept, status: e.target.value as any })}
@@ -1976,10 +1976,10 @@ export const SystemManagement: React.FC = () => {
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowDeptModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="primary" disabled={saveDepartmentMutation.isPending}>
-              {saveDepartmentMutation.isPending ? 'Đang lưu...' : 'Lưu Khoa Phòng'}
+              {saveDepartmentMutation.isPending ? t('admin.btn_saving', 'Đang lưu...') : t('admin.btn_save_dept', 'Lưu Khoa Phòng')}
             </Button>
           </Modal.Footer>
         </Form>
@@ -1992,7 +1992,7 @@ export const SystemManagement: React.FC = () => {
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <DollarSign size={18} className="text-success" />
-            Cập Nhật Định Mức Lương Cơ Bản
+            {t('admin.modal_edit_rate_title', 'Cập Nhật Định Mức Lương Cơ Bản')}
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -2009,11 +2009,11 @@ export const SystemManagement: React.FC = () => {
         >
           <Modal.Body>
             <p className="small text-muted mb-3">
-              Cán bộ: <strong>{selectedPayRate?.staff_name}</strong> — {selectedPayRate?.employee_code} • {selectedPayRate?.role}
+              {t('admin.rate_staff_label', 'Cán bộ')}: <strong>{selectedPayRate?.staff_name}</strong> — {selectedPayRate?.employee_code} • {selectedPayRate?.role}
             </p>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Mức Lương Cơ Bản Theo Giờ *' : 'Base Hourly Rate *'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_base_hourly_req', 'Mức Lương Cơ Bản Theo Giờ *')}</Form.Label>
               <Form.Control
                 type="number"
                 required
@@ -2024,27 +2024,27 @@ export const SystemManagement: React.FC = () => {
                 className="wd-input fw-bold"
               />
               <Form.Text className="text-muted small">
-                Ước tính lương tháng 176h: ~{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(newHourlyRate || 0) * 176)}
+                {t('admin.monthly_estimate_label', 'Ước tính lương tháng 176h')}: ~{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(newHourlyRate || 0) * 176)}
               </Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Bậc Thuế / Chế Độ Đãi Ngộ' : 'Tax Tier / Benefits'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_tax_tier_benefits', 'Bậc Thuế / Chế Độ Đãi Ngộ')}</Form.Label>
               <Form.Control
                 type="text"
                 value={newTaxTier}
                 onChange={(e) => setNewTaxTier(e.target.value)}
-                placeholder="VD: Bậc 2 - Bác sĩ chính..."
+                placeholder={t('admin.placeholder_tax_tier', 'VD: Bậc 2 - Bác sĩ chính...')}
                 className="wd-input"
               />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowPayRateModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="success" disabled={updatePayRateMutation.isPending}>
-              {updatePayRateMutation.isPending ? 'Đang lưu...' : 'Cập Nhật Lương'}
+              {updatePayRateMutation.isPending ? t('admin.btn_saving', 'Đang lưu...') : t('admin.btn_update_rate', 'Cập Nhật Lương')}
             </Button>
           </Modal.Footer>
         </Form>
@@ -2057,7 +2057,7 @@ export const SystemManagement: React.FC = () => {
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <CreditCard size={18} className="text-primary" />
-            {lang === 'vi' ? 'Khởi Tạo Kỳ Lương Mới Bệnh Viện' : 'Generate Hospital Payroll Run'}
+            {t('admin.modal_create_run_title', 'Khởi Tạo Kỳ Lương Mới Bệnh Viện')}
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -2071,9 +2071,7 @@ export const SystemManagement: React.FC = () => {
         >
           <Modal.Body>
             <Alert variant="info" className="small py-2 mb-3">
-              {lang === 'vi' 
-                ? 'Hệ thống sẽ tự động quét danh sách toàn bộ cán bộ y tế đang hoạt động, lấy định mức lương VND theo giờ và tạo phiếu lương tương ứng.'
-                : 'The system will automatically calculate hours worked and generate payslips for all active medical staff.'}
+              {t('admin.modal_create_run_desc', 'Hệ thống sẽ tự động quét danh sách toàn bộ cán bộ y tế đang hoạt động, lấy định mức lương VND theo giờ và tạo phiếu lương tương ứng.')}
             </Alert>
 
             <Form.Group className="mb-3">
@@ -2100,10 +2098,10 @@ export const SystemManagement: React.FC = () => {
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowNewRunModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="primary" disabled={generateRunMutation.isPending}>
-              {generateRunMutation.isPending ? 'Đang tính toán...' : 'Khởi Tạo &amp; Tạo Phiếu Lương'}
+              {generateRunMutation.isPending ? t('admin.btn_calculating', 'Đang tính toán...') : t('admin.btn_create_and_generate_slips', 'Khởi Tạo & Tạo Phiếu Lương')}
             </Button>
           </Modal.Footer>
         </Form>
@@ -2116,7 +2114,7 @@ export const SystemManagement: React.FC = () => {
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <Clock size={18} className="text-primary" />
-            Phân Ca Trực Khẩn Cấp 24/7
+            {t('admin.modal_shift_title', 'Phân Ca Trực Khẩn Cấp 24/7')}
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -2127,14 +2125,14 @@ export const SystemManagement: React.FC = () => {
         >
           <Modal.Body>
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Cán Bộ Y Tế Nhận Ca *' : 'Assigned Staff *'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_assign_staff_req', 'Cán Bộ Y Tế Nhận Ca *')}</Form.Label>
               <Form.Select
                 required
                 value={newShiftData.staff_id}
                 onChange={(e) => setNewShiftData({ ...newShiftData, staff_id: e.target.value })}
                 className="wd-input"
               >
-                <option value="">-- {lang === 'vi' ? 'Chọn Cán Bộ' : 'Select Staff'} --</option>
+                <option value="">-- {t('admin.select_staff_placeholder', 'Chọn Cán Bộ')} --</option>
                 {accounts.map((a) => (
                   <option key={a.employee_code} value={a.employee_code}>
                     {a.staff_name} — {a.employee_code} • {a.role}
@@ -2159,7 +2157,7 @@ export const SystemManagement: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Loại Ca' : 'Shift Type'}</Form.Label>
+              <Form.Label className="small fw-semibold">{t('admin.field_shift_type', 'Loại Ca')}</Form.Label>
               <Form.Select
                 value={newShiftData.shift_type}
                 onChange={(e) => setNewShiftData({ ...newShiftData, shift_type: e.target.value })}
@@ -2176,7 +2174,7 @@ export const SystemManagement: React.FC = () => {
             <Row className="g-2">
               <Col xs={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Bắt Đầu' : 'Start Time'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_start_time', 'Bắt Đầu')}</Form.Label>
                   <Form.Control
                     type="datetime-local"
                     required
@@ -2188,7 +2186,7 @@ export const SystemManagement: React.FC = () => {
               </Col>
               <Col xs={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Kết Thúc' : 'End Time'}</Form.Label>
+                  <Form.Label className="small fw-semibold">{t('admin.field_end_time', 'Kết Thúc')}</Form.Label>
                   <Form.Control
                     type="datetime-local"
                     required
@@ -2202,23 +2200,23 @@ export const SystemManagement: React.FC = () => {
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowAddShiftModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="primary" disabled={createShiftMutation.isPending}>
-              {createShiftMutation.isPending ? 'Đang phân ca...' : 'Xác Nhận Phân Ca'}
+              {createShiftMutation.isPending ? t('admin.btn_assigning', 'Đang phân ca...') : t('admin.btn_confirm_shift', 'Xác Nhận Phân Ca')}
             </Button>
           </Modal.Footer>
         </Form>
       </Modal>
 
       {/* ========================================================================= */}
-      {/* MODAL 8: PHÂN QUYỀN VAI TRÒ IAM (ASSIGN RBAC ROLE & PERMISSIONS) */}
+      {/* MODAL 8: ASSIGN RBAC ROLE AND PERMISSIONS */}
       {/* ========================================================================= */}
       <Modal show={showRoleModal} onHide={() => setShowRoleModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-bottom pb-3">
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2 mb-0">
             <Shield className="text-primary" size={20} />
-            <span>{lang === 'vi' ? 'Phân Quyền Vai Trò Tài Khoản' : 'IAM Role Assignment'}</span>
+            <span>{t('admin.modal_role_title', 'Phân Quyền Vai Trò Tài Khoản')}</span>
           </Modal.Title>
         </Modal.Header>
         <Form
@@ -2237,7 +2235,7 @@ export const SystemManagement: React.FC = () => {
                 <Row className="g-3 align-items-center">
                   <Col xs={12} sm={6}>
                     <div className="text-muted small text-uppercase fw-semibold" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>
-                      Tài khoản &amp; Cán bộ
+                      {t('admin.account_and_staff', 'Tài khoản & Cán bộ')}
                     </div>
                     <div className="fw-bold text-dark fs-6 mt-1">
                       {selectedAccountForRole.staff_name}
@@ -2248,14 +2246,14 @@ export const SystemManagement: React.FC = () => {
                   </Col>
                   <Col xs={12} sm={6}>
                     <div className="text-muted small text-uppercase fw-semibold" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>
-                      Khoa phòng &amp; Vai trò hiện tại
+                      {t('admin.dept_and_current_role', 'Khoa phòng & Vai trò hiện tại')}
                     </div>
                     <div className="fw-medium text-dark mt-1">
                       {selectedAccountForRole.department_name || selectedAccountForRole.department_code}
                     </div>
                     <div className="mt-1">
                       <Badge bg="secondary" className="px-2 py-1">
-                        Hiện tại: {selectedAccountForRole.role_code || selectedAccountForRole.role}
+                        {t('admin.current_role_label', 'Hiện tại')}: {selectedAccountForRole.role_code || selectedAccountForRole.role}
                       </Badge>
                     </div>
                   </Col>
@@ -2265,8 +2263,8 @@ export const SystemManagement: React.FC = () => {
 
             <Form.Group className="mb-4">
               <Form.Label className="fw-bold text-dark small d-flex justify-content-between align-items-center">
-                <span>{lang === 'vi' ? 'Chọn Vai Trò Mới *' : 'Select New Role *'}</span>
-                <span className="text-muted fw-normal small">{lang === 'vi' ? 'Hệ thống áp dụng chuẩn RBAC' : 'RBAC Standard Applied'}</span>
+                <span>{t('admin.field_select_new_role', 'Chọn Vai Trò Mới *')}</span>
+                <span className="text-muted fw-normal small">{t('admin.rbac_standard_note', 'Hệ thống áp dụng chuẩn RBAC')}</span>
               </Form.Label>
               <Form.Select
                 value={newRoleCode}
@@ -2297,7 +2295,7 @@ export const SystemManagement: React.FC = () => {
                       </Badge>
                     </div>
                     <Badge bg="light" text="dark" className="border">
-                      {activeRoleObj.permissions?.length || 0} quyền hạn gán sẵn
+                      {activeRoleObj.permissions?.length || 0} {t('admin.assigned_perms_count', 'quyền hạn gán sẵn')}
                     </Badge>
                   </div>
                   <p className="text-muted small mb-3">
@@ -2305,7 +2303,7 @@ export const SystemManagement: React.FC = () => {
                   </p>
 
                   <div className="text-muted small fw-semibold text-uppercase mb-2" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>
-                    Danh sách đặc quyền theo Module:
+                    {t('admin.perms_by_module', 'Danh sách đặc quyền theo Module:')}
                   </div>
 
                   <div
@@ -2327,7 +2325,7 @@ export const SystemManagement: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-muted small fst-italic p-2">Không có quyền hạn đặc biệt</div>
+                      <div className="text-muted small fst-italic p-2">{t('admin.no_special_perms', 'Không có quyền hạn đặc biệt')}</div>
                     )}
                   </div>
                 </div>
@@ -2337,13 +2335,13 @@ export const SystemManagement: React.FC = () => {
             <Alert variant="info" className="py-2.5 px-3 mb-0 small border-0 bg-info bg-opacity-10 text-dark d-flex gap-2 align-items-center">
               <CheckCircle2 size={16} className="text-info flex-shrink-0" />
               <div>
-                Phân quyền được lưu trực tiếp trên bảng <code>Accounts.role_code</code> và liên kết tới <code>Roles</code>/<code>Permissions</code> theo chuẩn kiến trúc RBAC. Thay đổi có hiệu lực ngay khi cán bộ đăng nhập hoặc làm mới phiên.
+                {t('admin.rbac_persisted_note', 'Phân quyền được lưu trực tiếp trên bảng Accounts.role_code và liên kết tới Roles/Permissions theo chuẩn kiến trúc RBAC. Thay đổi có hiệu lực ngay khi cán bộ đăng nhập hoặc làm mới phiên.')}
               </div>
             </Alert>
           </Modal.Body>
           <Modal.Footer className="border-top pt-3">
             <Button variant="secondary" onClick={() => setShowRoleModal(false)}>
-              Hủy
+              {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button
               type="submit"
@@ -2354,12 +2352,12 @@ export const SystemManagement: React.FC = () => {
               {updateRoleMutation.isPending ? (
                 <>
                   <RefreshCw size={14} className="spin-slow" />
-                  <span>Đang lưu phân quyền...</span>
+                  <span>{t('admin.btn_saving_role', 'Đang lưu phân quyền...')}</span>
                 </>
               ) : (
                 <>
                   <ShieldCheck size={16} />
-                  <span>Cập Nhật Quyền Hạn</span>
+                  <span>{t('admin.btn_update_role', 'Cập Nhật Quyền Hạn')}</span>
                 </>
               )}
             </Button>

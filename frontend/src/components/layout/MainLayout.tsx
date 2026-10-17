@@ -55,10 +55,10 @@ export const MainLayout: React.FC = () => {
                 }`}
                 style={{ fontSize: '12px', transition: 'all 0.15s ease' }}
                 onClick={() => setLanguage('vi')}
-                aria-label="Chuyển sang Tiếng Việt"
+                aria-label={t('common.vietnamese', 'Tiếng Việt')}
                 aria-pressed={lang === 'vi'}
               >
-                Tiếng Việt
+                {t('common.vietnamese', 'Tiếng Việt')}
               </button>
               <button
                 type="button"
@@ -69,7 +69,7 @@ export const MainLayout: React.FC = () => {
                 }`}
                 style={{ fontSize: '12px', transition: 'all 0.15s ease' }}
                 onClick={() => setLanguage('en')}
-                aria-label="Switch to English"
+                aria-label={t('common.english', 'English')}
                 aria-pressed={lang === 'en'}
               >
                 English

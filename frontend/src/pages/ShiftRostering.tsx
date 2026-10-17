@@ -96,12 +96,12 @@ export const ShiftRostering: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shifts'] });
       setShowModal(false);
-      setActionSuccess(`Ca trực đã được phân bổ thành công theo Quy chế Thường trực bệnh viện!`);
+      setActionSuccess(t('shifts.assign_success', 'Ca trực đã được phân bổ thành công theo Quy chế Thường trực bệnh viện!'));
       setTimeout(() => setActionSuccess(null), 4000);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || err.message || 'Không thể xếp ca trực.';
-      setActionSuccess(`Lỗi: ${msg}`);
+      const msg = err.response?.data?.message || err.message || t('shifts.assign_error', 'Không thể xếp ca trực.');
+      setActionSuccess(`${t('common.error', 'Lỗi')}: ${msg}`);
     }
   });
 
@@ -117,7 +117,7 @@ export const ShiftRostering: React.FC = () => {
           role: s.role || 'DOCTOR',
           department_code: s.department_code,
           department_id: s.department_id,
-          department_name: s.department_name || (s.department_code ? `Khoa ${s.department_code}` : `Khoa #${s.department_id}`),
+          department_name: s.department_name || (s.department_code ? `${t('nav.department', 'Khoa')} ${s.department_code}` : `${t('nav.department', 'Khoa')} #${s.department_id}`),
           shift_type: s.shift_type,
           on_call_tier: s.on_call_tier || 'CLINICAL',
           team_code: s.team_code || 'GENERAL',
@@ -185,28 +185,28 @@ export const ShiftRostering: React.FC = () => {
         return (
           <span className="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
             <Shield size={11} />
-            <span>Trực Lãnh Đạo</span>
+            <span>{t('tier.LEADERSHIP', 'Trực Lãnh Đạo')}</span>
           </span>
         );
       case 'CLINICAL':
         return (
           <span className="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
             <Stethoscope size={11} />
-            <span>Trực Lâm Sàng</span>
+            <span>{t('tier.CLINICAL', 'Trực Lâm Sàng')}</span>
           </span>
         );
       case 'PARACLINICAL':
         return (
           <span className="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
             <Microscope size={11} />
-            <span>Trực Cận Lâm Sàng</span>
+            <span>{t('tier.PARACLINICAL', 'Trực Cận Lâm Sàng')}</span>
           </span>
         );
       case 'LOGISTICS':
         return (
           <span className="badge bg-secondary-subtle text-secondary border d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
             <Truck size={11} />
-            <span>Trực Hậu Cần</span>
+            <span>{t('tier.LOGISTICS', 'Trực Hậu Cần')}</span>
           </span>
         );
       default:
@@ -217,13 +217,13 @@ export const ShiftRostering: React.FC = () => {
   const getTeamBadge = (team?: TeamCode) => {
     switch (team) {
       case 'TEAM_A':
-        return <span className="badge bg-light text-dark border px-2 py-0.5 small">Kíp A</span>;
+        return <span className="badge bg-light text-dark border px-2 py-0.5 small">{t('team.TEAM_A', 'Kíp A')}</span>;
       case 'TEAM_B':
-        return <span className="badge bg-light text-dark border px-2 py-0.5 small">Kíp B</span>;
+        return <span className="badge bg-light text-dark border px-2 py-0.5 small">{t('team.TEAM_B', 'Kíp B')}</span>;
       case 'TEAM_C':
-        return <span className="badge bg-light text-dark border px-2 py-0.5 small">Kíp C</span>;
+        return <span className="badge bg-light text-dark border px-2 py-0.5 small">{t('team.TEAM_C', 'Kíp C')}</span>;
       case 'TEAM_D':
-        return <span className="badge bg-light text-dark border px-2 py-0.5 small">Kíp D</span>;
+        return <span className="badge bg-light text-dark border px-2 py-0.5 small">{t('team.TEAM_D', 'Kíp D')}</span>;
       default:
         return null;
     }
@@ -232,13 +232,13 @@ export const ShiftRostering: React.FC = () => {
   const getStatusBadge = (status: ShiftItem['status']) => {
     switch (status) {
       case 'IN_PROGRESS':
-        return <span className="wd-badge-success">Đang Trực</span>;
+        return <span className="wd-badge-success">{t('attendance.status_on_duty', 'Đang Trực')}</span>;
       case 'SCHEDULED':
-        return <span className="wd-badge-neutral">Theo Lịch</span>;
+        return <span className="wd-badge-neutral">{t('status.scheduled', 'Theo Lịch')}</span>;
       case 'COMPLETED':
-        return <span className="wd-badge-success">Hoàn Tất</span>;
+        return <span className="wd-badge-success">{t('common.completed', 'Hoàn Tất')}</span>;
       case 'CANCELLED':
-        return <span className="wd-badge-urgent">Đã Hủy</span>;
+        return <span className="wd-badge-urgent">{t('status.cancelled', 'Đã Hủy')}</span>;
       default:
         return <span className="wd-badge-neutral">{status}</span>;
     }
@@ -252,17 +252,17 @@ export const ShiftRostering: React.FC = () => {
           <div className="d-flex align-items-center gap-2 mb-1">
             <h1 className="wd-page-title mb-0">{t('shifts.title', 'Lịch Trực Bệnh Viện')}</h1>
             <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5" style={{ fontSize: '11px' }}>
-              Quy Chế Thường Trực 4 Cấp
+              {t('shifts.rule_title', 'Quy Chế Thường Trực 4 Cấp')}
             </span>
           </div>
           <p className="wd-page-subtitle mb-0">
-            Tổ chức thường trực 4 cấp: Lãnh đạo viện, Lâm sàng, Cận lâm sàng và Hậu cần - Luân phiên 4 kíp trực A/B/C/D
+            {t('shifts.rule_desc', 'Tổ chức thường trực 4 cấp: Lãnh đạo viện, Lâm sàng, Cận lâm sàng và Hậu cần - Luân phiên 4 kíp trực A/B/C/D')}
           </p>
         </div>
         <div className="d-flex gap-2">
           <Link to="/attendance" className="wd-pill-btn-outline text-decoration-none">
             <Clock size={14} />
-            <span>Chấm Công Vào Ca</span>
+            <span>{t('shifts.clock_in_btn', 'Chấm Công Vào Ca')}</span>
           </Link>
           <button
             type="button"
@@ -270,14 +270,14 @@ export const ShiftRostering: React.FC = () => {
             onClick={() => setShowModal(true)}
           >
             <Plus size={15} />
-            <span>Phân Bổ Ca Trực Mới</span>
+            <span>{t('shifts.assign_shift_btn', 'Phân Bổ Ca Trực Mới')}</span>
           </button>
         </div>
       </div>
 
       {actionSuccess && (
         <Alert
-          variant={actionSuccess.startsWith('Lỗi') ? 'danger' : 'success'}
+          variant={actionSuccess.startsWith(t('common.error', 'Lỗi')) ? 'danger' : 'success'}
           dismissible
           onClose={() => setActionSuccess(null)}
           className="d-flex align-items-center gap-2 py-2.5 mb-4 small rounded-2"
@@ -294,10 +294,10 @@ export const ShiftRostering: React.FC = () => {
         </div>
         <div className="flex-grow-1">
           <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-            Quy Chế Thường Trực Bệnh Viện (Điều 39 - QĐ 1895/1997/QĐ-BYT)
+            {t('shifts.policy_title', 'Quy Chế Thường Trực Bệnh Viện')}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            Bệnh viện tổ chức thường trực 24/24 giờ vào các ngày làm việc, ngày nghỉ cuối tuần và lễ tết. Thường trực gồm 4 cấp: Trực Lãnh đạo (Giám đốc/Phó Giám đốc/Trưởng phòng chỉ đạo chung), Trực Lâm sàng (Khám chữa bệnh, tiếp nhận cấp cứu), Trực Cận lâm sàng (Xét nghiệm, CĐHA, cấp phát thuốc độc bảng A), và Trực Hậu cần (Hành chính, điện nước, lái xe cấp cứu).
+            {t('shifts.policy_desc', 'Bệnh viện tổ chức thường trực 24/24 giờ vào các ngày làm việc, ngày nghỉ cuối tuần và lễ tết. Thường trực gồm 4 cấp: Trực Lãnh đạo, Trực Lâm sàng, Trực Cận lâm sàng, và Trực Hậu cần.')}
           </div>
         </div>
       </div>
@@ -307,45 +307,45 @@ export const ShiftRostering: React.FC = () => {
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Đang Có Mặt Trong Ca
+              {t('shifts.stat_on_duty', 'Đang Có Mặt Trong Ca')}
             </div>
             <div className="fw-bold mt-1 font-mono" style={{ fontSize: '24px', color: 'var(--wd-green)' }}>
-              {shifts.filter((s) => s.status === 'IN_PROGRESS').length} Cán Bộ
+              {shifts.filter((s) => s.status === 'IN_PROGRESS').length} {t('shifts.staff_unit', 'Cán Bộ')}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Trực tiếp điều trị tại giường</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('shifts.stat_on_duty_sub', 'Trực tiếp điều trị tại giường')}</div>
           </div>
         </Col>
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Trực Lãnh Đạo &amp; Lâm Sàng
+              {t('shifts.stat_leadership_clinical', 'Trực Lãnh Đạo & Lâm Sàng')}
             </div>
             <div className="fw-bold text-dark mt-1 font-mono" style={{ fontSize: '24px' }}>
-              {shifts.filter((s) => s.on_call_tier === 'LEADERSHIP' || s.on_call_tier === 'CLINICAL').length} Ca
+              {shifts.filter((s) => s.on_call_tier === 'LEADERSHIP' || s.on_call_tier === 'CLINICAL').length} {t('shifts.shift_unit', 'Ca')}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Chỉ đạo chuyên môn 24/7</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('shifts.stat_leadership_clinical_sub', 'Chỉ đạo chuyên môn 24/7')}</div>
           </div>
         </Col>
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Ca Yêu Cầu Giao Ban Sổ
+              {t('shifts.stat_handover_req', 'Ca Yêu Cầu Giao Ban Sổ')}
             </div>
             <div className="fw-bold mt-1 font-mono" style={{ fontSize: '24px', color: 'var(--wd-amber)' }}>
-              {shifts.filter((s) => s.requires_handover).length} Ca
+              {shifts.filter((s) => s.requires_handover).length} {t('shifts.shift_unit', 'Ca')}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Ký sổ giao ca khoa phòng</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('shifts.stat_handover_req_sub', 'Ký sổ giao ca khoa phòng')}</div>
           </div>
         </Col>
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Trực 24/24 Giờ (Nghỉ/Lễ)
+              {t('shifts.stat_24h', 'Trực 24/24 Giờ')}
             </div>
             <div className="fw-bold mt-1 font-mono" style={{ fontSize: '24px', color: 'var(--wd-blue)' }}>
-              {shifts.filter((s) => s.is_24h_on_call).length} Ca
+              {shifts.filter((s) => s.is_24h_on_call).length} {t('shifts.shift_unit', 'Ca')}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Hưởng chế độ phụ cấp trực 24h</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('shifts.stat_24h_sub', 'Hưởng chế độ phụ cấp trực 24h')}</div>
           </div>
         </Col>
       </Row>
@@ -358,7 +358,7 @@ export const ShiftRostering: React.FC = () => {
               <Search size={15} className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
               <input
                 type="text"
-                placeholder="Tìm bác sĩ, điều dưỡng..."
+                placeholder={t('shifts.search_placeholder', 'Tìm bác sĩ, điều dưỡng...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="wd-input w-100 ps-5 py-1.5"
@@ -374,11 +374,11 @@ export const ShiftRostering: React.FC = () => {
               className="wd-select w-100 py-1.5"
               style={{ fontSize: '12px' }}
             >
-              <option value="ALL">-- Tất cả Cấp Thường Trực --</option>
-              <option value="LEADERSHIP">🏛️ Trực Lãnh Đạo</option>
-              <option value="CLINICAL">🩺 Trực Lâm Sàng</option>
-              <option value="PARACLINICAL">🔬 Trực Cận Lâm Sàng</option>
-              <option value="LOGISTICS">📦 Trực Hậu Cần</option>
+              <option value="ALL">{t('shifts.all_tiers', '-- Tất cả Cấp Thường Trực --')}</option>
+              <option value="LEADERSHIP">🏛️ {t('shifts.level_1', 'Trực Lãnh Đạo')}</option>
+              <option value="CLINICAL">🩺 {t('shifts.level_2', 'Trực Lâm Sàng')}</option>
+              <option value="PARACLINICAL">🔬 {t('shifts.level_3', 'Trực Cận Lâm Sàng')}</option>
+              <option value="LOGISTICS">📦 {t('shifts.level_4', 'Trực Hậu Cần')}</option>
             </select>
           </Col>
 
@@ -389,12 +389,12 @@ export const ShiftRostering: React.FC = () => {
               className="wd-select w-100 py-1.5"
               style={{ fontSize: '12px' }}
             >
-              <option value="ALL">-- Kíp Trực --</option>
-              <option value="TEAM_A">Kíp A</option>
-              <option value="TEAM_B">Kíp B</option>
-              <option value="TEAM_C">Kíp C</option>
-              <option value="TEAM_D">Kíp D</option>
-              <option value="GENERAL">Kíp Chung</option>
+              <option value="ALL">{t('shifts.all_teams', '-- Kíp Trực --')}</option>
+              <option value="TEAM_A">{t('team.team_a', 'Kíp A')}</option>
+              <option value="TEAM_B">{t('team.team_b', 'Kíp B')}</option>
+              <option value="TEAM_C">{t('team.team_c', 'Kíp C')}</option>
+              <option value="TEAM_D">{t('team.team_d', 'Kíp D')}</option>
+              <option value="GENERAL">{t('shifts.team_general', 'Kíp Chung')}</option>
             </select>
           </Col>
 
@@ -405,7 +405,7 @@ export const ShiftRostering: React.FC = () => {
               className="wd-select w-100 py-1.5"
               style={{ fontSize: '12px' }}
             >
-              <option value="ALL">-- Khoa Phòng --</option>
+              <option value="ALL">{t('shifts.all_departments', '-- Khoa Phòng --')}</option>
               {serverDepartments.map((d) => (
                 <option key={d.department_code} value={d.department_code}>
                   {d.name}
@@ -421,7 +421,7 @@ export const ShiftRostering: React.FC = () => {
               className="wd-select w-100 py-1.5"
               style={{ fontSize: '12px' }}
             >
-              <option value="ALL">-- {lang === 'vi' ? 'Loại Ca' : 'Shift Type'} --</option>
+              <option value="ALL">{t('shifts.all_shift_types', '-- Loại Ca --')}</option>
               <option value="MORNING">{t('shifts.morning', 'Ca Sáng')}</option>
               <option value="AFTERNOON">{t('shifts.afternoon', 'Ca Chiều')}</option>
               <option value="NIGHT">{t('shifts.night', 'Ca Đêm')}</option>
@@ -435,14 +435,14 @@ export const ShiftRostering: React.FC = () => {
       {/* Shifts Table */}
       <div className="wd-card">
         <div className="wd-card-header">
-          <span className="wd-card-title">{lang === 'vi' ? 'Danh Sách Kíp Thường Trực Bệnh Viện' : 'Hospital On-Call Duty Roster'}</span>
+          <span className="wd-card-title">{t('shifts.roster_title', 'Danh Sách Kíp Thường Trực Bệnh Viện')}</span>
           <div className="d-flex align-items-center gap-3">
             <Link to="/briefings" className="text-decoration-none small d-flex align-items-center gap-1 text-primary fw-medium" style={{ fontSize: '12px' }}>
-              <span>Xem Sổ Giao Ban</span>
+              <span>{t('shifts.view_briefing_book', 'Xem Sổ Giao Ban')}</span>
               <ArrowRight size={13} />
             </Link>
             <Link to="/handovers" className="text-decoration-none small d-flex align-items-center gap-1 text-primary fw-medium" style={{ fontSize: '12px' }}>
-              <span>Xem Sổ Giao Ca</span>
+              <span>{t('shifts.view_handover_book', 'Xem Sổ Giao Ca')}</span>
               <ArrowRight size={13} />
             </Link>
           </div>
@@ -451,14 +451,14 @@ export const ShiftRostering: React.FC = () => {
           <table className="wd-table">
             <thead>
               <tr>
-                <th>CÁN BỘ Y TẾ</th>
-                <th>CẤP THƯỜNG TRỰC &amp; KÍP</th>
-                <th>KHOA PHÒNG PHÂN BỔ</th>
-                <th>LOẠI CA TRỰC</th>
-                <th>KHUNG GIỜ TRỰC</th>
-                <th>QUY CHẾ BÀN GIAO</th>
-                <th>TRẠNG THÁI</th>
-                <th className="text-end">THAO TÁC</th>
+                <th>{t('shifts.th_staff', 'CÁN BỘ Y TẾ')}</th>
+                <th>{t('shifts.th_tier_team', 'CẤP THƯỜNG TRỰC & KÍP')}</th>
+                <th>{t('shifts.th_department', 'KHOA PHÒNG PHÂN BỔ')}</th>
+                <th>{t('shifts.th_shift_type', 'LOẠI CA TRỰC')}</th>
+                <th>{t('shifts.th_time_window', 'KHUNG GIỜ TRỰC')}</th>
+                <th>{t('shifts.th_handover_policy', 'QUY CHẾ BÀN GIAO')}</th>
+                <th>{t('common.status', 'TRẠNG THÁI')}</th>
+                <th className="text-end">{t('common.actions', 'THAO TÁC')}</th>
               </tr>
             </thead>
             <tbody>
@@ -508,10 +508,10 @@ export const ShiftRostering: React.FC = () => {
                   <td>
                     {shift.requires_handover ? (
                       <span className="wd-badge-warning">
-                        Bắt Buộc Ký Sổ Giao Ca
+                        {t('shifts.handover_required', 'Bắt Buộc Ký Sổ Giao Ca')}
                       </span>
                     ) : (
-                      <span className="wd-badge-neutral">Ca Tiêu Chuẩn</span>
+                      <span className="wd-badge-neutral">{t('shifts.standard_shift', 'Ca Tiêu Chuẩn')}</span>
                     )}
                   </td>
                   <td>{getStatusBadge(shift.status)}</td>
@@ -522,7 +522,7 @@ export const ShiftRostering: React.FC = () => {
                       style={{ fontSize: '11px', padding: '3px 10px' }}
                     >
                       <Clock size={12} />
-                      <span>Chấm Công</span>
+                      <span>{t('shifts.clock_btn', 'Chấm Công')}</span>
                     </Link>
                   </td>
                 </tr>
@@ -537,13 +537,13 @@ export const ShiftRostering: React.FC = () => {
         <Form onSubmit={handleCreateShift}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark">
-              Phân Bổ Kíp Trực Bệnh Viện (Quy Chế Thường Trực 4 Cấp)
+              {t('shifts.modal_assign_title', 'Phân Bổ Kíp Trực Bệnh Viện')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
             <Row className="g-3 mb-3">
               <Col md={6}>
-                <label className="wd-label">Cán Bộ Y Tế Nhận Ca *</label>
+                <label className="wd-label">{t('shifts.modal_staff_label', 'Cán Bộ Y Tế Nhận Ca')} *</label>
                 <select
                   value={newStaffCode}
                   onChange={(e) => setNewStaffCode(e.target.value)}
@@ -557,9 +557,9 @@ export const ShiftRostering: React.FC = () => {
                     ))
                   ) : (
                     <>
-                      <option value="EMP-DOC-001">BS.CKII Alexander Wright</option>
-                      <option value="EMP-DOC-002">ThS.BS Elena Rostova</option>
-                      <option value="EMP-NUR-001">ĐD. Sarah Jenkins</option>
+                      <option value="EMP-DOC-001">{t('staff.emp_doc_001', 'BS.CKII Alexander Wright')}</option>
+                      <option value="EMP-DOC-002">{t('staff.emp_doc_002', 'ThS.BS Elena Rostova')}</option>
+                      <option value="EMP-NUR-001">{t('staff.emp_nur_001', 'ĐD. Sarah Jenkins')}</option>
                     </>
                   )}
                 </select>
@@ -583,7 +583,7 @@ export const ShiftRostering: React.FC = () => {
 
             <Row className="g-3 mb-3">
               <Col md={4}>
-                <label className="wd-label">{lang === 'vi' ? 'Cấp Thường Trực' : 'On-Call Tier'} *</label>
+                <label className="wd-label">{t('shifts.modal_tier_label', 'Cấp Thường Trực')} *</label>
                 <select
                   value={newOnCallTier}
                   onChange={(e) => setNewOnCallTier(e.target.value as OnCallTier)}
@@ -597,22 +597,22 @@ export const ShiftRostering: React.FC = () => {
               </Col>
 
               <Col md={4}>
-                <label className="wd-label">{lang === 'vi' ? 'Kíp Trực Luân Phiên' : 'Shift Team'} *</label>
+                <label className="wd-label">{t('shifts.modal_team_label', 'Kíp Trực Luân Phiên')} *</label>
                 <select
                   value={newTeamCode}
                   onChange={(e) => setNewTeamCode(e.target.value as TeamCode)}
                   className="wd-select w-100"
                 >
-                  <option value="TEAM_A">Kíp A</option>
-                  <option value="TEAM_B">Kíp B</option>
-                  <option value="TEAM_C">Kíp C</option>
-                  <option value="TEAM_D">Kíp D</option>
-                  <option value="GENERAL">Kíp Chung</option>
+                  <option value="TEAM_A">{t('team.team_a', 'Kíp A')}</option>
+                  <option value="TEAM_B">{t('team.team_b', 'Kíp B')}</option>
+                  <option value="TEAM_C">{t('team.team_c', 'Kíp C')}</option>
+                  <option value="TEAM_D">{t('team.team_d', 'Kíp D')}</option>
+                  <option value="GENERAL">{t('shifts.team_general', 'Kíp Chung')}</option>
                 </select>
               </Col>
 
               <Col md={4}>
-                <label className="wd-label">{lang === 'vi' ? 'Loại Ca Trực' : 'Shift Type'} *</label>
+                <label className="wd-label">{t('shifts.modal_type_label', 'Loại Ca Trực')} *</label>
                 <select
                   value={newType}
                   onChange={(e) => setNewType(e.target.value as any)}
@@ -622,14 +622,14 @@ export const ShiftRostering: React.FC = () => {
                   <option value="AFTERNOON">{t('shifts.afternoon', 'Ca Chiều')}</option>
                   <option value="NIGHT">{t('shifts.night', 'Ca Đêm')}</option>
                   <option value="ON_CALL">{t('shifts.on_call', 'Trực Thường Trú')}</option>
-                  <option value="EMERGENCY_COVER">{t('shifts.emergency', 'Trực Tăng Cường Cấp Cứu')}</option>
+                  <option value="EMERGENCY_COVER">{t('shifts.emergency', 'Trực Tăng Cường')}</option>
                 </select>
               </Col>
             </Row>
 
             <Row className="g-3 mb-3">
               <Col xs={6}>
-                <label className="wd-label">Thời Gian Bắt Đầu</label>
+                <label className="wd-label">{t('shifts.modal_start_time', 'Thời Gian Bắt Đầu')}</label>
                 <input
                   type="text"
                   value={newStartTime}
@@ -639,7 +639,7 @@ export const ShiftRostering: React.FC = () => {
                 />
               </Col>
               <Col xs={6}>
-                <label className="wd-label">Thời Gian Kết Thúc</label>
+                <label className="wd-label">{t('shifts.modal_end_time', 'Thời Gian Kết Thúc')}</label>
                 <input
                   type="text"
                   value={newEndTime}
@@ -654,7 +654,7 @@ export const ShiftRostering: React.FC = () => {
               <Form.Check
                 type="checkbox"
                 id="is-24h-check"
-                label="Ca trực 24/24 giờ (Áp dụng cho ngày nghỉ cuối tuần hoặc lễ, tết)"
+                label={t('shifts.modal_is_24h_label', 'Ca trực 24/24 giờ')}
                 checked={newIs24hOnCall}
                 onChange={(e) => setNewIs24hOnCall(e.target.checked)}
                 className="small fw-semibold text-dark mb-2"
@@ -663,7 +663,7 @@ export const ShiftRostering: React.FC = () => {
               <Form.Check
                 type="checkbox"
                 id="handover-check"
-                label="Bắt buộc thực hiện bàn giao ca và ghi sổ trực khoa phòng"
+                label={t('shifts.modal_handover_req_label', 'Bắt buộc thực hiện bàn giao ca và ghi sổ trực khoa phòng')}
                 checked={newRequiresHandover}
                 onChange={(e) => setNewRequiresHandover(e.target.checked)}
                 className="small fw-semibold text-dark"
@@ -676,14 +676,14 @@ export const ShiftRostering: React.FC = () => {
               className="wd-pill-btn-outline"
               onClick={() => setShowModal(false)}
             >
-              Hủy
+              {t('common.cancel', 'Hủy')}
             </button>
             <button
               type="submit"
               disabled={createShiftMutation.isPending}
               className="wd-pill-btn-primary"
             >
-              {createShiftMutation.isPending ? 'Đang xếp...' : 'Xác Nhận Phân Ca Trực'}
+              {createShiftMutation.isPending ? t('common.processing', 'Đang xử lý...') : t('shifts.modal_confirm_btn', 'Xác Nhận Phân Ca Trực')}
             </button>
           </Modal.Footer>
         </Form>

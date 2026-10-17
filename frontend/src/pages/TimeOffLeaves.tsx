@@ -37,17 +37,26 @@ interface UpcomingLeave {
   status: 'APPROVED' | 'PENDING' | 'CANCELLED';
 }
 
-const policyLinks = [
-  { title: 'Lịch nghỉ lễ chính thức 2026 của Nhà nước (Việt Nam)', desc: 'Quy định các ngày nghỉ lễ, Tết hưởng nguyên lương theo Bộ luật Lao động' },
-  { title: 'Quy chế chuyển tiếp phép năm còn dư', desc: 'Tối đa chuyển tiếp 5 ngày sang năm tiếp theo trước ngày 31 tháng 3' },
-  { title: 'Quy trình ghi nhận trực bù và hoán đổi ca trực lâm sàng', desc: 'Hướng dẫn điều phối ca trực bù cho bác sĩ, điều dưỡng khoa Cấp cứu và ICU' }
-];
-
 export const TimeOffLeaves: React.FC = () => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const currentStaffId = user?.employee_code || 'EMP-DOC-001';
   const { t, lang } = useTranslation();
+
+  const policyLinks = [
+    {
+      title: t('timeoff.policy_1_title', 'Lịch nghỉ lễ chính thức 2026 của Nhà nước'),
+      desc: t('timeoff.policy_1_desc', 'Quy định các ngày nghỉ lễ, Tết hưởng nguyên lương theo Bộ luật Lao động')
+    },
+    {
+      title: t('timeoff.policy_2_title', 'Quy chế chuyển tiếp phép năm còn dư'),
+      desc: t('timeoff.policy_2_desc', 'Tối đa chuyển tiếp 5 ngày sang năm tiếp theo trước ngày 31 tháng 3')
+    },
+    {
+      title: t('timeoff.policy_3_title', 'Quy trình trực bù và hoán đổi ca lâm sàng'),
+      desc: t('timeoff.policy_3_desc', 'Hướng dẫn điều phối ca trực bù cho bác sĩ, điều dưỡng khoa Cấp cứu và ICU')
+    }
+  ];
 
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -86,12 +95,12 @@ export const TimeOffLeaves: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
       queryClient.invalidateQueries({ queryKey: ['leaveBalances'] });
       setShowRequestModal(false);
-      setSuccessMsg('Đề nghị nghỉ phép đã được gửi đến Trưởng khoa phê duyệt thành công!');
+      setSuccessMsg(t('timeoff.submit_success_msg', 'Đề nghị nghỉ phép đã được gửi đến Trưởng khoa phê duyệt thành công!'));
       setTimeout(() => setSuccessMsg(null), 4000);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || err.message || 'Không thể gửi đề nghị nghỉ phép';
-      setSuccessMsg(`Lỗi: ${msg}`);
+      const msg = err.response?.data?.message || err.message || t('common.error_occurred', 'Không thể gửi đề nghị nghỉ phép');
+      setSuccessMsg(`${t('common.error', 'Lỗi')}: ${msg}`);
     }
   });
 
@@ -116,27 +125,27 @@ export const TimeOffLeaves: React.FC = () => {
       day_part: dayPart,
       days_requested: calculatedDays,
       reason: leaveReason || (isHalfDay
-        ? `Nghỉ nửa ngày (${dayPart === 'FIRST_HALF' ? 'Buổi sáng' : 'Buổi chiều'}) theo quy định.`
-        : 'Nghỉ phép thường niên theo quy định.')
+        ? `${t('timeoff.duration', 'Nghỉ')} 0.5 ${t('timeoff.days_short', 'ngày')} (${dayPart === 'FIRST_HALF' ? t('timeoff.morning_short', 'Buổi sáng') : t('timeoff.afternoon_short', 'Buổi chiều')})`
+        : t('timeoff.default_annual_reason', 'Nghỉ phép thường niên theo quy định.'))
     });
   };
 
   const getLeaveTypeName = (type: string) => {
     switch (type) {
       case 'ANNUAL':
-        return 'Nghỉ Phép Thường Niên (Annual Leave)';
+        return t('timeoff.annual_leave', 'Phép Thường Niên');
       case 'SICK':
-        return 'Nghỉ Ốm Hưởng Chế Độ BHXH (Sick Leave)';
+        return t('timeoff.sick_leave', 'Nghỉ Ốm Hưởng BHXH');
       case 'MATERNITY':
-        return 'Nghỉ Thai Sản (Maternity Leave)';
+        return t('timeoff.maternity_leave', 'Nghỉ Thai Sản');
       case 'UNPAID':
-        return 'Nghỉ Không Hưởng Lương (Unpaid Leave)';
+        return t('timeoff.unpaid_leave', 'Nghỉ Không Hưởng Lương');
       case 'COMPENSATORY':
-        return 'Nghỉ Bù Ca Trực Đêm / Lễ Tết';
+        return t('timeoff.compensatory_leave', 'Nghỉ Bù Ca Trực');
       case 'BEREAVEMENT':
-        return 'Nghỉ Việc Riêng / Tang Chế';
+        return t('leave_type.BEREAVEMENT', 'Nghỉ Việc Riêng / Tang Chế');
       case 'MARRIAGE':
-        return 'Nghỉ Kết Hôn';
+        return t('leave_type.MARRIAGE', 'Nghỉ Kết Hôn');
       default:
         return `${type} Leave`;
     }
@@ -152,7 +161,7 @@ export const TimeOffLeaves: React.FC = () => {
           name: getLeaveTypeName(b.leave_type),
           availableDays: formatDays(remaining),
           totalDays: formatDays(b.total_days),
-          note: `Chu kỳ tích lũy ${b.accrual_year || 2026} • Đã sử dụng: ${formatDays(b.used_days)} ngày`
+          note: `${t('timeoff.accrual_cycle', 'Chu kỳ tích lũy')} ${b.accrual_year || 2026} • ${t('timeoff.used_label', 'Đã sử dụng')}: ${formatDays(b.used_days)} ${t('timeoff.days_short', 'ngày')}`
         };
       })
     : [];
@@ -160,13 +169,13 @@ export const TimeOffLeaves: React.FC = () => {
   // Map server requests directly from database
   const displayRequests: UpcomingLeave[] = (serverRequests && serverRequests.length > 0)
     ? serverRequests.map((r: any) => {
-        let quantityStr = '1 ngày';
+        let quantityStr = `1 ${t('timeoff.days_short', 'ngày')}`;
         if (r.day_part === 'FIRST_HALF') {
-          quantityStr = '0.5 ngày (Sáng)';
+          quantityStr = `0.5 ${t('timeoff.days_short', 'ngày')} (${t('timeoff.morning_short', 'Sáng')})`;
         } else if (r.day_part === 'SECOND_HALF') {
-          quantityStr = '0.5 ngày (Chiều)';
+          quantityStr = `0.5 ${t('timeoff.days_short', 'ngày')} (${t('timeoff.afternoon_short', 'Chiều')})`;
         } else if (r.days_requested) {
-          quantityStr = `${formatDays(r.days_requested)} ngày`;
+          quantityStr = `${formatDays(r.days_requested)} ${t('timeoff.days_short', 'ngày')}`;
         }
 
         const dateRangeStr = (r.day_part && r.day_part !== 'FULL') || r.start_date === r.end_date
@@ -176,7 +185,7 @@ export const TimeOffLeaves: React.FC = () => {
         return {
           id: String(r.id),
           dateRange: dateRangeStr,
-          type: r.leave_type === 'ANNUAL' ? 'Phép năm' : `${r.leave_type}`,
+          type: r.leave_type === 'ANNUAL' ? t('leave_type.ANNUAL', 'Phép năm') : (t(`leave_type.${r.leave_type}`, r.leave_type)),
           quantity: quantityStr,
           status: r.status
         };
@@ -200,14 +209,14 @@ export const TimeOffLeaves: React.FC = () => {
             onClick={() => setShowRequestModal(true)}
           >
             <CalendarPlus size={15} />
-            <span>Xin Nghỉ Phép / Vắng Mặt</span>
+            <span>{t('timeoff.leave_registration', 'Xin Nghỉ Phép / Vắng Mặt')}</span>
           </button>
         </div>
       </div>
 
       {successMsg && (
         <Alert
-          variant={successMsg.startsWith('Lỗi') ? 'danger' : 'success'}
+          variant={successMsg.startsWith(t('common.error', 'Lỗi')) ? 'danger' : 'success'}
           dismissible
           onClose={() => setSuccessMsg(null)}
           className="mb-4 py-2.5 small rounded-2"
@@ -223,14 +232,10 @@ export const TimeOffLeaves: React.FC = () => {
         </div>
         <div className="flex-grow-1">
           <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-            Hỗ trợ Nhân sự AskHR &bull; Giải đáp quy chế phép năm
+            {t('timeoff.askhr_title', 'Hỗ Trợ Nhân Sự AskHR')}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            Cần giải đáp về hạn mức phép năm, chế độ thai sản hoặc ghi nhận trực bù? Liên hệ{' '}
-            <a href="mailto:askhr@hospital.vn" className="fw-semibold text-decoration-none" style={{ color: 'var(--wd-blue)' }}>
-              askhr@hospital.vn
-            </a>{' '}
-            hoặc tạo phiếu yêu cầu trực tuyến.
+            {t('timeoff.askhr_desc', 'Cần giải đáp về hạn mức phép năm, chế độ thai sản hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')}
           </div>
         </div>
         <button
@@ -238,7 +243,7 @@ export const TimeOffLeaves: React.FC = () => {
           className="wd-pill-btn-outline d-none d-md-inline-flex"
           onClick={() => setShowRequestModal(true)}
         >
-          Tạo Yêu Cầu Mới
+          {t('timeoff.request_leave', 'Tạo Yêu Cầu Mới')}
         </button>
       </div>
 
@@ -248,10 +253,10 @@ export const TimeOffLeaves: React.FC = () => {
         <Col lg={6}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
-              Hạn Mức Phép Còn Lại (Available Balance as of Today)
+              {t('timeoff.available_balance_title', 'Hạn Mức Phép Còn Lại')}
             </span>
             <span className="text-muted" style={{ fontSize: '11px' }}>
-              Năm Tài Khóa 2026
+              {t('common.year', 'Năm')} 2026
             </span>
           </div>
 
@@ -284,7 +289,7 @@ export const TimeOffLeaves: React.FC = () => {
                         {item.availableDays}
                       </div>
                       <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
-                        Ngày Khả Dụng
+                        {t('timeoff.available_days_badge', 'Ngày Khả Dụng')}
                       </div>
                     </div>
                   </div>
@@ -298,10 +303,10 @@ export const TimeOffLeaves: React.FC = () => {
         <Col lg={6}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
-              Lịch Nghỉ Sắp Tới (Upcoming Time Off)
+              {t('timeoff.upcoming_title', 'Lịch Nghỉ Sắp Tới')}
             </span>
             <span className="wd-badge-neutral" style={{ fontSize: '11px' }}>
-              {displayRequests.length} Kế Hoạch
+              {displayRequests.length} {t('timeoff.plans_count', 'Kế Hoạch')}
             </span>
           </div>
 
@@ -311,17 +316,17 @@ export const TimeOffLeaves: React.FC = () => {
               <table className="wd-table">
                 <thead>
                   <tr>
-                    <th>Thời Gian Nghỉ</th>
-                    <th>Loại Nghỉ Phép</th>
-                    <th>Thời Lượng</th>
-                    <th className="text-end">Trạng Thái</th>
+                    <th>{t('timeoff.time_range', 'Thời Gian Nghỉ')}</th>
+                    <th>{t('timeoff.leave_type', 'Loại Nghỉ Phép')}</th>
+                    <th>{t('timeoff.duration', 'Thời Lượng')}</th>
+                    <th className="text-end">{t('common.status', 'Trạng Thái')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayRequests.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="text-center py-4 text-muted">
-                        Chưa có lịch nghỉ phép nào được lên kế hoạch.
+                        {t('timeoff.no_upcoming', 'Chưa có lịch nghỉ phép nào được lên kế hoạch.')}
                       </td>
                     </tr>
                   ) : (
@@ -339,15 +344,15 @@ export const TimeOffLeaves: React.FC = () => {
                         <td className="text-end">
                           {leave.status === 'APPROVED' ? (
                             <span className="wd-badge-success">
-                              Đã Phê Duyệt
+                              {t('common.approved', 'Đã Phê Duyệt')}
                             </span>
                           ) : leave.status === 'CANCELLED' ? (
                             <span className="wd-badge-neutral">
-                              Đã Hủy
+                              {t('status.cancelled', 'Đã Hủy')}
                             </span>
                           ) : (
                             <span className="wd-badge-warning">
-                              Chờ Duyệt
+                              {t('common.pending', 'Chờ Duyệt')}
                             </span>
                           )}
                         </td>
@@ -362,7 +367,7 @@ export const TimeOffLeaves: React.FC = () => {
           {/* Helpful Links Section */}
           <div className="mb-2">
             <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
-              Chính Sách &amp; Hướng Dẫn Liên Quan (Helpful Links)
+              {t('timeoff.policy_title', 'Chính Sách & Hướng Dẫn Liên Quan')}
             </span>
           </div>
 
@@ -400,13 +405,13 @@ export const TimeOffLeaves: React.FC = () => {
         <Form onSubmit={handleSubmitLeave}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark">
-              Đăng Ký Nghỉ Phép / Vắng Mặt (Workday Absence Request)
+              {t('timeoff.leave_registration', 'Đăng Ký Nghỉ Phép / Vắng Mặt')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
             <Form.Group className="mb-3">
               <label className="wd-label">
-                Loại Nghỉ Phép
+                {t('timeoff.leave_type', 'Loại Nghỉ Phép')}
               </label>
               <select
                 value={leaveType}
@@ -482,7 +487,7 @@ export const TimeOffLeaves: React.FC = () => {
                 <Col sm={6}>
                   <Form.Group>
                     <label className="wd-label">
-                      Ngày Bắt Đầu
+                      {t('timeoff.start_date', 'Ngày Bắt Đầu')}
                     </label>
                     <input
                       type="date"
@@ -496,7 +501,7 @@ export const TimeOffLeaves: React.FC = () => {
                 <Col sm={6}>
                   <Form.Group>
                     <label className="wd-label">
-                      Ngày Kết Thúc
+                      {t('timeoff.end_date', 'Ngày Kết Thúc')}
                     </label>
                     <input
                       type="date"
@@ -511,7 +516,7 @@ export const TimeOffLeaves: React.FC = () => {
             ) : (
               <Form.Group className="mb-3">
                 <label className="wd-label">
-                  Ngày Nghỉ Phép (0.5 ngày - {dayPart === 'FIRST_HALF' ? 'Buổi sáng' : 'Buổi chiều'})
+                  {t('timeoff.day_single', 'Ngày')} (0.5 {t('timeoff.days_short', 'ngày')} - {dayPart === 'FIRST_HALF' ? t('timeoff.morning_short', 'Buổi sáng') : t('timeoff.afternoon_short', 'Buổi chiều')})
                 </label>
                 <input
                   type="date"
@@ -528,13 +533,13 @@ export const TimeOffLeaves: React.FC = () => {
 
             <Form.Group className="mb-2">
               <label className="wd-label">
-                Lý Do &amp; Nhân Sự Bàn Giao Ca Trực
+                {t('timeoff.handover_notes', 'Lý Do & Nhân Sự Bàn Giao Ca Trực')}
               </label>
               <textarea
                 rows={3}
                 value={leaveReason}
                 onChange={(e) => setLeaveReason(e.target.value)}
-                placeholder="Ghi rõ đồng nghiệp nhận bàn giao ca trực hoặc phụ trách buồng bệnh thay thế..."
+                placeholder={t('timeoff.handover_placeholder', 'Ghi rõ đồng nghiệp nhận bàn giao ca trực hoặc phụ trách buồng bệnh thay thế...')}
                 className="wd-input w-100"
               />
             </Form.Group>
@@ -545,14 +550,14 @@ export const TimeOffLeaves: React.FC = () => {
               className="wd-pill-btn-outline"
               onClick={() => setShowRequestModal(false)}
             >
-              Hủy
+              {t('common.cancel', 'Hủy')}
             </button>
             <button
               type="submit"
               disabled={submitLeaveMutation.isPending}
               className="wd-pill-btn-primary"
             >
-              {submitLeaveMutation.isPending ? 'Đang gửi...' : 'Gửi Đề Nghị Phê Duyệt'}
+              {submitLeaveMutation.isPending ? t('timeoff.submitting', 'Đang gửi...') : t('timeoff.submit_btn', 'Gửi Đề Nghị Phê Duyệt')}
             </button>
           </Modal.Footer>
         </Form>

@@ -88,12 +88,12 @@ export const DailyTasks: React.FC = () => {
       setShowCreateModal(false);
       setNewTitle('');
       setNewDescription('');
-      setSuccessToast(`Y lệnh / Nhiệm vụ lâm sàng đã được phân công thành công!`);
+      setSuccessToast(t('tasks.create_toast_success', 'Y lệnh / Nhiệm vụ lâm sàng đã được phân công thành công!'));
       setTimeout(() => setSuccessToast(null), 4000);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || err.message || 'Không thể tạo nhiệm vụ';
-      setSuccessToast(`Lỗi: ${msg}`);
+      const msg = err.response?.data?.message || err.message || t('common.error_occurred', 'Không thể tạo nhiệm vụ');
+      setSuccessToast(`${t('common.error', 'Lỗi')}: ${msg}`);
     }
   });
 
@@ -109,36 +109,36 @@ export const DailyTasks: React.FC = () => {
     mutationFn: (id: string) => taskApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      setSuccessToast('Đã xóa nhiệm vụ khỏi danh sách.');
+      setSuccessToast(t('common.success_operation', 'Đã xóa nhiệm vụ khỏi danh sách.'));
       setTimeout(() => setSuccessToast(null), 3000);
     }
   });
 
   // Map server tasks directly from database
   const tasks: ClinicalTask[] = (serverTasks && serverTasks.length > 0)
-    ? serverTasks.map((t: any) => ({
-        id: t.id,
-        title: t.title,
-        description: t.description || '',
-        assigned_to: t.assigned_to,
-        assigned_to_name: t.assigned_to_name || t.assigned_to,
-        assigned_by: t.assigned_by || 'EMP-DOC-001',
-        assigned_by_name: t.assigned_by_name || 'Bác sĩ phụ trách',
-        shift_id: t.shift_id,
-        shift_label: t.shift_type ? `Ca ${t.shift_type}` : 'Khoa Cấp Cứu / ICU',
-        status: t.status,
-        priority: t.priority || 'HIGH',
-        due_date: t.due_date ? t.due_date.slice(0, 16) : 'Trong ca trực',
-        created_at: t.created_at
+    ? serverTasks.map((taskItem: any) => ({
+        id: taskItem.id,
+        title: taskItem.title,
+        description: taskItem.description || '',
+        assigned_to: taskItem.assigned_to,
+        assigned_to_name: taskItem.assigned_to_name || taskItem.assigned_to,
+        assigned_by: taskItem.assigned_by || 'EMP-DOC-001',
+        assigned_by_name: taskItem.assigned_by_name || t('tasks.attending_physician', 'Bác sĩ phụ trách'),
+        shift_id: taskItem.shift_id,
+        shift_label: taskItem.shift_type ? `${t('shifts.morning', 'Ca')} ${taskItem.shift_type}` : t('attendance.emergency_icu_dept', 'Khoa Cấp Cứu / ICU'),
+        status: taskItem.status,
+        priority: taskItem.priority || 'HIGH',
+        due_date: taskItem.due_date ? taskItem.due_date.slice(0, 16) : t('tasks.during_shift', 'Trong ca trực'),
+        created_at: taskItem.created_at
       }))
     : [];
 
-  const filteredTasks = tasks.filter((t) => {
-    const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
+  const filteredTasks = tasks.filter((tItem) => {
+    const matchesStatus = statusFilter === 'ALL' || tItem.status === statusFilter;
     const matchesSearch =
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.assigned_to_name.toLowerCase().includes(searchQuery.toLowerCase());
+      tItem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tItem.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tItem.assigned_to_name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -173,20 +173,20 @@ export const DailyTasks: React.FC = () => {
       case 'NORMAL':
         return <span className="wd-badge-neutral">{t('tasks.priority_medium', 'Bình Thường')}</span>;
       case 'ROUTINE':
-        return <span className="wd-badge-neutral">{lang === 'vi' ? 'Định Kỳ' : 'Routine'}</span>;
+        return <span className="wd-badge-neutral">{t('tasks.priority_routine', 'Định Kỳ')}</span>;
     }
   };
 
   const getStatusBadge = (status: ClinicalTask['status']) => {
     switch (status) {
       case 'COMPLETED':
-        return <span className="wd-badge-success">{lang === 'vi' ? 'Đã Hoàn Thành' : 'Completed'}</span>;
+        return <span className="wd-badge-success">{t('common.completed', 'Đã Hoàn Thành')}</span>;
       case 'IN_PROGRESS':
-        return <span className="wd-badge-blue">{lang === 'vi' ? 'Đang Thực Hiện' : 'In Progress'}</span>;
+        return <span className="wd-badge-blue">{t('common.in_progress', 'Đang Thực Hiện')}</span>;
       case 'PENDING':
-        return <span className="wd-badge-warning">{lang === 'vi' ? 'Chờ Tiếp Nhận' : 'Pending'}</span>;
+        return <span className="wd-badge-warning">{t('tasks.col_todo', 'Chờ Tiếp Nhận')}</span>;
       case 'CANCELLED':
-        return <span className="wd-badge-neutral">{lang === 'vi' ? 'Đã Hủy' : 'Cancelled'}</span>;
+        return <span className="wd-badge-neutral">{t('status.cancelled', 'Đã Hủy')}</span>;
     }
   };
 
@@ -208,7 +208,7 @@ export const DailyTasks: React.FC = () => {
               onClick={() => setViewMode('kanban')}
             >
               <Layers size={14} className="me-1" />
-              <span>Bảng Kanban</span>
+              <span>{t('tasks.view_kanban', 'Bảng Kanban')}</span>
             </button>
             <button
               type="button"
@@ -216,7 +216,7 @@ export const DailyTasks: React.FC = () => {
               onClick={() => setViewMode('list')}
             >
               <CheckSquare size={14} className="me-1" />
-              <span>Bảng Danh Sách</span>
+              <span>{t('tasks.view_list', 'Bảng Danh Sách')}</span>
             </button>
           </ButtonGroup>
           <button
@@ -225,14 +225,14 @@ export const DailyTasks: React.FC = () => {
             onClick={() => setShowCreateModal(true)}
           >
             <Plus size={15} />
-            <span>Giao Y Lệnh Mới</span>
+            <span>{t('tasks.new_task_btn', 'Giao Y Lệnh Mới')}</span>
           </button>
         </div>
       </div>
 
       {successToast && (
         <Alert
-          variant={successToast.startsWith('Lỗi') ? 'danger' : 'success'}
+          variant={successToast.startsWith(t('common.error', 'Lỗi')) ? 'danger' : 'success'}
           dismissible
           onClose={() => setSuccessToast(null)}
           className="d-flex align-items-center gap-2 py-2.5 mb-4 small rounded-2"
@@ -249,10 +249,10 @@ export const DailyTasks: React.FC = () => {
         </div>
         <div className="flex-grow-1">
           <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-            Hỗ trợ Quy trình Lâm sàng (AskHR Clinical Protocol)
+            {t('tasks.askhr_protocol_title', 'Hỗ Trợ Quy Trình Lâm Sàng')}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            Cần đối chiếu quy trình bàn giao thuốc độc bảng A hoặc quy chế kiểm tra máy thở định kỳ? Liên hệ điều dưỡng trưởng khoa.
+            {t('tasks.askhr_protocol_desc', 'Cần đối chiếu quy trình bàn giao thuốc độc bảng A hoặc quy chế kiểm tra máy thở định kỳ? Liên hệ điều dưỡng trưởng khoa.')}
           </div>
         </div>
       </div>
@@ -262,45 +262,45 @@ export const DailyTasks: React.FC = () => {
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Tổng Số Y Lệnh Trong Ngày
+              {t('tasks.stat_total', 'Tổng Số Y Lệnh Trong Ngày')}
             </div>
             <div className="fw-bold text-dark mt-1 font-mono" style={{ fontSize: '22px' }}>
               {tasks.length}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Toàn viện</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('tasks.stat_total_sub', 'Toàn viện')}</div>
           </div>
         </Col>
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Đang Chờ Tiếp Nhận
+              {t('tasks.stat_pending', 'Đang Chờ Tiếp Nhận')}
             </div>
             <div className="fw-bold mt-1 font-mono" style={{ fontSize: '22px', color: 'var(--wd-amber)' }}>
-              {tasks.filter((t) => t.status === 'PENDING').length}
+              {tasks.filter((tItem) => tItem.status === 'PENDING').length}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Cần xử lý ngay</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('tasks.stat_pending_sub', 'Cần xử lý ngay')}</div>
           </div>
         </Col>
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Đang Thực Hiện Tại Giường
+              {t('tasks.stat_in_progress', 'Đang Thực Hiện Tại Giường')}
             </div>
             <div className="fw-bold mt-1 font-mono" style={{ fontSize: '22px', color: 'var(--wd-blue)' }}>
-              {tasks.filter((t) => t.status === 'IN_PROGRESS').length}
+              {tasks.filter((tItem) => tItem.status === 'IN_PROGRESS').length}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Theo sát buồng bệnh</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('tasks.stat_in_progress_sub', 'Theo sát buồng bệnh')}</div>
           </div>
         </Col>
         <Col xs={12} sm={6} lg={3}>
           <div className="wd-card mb-0 p-3">
             <div className="text-muted fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase' }}>
-              Đã Nghiệm Thu Hoàn Tất
+              {t('tasks.stat_completed', 'Đã Nghiệm Thu Hoàn Tất')}
             </div>
             <div className="fw-bold mt-1 font-mono" style={{ fontSize: '22px', color: 'var(--wd-green)' }}>
-              {tasks.filter((t) => t.status === 'COMPLETED').length}
+              {tasks.filter((tItem) => tItem.status === 'COMPLETED').length}
             </div>
-            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Đạt chuẩn chỉ số</div>
+            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('tasks.stat_completed_sub', 'Đạt chuẩn chỉ số')}</div>
           </div>
         </Col>
       </Row>
@@ -313,7 +313,7 @@ export const DailyTasks: React.FC = () => {
               <Search size={15} className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
               <input
                 type="text"
-                placeholder="Tìm tiêu đề nhiệm vụ, chỉ dẫn y lệnh, tên nhân sự thực hiện..."
+                placeholder={t('tasks.search_placeholder', 'Tìm tiêu đề nhiệm vụ, chỉ dẫn y lệnh, tên nhân sự thực hiện...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="wd-input w-100 ps-5"
@@ -328,9 +328,9 @@ export const DailyTasks: React.FC = () => {
               style={{ maxWidth: '220px' }}
             >
               <option value="ALL">{t('common.status', 'Tất Cả Trạng Thái')}</option>
-              <option value="PENDING">{lang === 'vi' ? 'Chờ Tiếp Nhận' : 'Pending'}</option>
-              <option value="IN_PROGRESS">{lang === 'vi' ? 'Đang Thực Hiện' : 'In Progress'}</option>
-              <option value="COMPLETED">{lang === 'vi' ? 'Đã Hoàn Thành' : 'Completed'}</option>
+              <option value="PENDING">{t('tasks.col_todo', 'Chờ Tiếp Nhận')}</option>
+              <option value="IN_PROGRESS">{t('tasks.col_in_progress', 'Đang Thực Hiện')}</option>
+              <option value="COMPLETED">{t('tasks.col_done', 'Đã Hoàn Thành')}</option>
             </select>
           </Col>
         </Row>
@@ -340,13 +340,13 @@ export const DailyTasks: React.FC = () => {
       {viewMode === 'kanban' ? (
         <Row className="g-3">
           {(['PENDING', 'IN_PROGRESS', 'COMPLETED'] as const).map((colStatus) => {
-            const colTasks = filteredTasks.filter((t) => t.status === colStatus);
+            const colTasks = filteredTasks.filter((tItem) => tItem.status === colStatus);
             const colTitle =
               colStatus === 'PENDING'
-                ? 'Chờ Tiếp Nhận'
+                ? t('tasks.col_todo', 'Chờ Tiếp Nhận')
                 : colStatus === 'IN_PROGRESS'
-                ? 'Đang Thực Hiện'
-                : 'Đã Hoàn Thành';
+                ? t('tasks.col_in_progress', 'Đang Thực Hiện')
+                : t('tasks.col_done', 'Đã Hoàn Thành');
 
             return (
               <Col xs={12} lg={4} key={colStatus}>
@@ -361,7 +361,7 @@ export const DailyTasks: React.FC = () => {
                   <div className="d-flex flex-column gap-3">
                     {colTasks.length === 0 ? (
                       <div className="text-center py-4 text-muted small">
-                        Không có nhiệm vụ trong mục này
+                        {t('tasks.empty_col', 'Không có nhiệm vụ trong mục này')}
                       </div>
                     ) : (
                       colTasks.map((task) => (
@@ -372,7 +372,7 @@ export const DailyTasks: React.FC = () => {
                               type="button"
                               className="btn btn-sm btn-link text-muted p-0"
                               onClick={() => handleDeleteTask(task.id)}
-                              title="Xóa nhiệm vụ"
+                              title={t('common.delete', 'Xóa')}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -392,7 +392,7 @@ export const DailyTasks: React.FC = () => {
                                 <span>{task.assigned_to_name}</span>
                               </span>
                               <span className="text-muted font-mono" style={{ fontSize: '11px' }}>
-                                Hạn: {task.due_date.split(' ')[1] || task.due_date}
+                                {t('tasks.due_label', 'Hạn')}: {task.due_date.split(' ')[1] || task.due_date}
                               </span>
                             </div>
                             <div className="text-muted" style={{ fontSize: '11px' }}>
@@ -409,7 +409,7 @@ export const DailyTasks: React.FC = () => {
                                 style={{ fontSize: '11px', padding: '4px 8px' }}
                                 onClick={() => handleUpdateStatus(task.id, 'IN_PROGRESS')}
                               >
-                                Bắt Đầu
+                                {t('tasks.btn_start', 'Bắt Đầu')}
                               </button>
                             )}
                             {task.status !== 'COMPLETED' && (
@@ -419,13 +419,13 @@ export const DailyTasks: React.FC = () => {
                                 style={{ fontSize: '11px', padding: '4px 8px' }}
                                 onClick={() => handleUpdateStatus(task.id, 'COMPLETED')}
                               >
-                                Hoàn Thành
+                                {t('tasks.btn_complete', 'Hoàn Thành')}
                               </button>
                             )}
                             {task.status === 'COMPLETED' && (
                               <div className="w-100 text-center py-1">
                                 <span className="wd-badge-success" style={{ fontSize: '11px' }}>
-                                  Đã Nghiệm Thu
+                                  {t('tasks.btn_accepted', 'Đã Nghiệm Thu')}
                                 </span>
                               </div>
                             )}
@@ -446,53 +446,53 @@ export const DailyTasks: React.FC = () => {
             <table className="wd-table">
               <thead>
                 <tr>
-                  <th>Y LỆNH / NHIỆM VỤ</th>
-                  <th>MỨC ƯU TIÊN</th>
-                  <th>CÁN BỘ THỰC HIỆN</th>
-                  <th>CA TRỰC / BUỒNG BỆNH</th>
-                  <th>HẠN HOÀN THÀNH</th>
-                  <th>TRẠNG THÁI</th>
-                  <th className="text-end">THAO TÁC</th>
+                  <th>{t('tasks.th_task', 'Y LỆNH / NHIỆM VỤ')}</th>
+                  <th>{t('tasks.th_priority', 'MỨC ƯU TIÊN')}</th>
+                  <th>{t('tasks.th_assignee', 'CÁN BỘ THỰC HIỆN')}</th>
+                  <th>{t('tasks.th_shift_ward', 'CA TRỰC / BUỒNG BỆNH')}</th>
+                  <th>{t('tasks.th_due_date', 'HẠN HOÀN THÀNH')}</th>
+                  <th>{t('common.status', 'TRẠNG THÁI').toUpperCase()}</th>
+                  <th className="text-end">{t('common.actions', 'THAO TÁC').toUpperCase()}</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks.map((t) => (
-                  <tr key={t.id}>
+                {filteredTasks.map((tItem) => (
+                  <tr key={tItem.id}>
                     <td>
-                      <div className="fw-semibold text-dark">{t.title}</div>
-                      <div className="text-muted" style={{ fontSize: '11px' }}>{t.description.slice(0, 60)}...</div>
+                      <div className="fw-semibold text-dark">{tItem.title}</div>
+                      <div className="text-muted" style={{ fontSize: '11px' }}>{tItem.description.slice(0, 60)}...</div>
                     </td>
-                    <td>{getPriorityBadge(t.priority)}</td>
+                    <td>{getPriorityBadge(tItem.priority)}</td>
                     <td>
-                      <div className="fw-medium text-dark">{t.assigned_to_name}</div>
-                      <span className="font-mono text-muted" style={{ fontSize: '11px' }}>{t.assigned_to}</span>
-                    </td>
-                    <td>
-                      <span className="text-secondary" style={{ fontSize: '12px' }}>{t.shift_label}</span>
+                      <div className="fw-medium text-dark">{tItem.assigned_to_name}</div>
+                      <span className="font-mono text-muted" style={{ fontSize: '11px' }}>{tItem.assigned_to}</span>
                     </td>
                     <td>
-                      <span className="font-mono text-dark" style={{ fontSize: '12px' }}>{t.due_date}</span>
+                      <span className="text-secondary" style={{ fontSize: '12px' }}>{tItem.shift_label}</span>
                     </td>
-                    <td>{getStatusBadge(t.status)}</td>
+                    <td>
+                      <span className="font-mono text-dark" style={{ fontSize: '12px' }}>{tItem.due_date}</span>
+                    </td>
+                    <td>{getStatusBadge(tItem.status)}</td>
                     <td className="text-end">
                       <div className="d-inline-flex gap-1">
-                        {t.status !== 'COMPLETED' && (
+                        {tItem.status !== 'COMPLETED' && (
                           <button
                             type="button"
                             className="wd-pill-btn-outline"
                             style={{ fontSize: '11px', padding: '3px 8px' }}
-                            onClick={() => handleUpdateStatus(t.id, t.status === 'PENDING' ? 'IN_PROGRESS' : 'COMPLETED')}
+                            onClick={() => handleUpdateStatus(tItem.id, tItem.status === 'PENDING' ? 'IN_PROGRESS' : 'COMPLETED')}
                           >
-                            {t.status === 'PENDING' ? 'Bắt Đầu' : 'Xong'}
+                            {tItem.status === 'PENDING' ? t('tasks.btn_start', 'Bắt Đầu') : t('tasks.btn_done_short', 'Xong')}
                           </button>
                         )}
                         <button
                           type="button"
                           className="wd-pill-btn"
                           style={{ fontSize: '11px', padding: '3px 8px' }}
-                          onClick={() => handleDeleteTask(t.id)}
+                          onClick={() => handleDeleteTask(tItem.id)}
                         >
-                          Xóa
+                          {t('common.delete', 'Xóa')}
                         </button>
                       </div>
                     </td>
@@ -509,15 +509,15 @@ export const DailyTasks: React.FC = () => {
         <Form onSubmit={handleCreateTask}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark">
-              Giao Y Lệnh &amp; Phân Công Trực Lâm Sàng
+              {t('tasks.modal_title', 'Giao Y Lệnh & Phân Công Trực Lâm Sàng')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
             <Form.Group className="mb-3">
-              <label className="wd-label">Tiêu Đề Y Lệnh / Nhiệm Vụ</label>
+              <label className="wd-label">{t('tasks.modal_task_title', 'Tiêu Đề Y Lệnh / Nhiệm Vụ')}</label>
               <input
                 required
-                placeholder="VD: Kiểm tra chỉ số áp lực máy thở Giường 08 ICU..."
+                placeholder={t('tasks.modal_task_placeholder', 'VD: Kiểm tra chỉ số áp lực máy thở Giường 08 ICU...')}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 className="wd-input w-100"
@@ -525,10 +525,10 @@ export const DailyTasks: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <label className="wd-label">Chỉ Dẫn Chuyên Môn &amp; Liều Lượng</label>
+              <label className="wd-label">{t('tasks.modal_instructions', 'Chỉ Dẫn Chuyên Môn & Liều Lượng')}</label>
               <textarea
                 rows={3}
-                placeholder="Chi tiết phác đồ theo dõi, chỉ số cảnh báo sinh tồn, thiết bị y tế đi kèm..."
+                placeholder={t('tasks.modal_instructions_placeholder', 'Chi tiết phác đồ theo dõi, chỉ số cảnh báo sinh tồn, thiết bị y tế đi kèm...')}
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 className="wd-input w-100"
@@ -537,7 +537,7 @@ export const DailyTasks: React.FC = () => {
 
             <Row className="g-3 mb-3">
               <Col xs={6}>
-                <label className="wd-label">Cán Bộ Phân Công</label>
+                <label className="wd-label">{t('tasks.assignee', 'Cán Bộ Phân Công')}</label>
                 <select
                   value={newAssignedTo}
                   onChange={(e) => setNewAssignedTo(e.target.value)}
@@ -550,12 +550,12 @@ export const DailyTasks: React.FC = () => {
                       </option>
                     ))
                   ) : (
-                    <option value="EMP-DOC-001">BS.CKII Nguyễn Văn An</option>
+                    <option value="EMP-DOC-001">{t('staff.emp_doc_001', 'BS.CKII Nguyễn Văn An')}</option>
                   )}
                 </select>
               </Col>
               <Col xs={6}>
-                <label className="wd-label">Mức Độ Khẩn</label>
+                <label className="wd-label">{t('tasks.priority', 'Mức Độ Khẩn')}</label>
                 <select
                   value={newPriority}
                   onChange={(e) => setNewPriority(e.target.value as any)}
@@ -564,23 +564,23 @@ export const DailyTasks: React.FC = () => {
                   <option value="URGENT">{t('tasks.priority_urgent', 'Khẩn Cấp')}</option>
                   <option value="HIGH">{t('tasks.priority_high', 'Ưu Tiên Cao')}</option>
                   <option value="NORMAL">{t('tasks.priority_medium', 'Bình Thường')}</option>
-                  <option value="ROUTINE">{lang === 'vi' ? 'Định Kỳ Ca' : 'Routine'}</option>
+                  <option value="ROUTINE">{t('tasks.priority_routine_shift', 'Định Kỳ Ca')}</option>
                 </select>
               </Col>
             </Row>
 
             <Form.Group className="mb-3">
-              <label className="wd-label">Ca Trực Phụ Trách</label>
+              <label className="wd-label">{t('tasks.modal_shift', 'Ca Trực Phụ Trách')}</label>
               <select
                 value={newShiftId}
                 onChange={(e) => setNewShiftId(e.target.value)}
                 className="wd-select w-100"
               >
-                <option value="">-- Không chỉ định / Chung trong ngày --</option>
+                <option value="">{t('tasks.modal_no_shift', '-- Không chỉ định / Chung trong ngày --')}</option>
                 {serverShifts && serverShifts.length > 0 ? (
                   serverShifts.map((s: any) => (
                     <option key={s.id} value={s.id}>
-                      {s.department_name || s.department_code} — Ca {s.shift_type} ({s.start_time?.slice(11, 16)} - {s.end_time?.slice(11, 16)})
+                      {s.department_name || s.department_code} — {t('shifts.morning', 'Ca')} {s.shift_type} ({s.start_time?.slice(11, 16)} - {s.end_time?.slice(11, 16)})
                     </option>
                   ))
                 ) : null}
@@ -588,7 +588,7 @@ export const DailyTasks: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <label className="wd-label">Thời Hạn Hoàn Thành</label>
+              <label className="wd-label">{t('tasks.due_date', 'Thời Hạn Hoàn Thành')}</label>
               <input
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
@@ -603,13 +603,13 @@ export const DailyTasks: React.FC = () => {
               className="wd-pill-btn-outline"
               onClick={() => setShowCreateModal(false)}
             >
-              Hủy
+              {t('common.cancel', 'Hủy')}
             </button>
             <button
               type="submit"
               className="wd-pill-btn-primary"
             >
-              Xác Nhận Giao Nhiệm Vụ
+              {t('tasks.modal_confirm', 'Xác Nhận Giao Nhiệm Vụ')}
             </button>
           </Modal.Footer>
         </Form>

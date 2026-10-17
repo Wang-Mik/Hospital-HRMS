@@ -170,7 +170,7 @@ export const Login: React.FC = () => {
                 type="button"
                 className="wd-pill-btn font-mono text-danger fw-semibold"
                 style={{ fontSize: '11px', padding: '4px 10px', backgroundColor: '#fef2f2', borderColor: '#fca5a5' }}
-                aria-label={`Đăng nhập nhanh: ${t('auth.role_director', 'Ban Giám Đốc')}`}
+                aria-label={`${t('auth.quick_login', 'Đăng Nhập Nhanh')}: ${t('auth.role_director', 'Ban Giám Đốc')}`}
                 onClick={() => {
                   setUsername('admin');
                   setPassword('admin123');
@@ -183,7 +183,7 @@ export const Login: React.FC = () => {
                 type="button"
                 className="wd-pill-btn font-mono text-primary fw-semibold"
                 style={{ fontSize: '11px', padding: '4px 10px', backgroundColor: '#eff6ff', borderColor: '#93c5fd' }}
-                aria-label={`Đăng nhập nhanh: ${t('auth.role_hr', 'Trưởng Phòng Nhân Sự')}`}
+                aria-label={`${t('auth.quick_login', 'Đăng Nhập Nhanh')}: ${t('auth.role_hr', 'Trưởng Phòng Nhân Sự')}`}
                 onClick={() => {
                   setUsername('hr.k');
                   setPassword('password123');
@@ -196,7 +196,7 @@ export const Login: React.FC = () => {
                 type="button"
                 className="wd-pill-btn font-mono"
                 style={{ fontSize: '11px', padding: '4px 10px' }}
-                aria-label={`Đăng nhập nhanh: ${t('auth.role_head', 'Trưởng Khoa Lâm Sàng')}`}
+                aria-label={`${t('auth.quick_login', 'Đăng Nhập Nhanh')}: ${t('auth.role_head', 'Trưởng Khoa Lâm Sàng')}`}
                 onClick={() => {
                   setUsername('dr.b');
                   setPassword('password123');
@@ -209,7 +209,7 @@ export const Login: React.FC = () => {
                 type="button"
                 className="wd-pill-btn font-mono"
                 style={{ fontSize: '11px', padding: '4px 10px' }}
-                aria-label={`Đăng nhập nhanh: ${t('auth.role_doctor', 'Bác Sĩ Điều Trị')}`}
+                aria-label={`${t('auth.quick_login', 'Đăng Nhập Nhanh')}: ${t('auth.role_doctor', 'Bác Sĩ Điều Trị')}`}
                 onClick={() => {
                   setUsername('dr.c');
                   setPassword('password123');
@@ -222,7 +222,7 @@ export const Login: React.FC = () => {
                 type="button"
                 className="wd-pill-btn font-mono"
                 style={{ fontSize: '11px', padding: '4px 10px' }}
-                aria-label={`Đăng nhập nhanh: ${t('auth.role_nurse', 'Điều Dưỡng Viên')}`}
+                aria-label={`${t('auth.quick_login', 'Đăng Nhập Nhanh')}: ${t('auth.role_nurse', 'Điều Dưỡng Viên')}`}
                 onClick={() => {
                   setUsername('rn.f');
                   setPassword('password123');
@@ -235,7 +235,7 @@ export const Login: React.FC = () => {
                 type="button"
                 className="wd-pill-btn font-mono"
                 style={{ fontSize: '11px', padding: '4px 10px' }}
-                aria-label={`Đăng nhập nhanh: ${t('auth.role_pharmacist', 'Dược Sĩ')}`}
+                aria-label={`${t('auth.quick_login', 'Đăng Nhập Nhanh')}: ${t('auth.role_pharmacist', 'Dược Sĩ')}`}
                 onClick={() => {
                   setUsername('phar.i');
                   setPassword('password123');
@@ -270,10 +270,10 @@ export const Login: React.FC = () => {
             }`}
             style={{ fontSize: '11.5px', transition: 'all 0.15s ease' }}
             onClick={() => setLanguage('vi')}
-            aria-label="Chuyển sang Tiếng Việt"
+            aria-label={t('common.vietnamese', 'Tiếng Việt')}
             aria-pressed={lang === 'vi'}
           >
-            Tiếng Việt
+            {t('common.vietnamese', 'Tiếng Việt')}
           </button>
           <button
             type="button"
@@ -284,7 +284,7 @@ export const Login: React.FC = () => {
             }`}
             style={{ fontSize: '11.5px', transition: 'all 0.15s ease' }}
             onClick={() => setLanguage('en')}
-            aria-label="Switch to English"
+            aria-label={t('common.english', 'English')}
             aria-pressed={lang === 'en'}
           >
             English

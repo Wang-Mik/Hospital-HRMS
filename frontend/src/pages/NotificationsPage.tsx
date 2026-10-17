@@ -79,7 +79,7 @@ export const NotificationsPage: React.FC = () => {
     mutationFn: () => notificationApi.markAllAsRead(currentStaffCode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      showToast('Đã đánh dấu tất cả thông báo là đã đọc.');
+      showToast(t('notifications.mark_all_success', 'Đã đánh dấu tất cả thông báo là đã đọc.'));
     }
   });
 
@@ -89,10 +89,10 @@ export const NotificationsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       setShowBroadcastModal(false);
       setBroadcastForm({ title: '', message: '', type: 'ANNOUNCEMENT', department_code: 'ALL' });
-      showToast(res.message || 'Đã phát thông báo thành công.');
+      showToast(res.message || t('notifications.broadcast_success', 'Đã phát thông báo thành công.'));
     },
     onError: (err: any) => {
-      showToast(`Lỗi: ${err.message}`);
+      showToast(`${t('common.error', 'Lỗi')}: ${err.message}`);
     }
   });
 
@@ -127,15 +127,15 @@ export const NotificationsPage: React.FC = () => {
           </div>
           <div>
             <div className="d-flex align-items-center gap-2">
-              <h1 className="h4 fw-bold text-dark mb-0">Trung Tâm Thông Báo &amp; Văn Bản Bệnh Viện</h1>
+              <h1 className="h4 fw-bold text-dark mb-0">{t('notifications.page_title', 'Trung Tâm Thông Báo & Văn Bản Bệnh Viện')}</h1>
               {unreadCount > 0 && (
                 <Badge bg="danger" pill className="px-2.5 py-1">
-                  {unreadCount} chưa đọc
+                  {unreadCount} {t('notifications.unread_count', 'chưa đọc')}
                 </Badge>
               )}
             </div>
             <p className="text-muted small mb-0 mt-1">
-              Thông báo toàn viện, y lệnh chỉ đạo chuyên môn, cảnh báo khẩn cấp và cập nhật quy chế vận hành
+              {t('notifications.page_desc', 'Thông báo toàn viện, y lệnh chỉ đạo chuyên môn, cảnh báo khẩn cấp và cập nhật quy chế vận hành')}
             </p>
           </div>
         </div>
@@ -145,10 +145,10 @@ export const NotificationsPage: React.FC = () => {
             type="button"
             className="wd-pill-btn d-flex align-items-center gap-2 px-3 py-1.5"
             onClick={() => refetch()}
-            title="Làm mới thông báo"
+            title={t('notifications.refresh_btn', 'Làm Mới')}
           >
             <RefreshCw size={15} />
-            <span>Làm Mới</span>
+            <span>{t('notifications.refresh_btn', 'Làm Mới')}</span>
           </button>
 
           {unreadCount > 0 && (
@@ -159,7 +159,7 @@ export const NotificationsPage: React.FC = () => {
               disabled={markAllReadMutation.isPending}
             >
               <CheckCheck size={16} />
-              <span>Đọc Tất Cả</span>
+              <span>{t('notifications.mark_all_btn', 'Đọc Tất Cả')}</span>
             </button>
           )}
 
@@ -170,7 +170,7 @@ export const NotificationsPage: React.FC = () => {
               onClick={() => setShowBroadcastModal(true)}
             >
               <Send size={15} />
-              <span>Phát Thông Báo Mới</span>
+              <span>{t('notifications.broadcast_btn', 'Phát Thông Báo Mới')}</span>
             </button>
           )}
         </div>
@@ -191,7 +191,7 @@ export const NotificationsPage: React.FC = () => {
               <Search size={15} className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
               <input
                 type="text"
-                placeholder="Tìm kiếm nội dung thông báo, văn bản, tiêu đề..."
+                placeholder={t('notifications.search_placeholder', 'Tìm kiếm nội dung thông báo, văn bản, tiêu đề...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="wd-input w-100 ps-5"
@@ -206,35 +206,35 @@ export const NotificationsPage: React.FC = () => {
                 className={`btn btn-sm ${selectedType === 'ALL' ? 'btn-primary' : 'btn-outline-secondary'} py-1.5 px-3 rounded-pill`}
                 onClick={() => setSelectedType('ALL')}
               >
-                Tất Cả ({notifications.length})
+                {t('notifications.type_all', 'Tất Cả')} ({notifications.length})
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${selectedType === 'UNREAD' ? 'btn-primary' : 'btn-outline-secondary'} py-1.5 px-3 rounded-pill`}
                 onClick={() => setSelectedType('UNREAD')}
               >
-                Chưa Đọc ({unreadCount})
+                {t('notifications.type_unread', 'Chưa Đọc')} ({unreadCount})
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${selectedType === 'ALERT' ? 'btn-danger' : 'btn-outline-danger'} py-1.5 px-3 rounded-pill`}
                 onClick={() => setSelectedType('ALERT')}
               >
-                Khẩn Cấp (ALERT)
+                {t('notifications.type_alert', 'Cảnh Báo Khẩn Cấp')}
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${selectedType === 'ANNOUNCEMENT' ? 'btn-info text-white' : 'btn-outline-info'} py-1.5 px-3 rounded-pill`}
                 onClick={() => setSelectedType('ANNOUNCEMENT')}
               >
-                Thông Báo Viện
+                {t('notifications.type_general', 'Thông Báo Viện')}
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${selectedType === 'TASK' ? 'btn-warning' : 'btn-outline-warning'} py-1.5 px-3 rounded-pill`}
                 onClick={() => setSelectedType('TASK')}
               >
-                Chỉ Đạo Nhiệm Vụ
+                {t('notifications.type_task', 'Chỉ Đạo Nhiệm Vụ')}
               </button>
             </div>
           </Col>
@@ -246,8 +246,8 @@ export const NotificationsPage: React.FC = () => {
         {filteredNotifications.length === 0 ? (
           <div className="wd-card p-5 text-center text-muted">
             <Inbox size={40} className="text-secondary opacity-50 mb-2" />
-            <h5 className="fw-bold text-dark mb-1">Không Có Thông Báo Nào Phù Hợp</h5>
-            <p className="small mb-0">Hộp thông báo hiện không có nội dung mới nào theo bộ lọc đã chọn.</p>
+            <h5 className="fw-bold text-dark mb-1">{t('notifications.empty_title', 'Không Có Thông Báo Nào Phù Hợp')}</h5>
+            <p className="small mb-0">{t('notifications.empty_desc', 'Hộp thông báo hiện không có nội dung mới nào theo bộ lọc đã chọn.')}</p>
           </div>
         ) : (
           filteredNotifications.map((notif) => {
@@ -290,17 +290,21 @@ export const NotificationsPage: React.FC = () => {
                           className="fw-semibold px-2.5 py-1 rounded-pill"
                           style={{ fontSize: '11px' }}
                         >
-                          {isAlert ? 'BÁO ĐỘNG KHẨN CẤP' : isTask ? 'CHỈ ĐẠO NHIỆM VỤ' : 'THÔNG BÁO BỆNH VIỆN'}
+                          {isAlert
+                            ? t('notifications.badge_alert', 'BÁO ĐỘNG KHẨN CẤP')
+                            : isTask
+                            ? t('notifications.badge_task', 'CHỈ ĐẠO NHIỆM VỤ')
+                            : t('notifications.badge_announcement', 'THÔNG BÁO BỆNH VIỆN')}
                         </Badge>
 
                         {!isRead && (
                           <span className="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill" style={{ fontSize: '10.5px' }}>
-                            Mới
+                            {t('nav.new_badge', 'Mới')}
                           </span>
                         )}
 
                         <span className="text-muted small ms-1">
-                          {notif.created_at ? new Date(notif.created_at).toLocaleString('vi-VN') : 'Vừa xong'}
+                          {notif.created_at ? new Date(notif.created_at).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US') : t('common.just_now', 'Vừa xong')}
                         </span>
                       </div>
 
@@ -324,11 +328,11 @@ export const NotificationsPage: React.FC = () => {
                         disabled={markReadMutation.isPending}
                       >
                         <CheckCheck size={14} />
-                        <span>Đã đọc</span>
+                        <span>{t('notifications.mark_read', 'Đã đọc')}</span>
                       </button>
                     ) : (
                       <span className="badge bg-light text-muted border px-2.5 py-1.5 rounded-pill" style={{ fontSize: '11.5px' }}>
-                        Đã xem
+                        {t('notifications.read', 'Đã xem')}
                       </span>
                     )}
                   </div>
@@ -345,7 +349,7 @@ export const NotificationsPage: React.FC = () => {
           <Modal.Header closeButton>
             <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
               <Send size={18} className="text-primary" />
-              Phát Lệnh Thông Báo Nội Bộ Bệnh Viện (Quyền HR / Admin)
+              {t('notifications.broadcast_modal_title', 'Phát Lệnh Thông Báo Nội Bộ Bệnh Viện')}
             </Modal.Title>
           </Modal.Header>
           <Form
@@ -356,7 +360,7 @@ export const NotificationsPage: React.FC = () => {
           >
             <Modal.Body>
               <Form.Group className="mb-3">
-                <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Phạm Vi Gửi Thông Báo' : 'Broadcast Scope'}</Form.Label>
+                <Form.Label className="small fw-semibold">{t('notifications.broadcast_scope', 'Phạm Vi Gửi Thông Báo')}</Form.Label>
                 <Form.Select
                   value={broadcastForm.department_code}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, department_code: e.target.value })}
@@ -372,7 +376,7 @@ export const NotificationsPage: React.FC = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="small fw-semibold">{lang === 'vi' ? 'Phân Loại Thông Báo' : 'Broadcast Type'}</Form.Label>
+                <Form.Label className="small fw-semibold">{t('notifications.broadcast_type', 'Phân Loại Thông Báo')}</Form.Label>
                 <Form.Select
                   value={broadcastForm.type}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, type: e.target.value as any })}
@@ -385,11 +389,11 @@ export const NotificationsPage: React.FC = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="small fw-semibold">Tiêu Đề Thông Báo *</Form.Label>
+                <Form.Label className="small fw-semibold">{t('notifications.broadcast_title_label', 'Tiêu Đề Thông Báo')} *</Form.Label>
                 <Form.Control
                   type="text"
                   required
-                  placeholder="VD: Kế hoạch phân công trực Tết Nguyên Đán..."
+                  placeholder={t('notifications.broadcast_title_placeholder', 'VD: Kế hoạch phân công trực Tết Nguyên Đán...')}
                   value={broadcastForm.title}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
                   className="wd-input"
@@ -397,12 +401,12 @@ export const NotificationsPage: React.FC = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label className="small fw-semibold">Nội Dung Chi Tiết *</Form.Label>
+                <Form.Label className="small fw-semibold">{t('notifications.broadcast_msg_label', 'Nội Dung Chi Tiết')} *</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={4}
                   required
-                  placeholder="Nhập toàn văn thông báo hoặc chỉ đạo gửi đến nhân sự..."
+                  placeholder={t('notifications.broadcast_msg_placeholder', 'Nhập toàn văn thông báo hoặc chỉ đạo gửi đến nhân sự...')}
                   value={broadcastForm.message}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, message: e.target.value })}
                   className="wd-input"
@@ -411,10 +415,12 @@ export const NotificationsPage: React.FC = () => {
             </Modal.Body>
             <Modal.Footer>
               <Button variant="secondary" onClick={() => setShowBroadcastModal(false)}>
-                Hủy
+                {t('common.cancel', 'Hủy')}
               </Button>
               <Button type="submit" variant="primary" disabled={broadcastMutation.isPending}>
-                {broadcastMutation.isPending ? 'Đang gửi...' : 'Phát Lệnh Thông Báo'}
+                {broadcastMutation.isPending
+                  ? t('notifications.broadcast_submitting', 'Đang gửi...')
+                  : t('notifications.broadcast_submit', 'Phát Lệnh Thông Báo')}
               </Button>
             </Modal.Footer>
           </Form>

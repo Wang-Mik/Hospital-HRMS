@@ -56,9 +56,9 @@ export const DailyBriefingsPage: React.FC = () => {
   const [briefingCategory, setBriefingCategory] = useState<HandoverCategory>('HOSPITAL_BRIEFING');
   const [departmentCode, setDepartmentCode] = useState('DEP-KHTH');
   const [docType, setDocType] = useState<DocType>('PHYSICAL_BOOK');
-  const [physicalBookName, setPhysicalBookName] = useState('Sổ Giao Ban Bệnh Viện - Năm 2026');
+  const [physicalBookName, setPhysicalBookName] = useState(t('briefings.default_book_name', 'Sổ Giao Ban Bệnh Viện'));
   const [physicalBookPage, setPhysicalBookPage] = useState('');
-  const [physicalStorageLocation, setPhysicalStorageLocation] = useState('Phòng Kế Hoạch Tổng Hợp (Tầng 2, Nhà A)');
+  const [physicalStorageLocation, setPhysicalStorageLocation] = useState(t('briefings.default_storage_loc', 'Phòng Kế Hoạch Tổng Hợp'));
   const [fileUrl, setFileUrl] = useState('');
   const [externalLink, setExternalLink] = useState('');
   const [criticalNotes, setCriticalNotes] = useState('');
@@ -98,11 +98,11 @@ export const DailyBriefingsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['daily_briefings'] });
       setShowCreateModal(false);
       resetForm();
-      setSuccessToast('Biên bản sổ giao ban đã được lưu vào hệ thống thành công!');
+      setSuccessToast(t('briefings.create_success', 'Biên bản sổ giao ban đã được lưu thành công!'));
       setTimeout(() => setSuccessToast(null), 5000);
     },
     onError: (err: any) => {
-      setSuccessToast(`Lỗi: ${err.response?.data?.message || err.message}`);
+      setSuccessToast(`${t('common.error', 'Lỗi')}: ${err.response?.data?.message || err.message}`);
     }
   });
 
@@ -110,9 +110,9 @@ export const DailyBriefingsPage: React.FC = () => {
     setBriefingCategory('HOSPITAL_BRIEFING');
     setDepartmentCode('DEP-KHTH');
     setDocType('PHYSICAL_BOOK');
-    setPhysicalBookName('Sổ Giao Ban Bệnh Viện - Năm 2026');
+    setPhysicalBookName(t('briefings.default_book_name', 'Sổ Giao Ban Bệnh Viện'));
     setPhysicalBookPage('');
-    setPhysicalStorageLocation('Phòng Kế Hoạch Tổng Hợp (Tầng 2, Nhà A)');
+    setPhysicalStorageLocation(t('briefings.default_storage_loc', 'Phòng Kế Hoạch Tổng Hợp'));
     setFileUrl('');
     setExternalLink('');
     setCriticalNotes('');
@@ -215,13 +215,13 @@ export const DailyBriefingsPage: React.FC = () => {
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4 pb-2 border-bottom">
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
-            <h1 className="wd-page-title mb-0">Sổ Giao Ban Bệnh Viện &amp; Khoa Lâm Sàng</h1>
+            <h1 className="wd-page-title mb-0">{t('briefings.page_title', 'Sổ Giao Ban Bệnh Viện & Khoa Lâm Sàng')}</h1>
             <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style={{ fontSize: '11px' }}>
-              Điều 40 Quy Chế Bệnh Viện (QĐ 1895/1997/QĐ-BYT)
+              {t('briefings.rule_badge', 'Quy Chế Bệnh Viện')}
             </span>
           </div>
           <p className="wd-page-subtitle mb-0">
-            Theo dõi giao ban toàn viện (30 phút đầu giờ) và giao ban khoa (15 phút đầu giờ), tổng hợp chỉ số 24h và kết luận chỉ đạo
+            {t('briefings.rule_desc', 'Theo dõi giao ban toàn viện và giao ban khoa, tổng hợp chỉ số 24h và kết luận chỉ đạo')}
           </p>
         </div>
         <div>
@@ -231,14 +231,14 @@ export const DailyBriefingsPage: React.FC = () => {
             onClick={() => setShowCreateModal(true)}
           >
             <Plus size={15} />
-            <span>Lập Biên Bản Giao Ban Mới</span>
+            <span>{t('briefings.new_btn', 'Lập Biên Bản Giao Ban Mới')}</span>
           </button>
         </div>
       </div>
 
       {successToast && (
         <Alert
-          variant={successToast.startsWith('Lỗi') ? 'danger' : 'success'}
+          variant={successToast.startsWith(t('common.error', 'Lỗi')) ? 'danger' : 'success'}
           dismissible
           onClose={() => setSuccessToast(null)}
           className="d-flex align-items-center gap-2 py-2.5 mb-4 small rounded-2"
@@ -257,10 +257,10 @@ export const DailyBriefingsPage: React.FC = () => {
             </div>
             <div>
               <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '11px' }}>
-                Cấp Cứu 24 Giờ
+                {t('briefings.kpi_emergency', 'Cấp Cứu 24 Giờ')}
               </div>
               <div className="fs-4 fw-bold text-dark">{aggregateMetrics.emergency}</div>
-              <div className="text-secondary" style={{ fontSize: '11px' }}>Lượt khám cấp cứu</div>
+              <div className="text-secondary" style={{ fontSize: '11px' }}>{t('briefings.kpi_emergency_sub', 'Lượt khám cấp cứu')}</div>
             </div>
           </div>
         </Col>
@@ -272,10 +272,10 @@ export const DailyBriefingsPage: React.FC = () => {
             </div>
             <div>
               <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '11px' }}>
-                Vào Viện / Nhập Viện
+                {t('briefings.kpi_admission', 'Vào Viện / Nhập Viện')}
               </div>
               <div className="fs-4 fw-bold text-dark">{aggregateMetrics.admitted}</div>
-              <div className="text-secondary" style={{ fontSize: '11px' }}>Bệnh nhân nội trú mới</div>
+              <div className="text-secondary" style={{ fontSize: '11px' }}>{t('briefings.kpi_admission_sub', 'Bệnh nhân nội trú mới')}</div>
             </div>
           </div>
         </Col>
@@ -287,10 +287,10 @@ export const DailyBriefingsPage: React.FC = () => {
             </div>
             <div>
               <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '11px' }}>
-                Phẫu Thuật Cấp Cứu
+                {t('briefings.kpi_surgery', 'Phẫu Thuật Cấp Cứu')}
               </div>
               <div className="fs-4 fw-bold text-dark">{aggregateMetrics.surgeries}</div>
-              <div className="text-secondary" style={{ fontSize: '11px' }}>Ca mổ trong ca trực</div>
+              <div className="text-secondary" style={{ fontSize: '11px' }}>{t('briefings.kpi_surgery_sub', 'Ca mổ trong ca trực')}</div>
             </div>
           </div>
         </Col>
@@ -302,10 +302,10 @@ export const DailyBriefingsPage: React.FC = () => {
             </div>
             <div>
               <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '11px' }}>
-                Tử Vong / Tiên Lượng Nặng
+                {t('briefings.kpi_death', 'Tử Vong / Tiên Lượng Nặng')}
               </div>
               <div className="fs-4 fw-bold text-dark">{aggregateMetrics.deaths}</div>
-              <div className="text-secondary" style={{ fontSize: '11px' }}>Ca cần báo cáo viện</div>
+              <div className="text-secondary" style={{ fontSize: '11px' }}>{t('briefings.kpi_death_sub', 'Ca cần báo cáo viện')}</div>
             </div>
           </div>
         </Col>
@@ -318,11 +318,11 @@ export const DailyBriefingsPage: React.FC = () => {
         </div>
         <div className="flex-grow-1">
           <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-            {lang === 'vi' ? 'Quy Định Giao Ban Hàng Ngày • QĐ 1895/1997/QĐ-BYT' : 'Daily Clinical Briefing Regulations • Decision 1895'}
+            {t('briefings.guide_title', 'Quy Định Giao Ban Hàng Ngày')}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            <strong>{lang === 'vi' ? '1. Giao ban Bệnh viện:' : '1. Hospital Briefing:'}</strong> {lang === 'vi' ? 'Giám đốc bệnh viện chủ trì, thành phần gồm Trưởng khoa lâm sàng, cận lâm sàng, Bác sĩ trực viện, Điều dưỡng trưởng, Trưởng phòng KHTH.' : 'Chaired by Hospital Director, attended by Department Heads, Chief Medical Officer, Chief Nurse, and Planning Division.'}<br />
-            <strong>{lang === 'vi' ? '2. Giao ban Khoa lâm sàng:' : '2. Clinical Ward Briefing:'}</strong> {lang === 'vi' ? 'Trưởng khoa chủ trì kiểm điểm tình hình người bệnh nặng và phân công công tác trong ngày.' : 'Chaired by Department Head to review critical patients and daily roster duties.'}
+            <strong>{t('briefings.guide_point1', '1. Giao ban Bệnh viện: Giám đốc bệnh viện chủ trì, thành phần gồm Trưởng khoa lâm sàng, cận lâm sàng, Bác sĩ trực viện, Điều dưỡng trưởng, Trưởng phòng KHTH.')}</strong><br />
+            <strong>{t('briefings.guide_point2', '2. Giao ban Khoa lâm sàng: Trưởng khoa chủ trì kiểm điểm tình hình người bệnh nặng và phân công công tác trong ngày.')}</strong>
           </div>
         </div>
       </div>
@@ -335,7 +335,7 @@ export const DailyBriefingsPage: React.FC = () => {
             className={`wd-tab-btn d-inline-flex align-items-center gap-1.5 ${activeTab === 'ALL' ? 'active' : ''}`}
             onClick={() => setActiveTab('ALL')}
           >
-            <span>{lang === 'vi' ? 'Tất Cả Buổi Giao Ban' : 'All Briefings'}</span>
+            <span>{t('briefings.tab_all', 'Tất Cả Buổi Giao Ban')}</span>
             <span className="badge bg-secondary rounded-pill fw-normal">{briefings.length}</span>
           </button>
           <button
@@ -344,7 +344,7 @@ export const DailyBriefingsPage: React.FC = () => {
             onClick={() => setActiveTab('HOSPITAL_BRIEFING')}
           >
             <Users size={13} className="inline-block" />
-            <span>{lang === 'vi' ? 'Giao Ban Toàn Viện' : 'Hospital Briefings'}</span>
+            <span>{t('briefings.tab_hospital', 'Giao Ban Toàn Viện')}</span>
             <span className="badge bg-secondary rounded-pill fw-normal">{briefings.filter((b) => b.handover_category === 'HOSPITAL_BRIEFING').length}</span>
           </button>
           <button
@@ -353,7 +353,7 @@ export const DailyBriefingsPage: React.FC = () => {
             onClick={() => setActiveTab('DEPT_BRIEFING')}
           >
             <Building2 size={13} className="inline-block" />
-            <span>{lang === 'vi' ? 'Giao Ban Khoa Lâm Sàng' : 'Department Briefings'}</span>
+            <span>{t('briefings.tab_dept', 'Giao Ban Khoa Lâm Sàng')}</span>
             <span className="badge bg-secondary rounded-pill fw-normal">{briefings.filter((b) => b.handover_category === 'DEPT_BRIEFING').length}</span>
           </button>
         </div>
@@ -363,7 +363,7 @@ export const DailyBriefingsPage: React.FC = () => {
             <Search size={14} className="position-absolute text-muted" style={{ top: '10px', left: '10px' }} />
             <input
               type="text"
-              placeholder="Tìm nội dung, chỉ đạo, người ghi sổ..."
+              placeholder={t('briefings.search_placeholder', 'Tìm nội dung, chỉ đạo, người ghi sổ...')}
               className="wd-input ps-4 py-1.5 w-100"
               style={{ fontSize: '12px' }}
               value={searchQuery}
@@ -377,7 +377,7 @@ export const DailyBriefingsPage: React.FC = () => {
             value={selectedDeptFilter}
             onChange={(e) => setSelectedDeptFilter(e.target.value)}
           >
-            <option value="">-- Lọc theo khoa phòng --</option>
+            <option value="">{t('briefings.all_departments', '-- Lọc theo khoa phòng --')}</option>
             {departments?.map((d) => (
               <option key={d.department_code} value={d.department_code}>
                 {d.name}
@@ -393,25 +393,25 @@ export const DailyBriefingsPage: React.FC = () => {
           <table className="wd-table">
             <thead>
               <tr>
-                <th>NGÀY GIAO BAN</th>
-                <th>CẤP GIAO BAN &amp; ĐƠN VỊ</th>
-                <th>CHỈ SỐ 24 GIỜ QUA</th>
-                <th>HỒ SƠ LƯU TRỮ</th>
-                <th>Ý KIẾN CHỈ ĐẠO &amp; KẾT LUẬN</th>
-                <th className="text-end">THAO TÁC</th>
+                <th>{t('briefings.th_date', 'NGÀY GIAO BAN')}</th>
+                <th>{t('briefings.th_level_unit', 'CẤP GIAO BAN & ĐƠN VỊ')}</th>
+                <th>{t('briefings.th_metrics', 'CHỈ SỐ 24 GIỜ QUA')}</th>
+                <th>{t('briefings.th_archive', 'HỒ SƠ LƯU TRỮ')}</th>
+                <th>{t('briefings.th_directives', 'Ý KIẾN CHỈ ĐẠO & KẾT LUẬN')}</th>
+                <th className="text-end">{t('common.actions', 'THAO TÁC')}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5 text-muted small">
-                    Đang tải danh sách biên bản sổ giao ban...
+                    {t('briefings.loading', 'Đang tải danh sách biên bản sổ giao ban...')}
                   </td>
                 </tr>
               ) : filteredBriefings.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5 text-muted small">
-                    Không có biên bản giao ban nào phù hợp với bộ lọc hiện tại.
+                    {t('briefings.empty', 'Không có biên bản giao ban nào phù hợp với bộ lọc hiện tại.')}
                   </td>
                 </tr>
               ) : (
@@ -431,35 +431,35 @@ export const DailyBriefingsPage: React.FC = () => {
                         <div>
                           {item.handover_category === 'HOSPITAL_BRIEFING' ? (
                             <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5" style={{ fontSize: '11px' }}>
-                              🏥 Giao Ban Toàn Viện (Giám Đốc)
+                              🏛️ {t('briefings.level_hospital', 'Giao Ban Toàn Viện')}
                             </span>
                           ) : (
                             <span className="badge bg-info-subtle text-info border border-info-subtle px-2 py-0.5" style={{ fontSize: '11px' }}>
-                              🩺 Giao Ban Khoa Lâm Sàng
+                              🩺 {t('briefings.level_dept', 'Giao Ban Khoa Lâm Sàng')}
                             </span>
                           )}
                         </div>
                         <div className="text-dark fw-medium mt-1" style={{ fontSize: '12px' }}>
-                          {item.department_name || item.department_code || 'Bệnh Viện'}
+                          {item.department_name || item.department_code || t('briefings.entire_hospital', 'Bệnh Viện')}
                         </div>
                         <div className="text-muted" style={{ fontSize: '11px' }}>
-                          Thư ký ghi sổ: {item.logged_by_name || item.logged_by}
+                          {t('briefings.logger_prefix', 'Thư ký ghi sổ:')} {item.logged_by_name || item.logged_by}
                         </div>
                       </td>
                       <td>
                         <div className="d-flex flex-wrap gap-1" style={{ maxWidth: '240px' }}>
                           <span className="badge bg-light text-danger border" style={{ fontSize: '10px' }}>
-                            Cấp cứu: {m.emergency}
+                            {t('briefings.metric_emergency', 'Cấp cứu:')} {m.emergency}
                           </span>
                           <span className="badge bg-light text-primary border" style={{ fontSize: '10px' }}>
-                            Vào viện: {m.admitted}
+                            {t('briefings.metric_admission', 'Vào viện:')} {m.admitted}
                           </span>
                           <span className="badge bg-light text-warning-emphasis border" style={{ fontSize: '10px' }}>
-                            Mổ cấp cứu: {m.surgeries}
+                            {t('briefings.metric_surgery', 'Mổ cấp cứu:')} {m.surgeries}
                           </span>
                           {Number(m.deaths) > 0 && (
                             <span className="badge bg-danger text-white" style={{ fontSize: '10px' }}>
-                              Tử vong: {m.deaths}
+                              {t('briefings.metric_death', 'Tử vong:')} {m.deaths}
                             </span>
                           )}
                         </div>
@@ -468,11 +468,11 @@ export const DailyBriefingsPage: React.FC = () => {
                         {item.doc_type === 'PHYSICAL_BOOK' && (
                           <div>
                             <div className="text-dark fw-medium" style={{ fontSize: '12px' }}>
-                              📖 {item.physical_book_name || 'Sổ giao ban bệnh viện'}
+                              📖 {item.physical_book_name || t('briefings.default_book_name', 'Sổ giao ban bệnh viện')}
                             </div>
                             <div className="text-muted" style={{ fontSize: '11px' }}>
-                              {item.physical_book_page ? `Trang: ${item.physical_book_page}` : ''}
-                              {item.physical_storage_location && ` • Vị trí: ${item.physical_storage_location}`}
+                              {item.physical_book_page ? `${t('handovers.book_page', 'Trang')}: ${item.physical_book_page}` : ''}
+                              {item.physical_storage_location && ` • ${t('handovers.location_prefix', 'Vị trí')}: ${item.physical_storage_location}`}
                             </div>
                           </div>
                         )}
@@ -482,7 +482,7 @@ export const DailyBriefingsPage: React.FC = () => {
                             {item.file_url ? (
                               <img
                                 src={item.file_url}
-                                alt="Ảnh sổ giao ban"
+                                alt={t('briefings.signed_photo_alt', 'Ảnh sổ giao ban')}
                                 className="rounded border"
                                 style={{ width: '38px', height: '38px', objectFit: 'cover', cursor: 'pointer' }}
                                 onClick={() => setPreviewImage(item.file_url || null)}
@@ -493,7 +493,7 @@ export const DailyBriefingsPage: React.FC = () => {
                               </div>
                             )}
                             <div style={{ fontSize: '11px' }} className="text-muted">
-                              Ảnh chụp sổ giao ban
+                              {t('briefings.signed_photo_label', 'Ảnh chụp sổ giao ban')}
                             </div>
                           </div>
                         )}
@@ -506,19 +506,19 @@ export const DailyBriefingsPage: React.FC = () => {
                               rel="noopener noreferrer"
                               className="text-decoration-none d-inline-flex align-items-center gap-1 small text-info fw-medium"
                             >
-                              <span>Biên bản trực tuyến</span>
+                              <span>{t('briefings.online_briefing', 'Biên bản trực tuyến')}</span>
                               <ExternalLink size={12} />
                             </a>
                           </div>
                         )}
 
                         {item.doc_type === 'TEXT_NOTES' && (
-                          <span className="text-muted small">Ghi chép điện tử</span>
+                          <span className="text-muted small">{t('briefings.digital_notes', 'Ghi chép điện tử')}</span>
                         )}
                       </td>
                       <td>
                         <div className="text-truncate text-dark" style={{ maxWidth: '280px', fontSize: '12px' }}>
-                          {item.critical_notes || 'Không ghi nhận ý kiến chỉ đạo bổ sung.'}
+                          {item.critical_notes || t('briefings.no_extra_directives', 'Không ghi nhận ý kiến chỉ đạo bổ sung.')}
                         </div>
                       </td>
                       <td className="text-end">
@@ -527,7 +527,7 @@ export const DailyBriefingsPage: React.FC = () => {
                             <button
                               type="button"
                               className="btn btn-sm btn-light border py-1 px-2 text-dark"
-                              title="Xem ảnh trang sổ"
+                              title={t('briefings.view_photo', 'Xem ảnh trang sổ')}
                               onClick={() => setPreviewImage(item.file_url || null)}
                             >
                               <Eye size={13} />
@@ -538,7 +538,7 @@ export const DailyBriefingsPage: React.FC = () => {
                             className="wd-pill-btn-outline py-1 px-2.5"
                             onClick={() => openDetail(item)}
                           >
-                            <span>Xem Chi Tiết</span>
+                            <span>{t('briefings.view_details', 'Xem Chi Tiết')}</span>
                           </button>
                         </div>
                       </td>
@@ -564,7 +564,7 @@ export const DailyBriefingsPage: React.FC = () => {
               <div className="d-flex align-items-center gap-2">
                 <BookOpen size={18} style={{ color: 'var(--wd-blue)' }} />
                 <Modal.Title className="fs-6 fw-bold text-dark mb-0">
-                  Biên Bản Giao Ban: {selectedBriefing.handover_category === 'HOSPITAL_BRIEFING' ? 'Toàn Bệnh Viện' : selectedBriefing.department_name}
+                  {t('briefings.detail_title', 'Biên Bản Giao Ban:')} {selectedBriefing.handover_category === 'HOSPITAL_BRIEFING' ? t('briefings.entire_hospital', 'Bệnh Viện') : selectedBriefing.department_name}
                 </Modal.Title>
               </div>
             </Modal.Header>
@@ -575,27 +575,27 @@ export const DailyBriefingsPage: React.FC = () => {
                 <Row className="g-2 small">
                   <Col md={6}>
                     <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>
-                      Cấp Giao Ban
+                      {t('briefings.detail_level', 'Cấp Giao Ban')}
                     </div>
                     <div className="fw-semibold text-dark fs-6 mt-0.5">
                       {selectedBriefing.handover_category === 'HOSPITAL_BRIEFING'
-                        ? '🏛️ Giao Ban Toàn Viện (Giám Đốc chủ trì - 30 phút)'
-                        : `🩺 Giao Ban Khoa: ${selectedBriefing.department_name || selectedBriefing.department_code}`}
+                        ? `🏛️ ${t('briefings.level_hospital', 'Giao Ban Toàn Viện')}`
+                        : `🩺 ${t('briefings.level_dept', 'Giao Ban Khoa')}: ${selectedBriefing.department_name || selectedBriefing.department_code}`}
                     </div>
                     <div className="text-secondary small mt-0.5">
-                      Thời điểm ghi: {selectedBriefing.created_at ? selectedBriefing.created_at.slice(0, 16).replace('T', ' ') : ''}
+                      {t('briefings.detail_time', 'Thời điểm ghi:')} {selectedBriefing.created_at ? selectedBriefing.created_at.slice(0, 16).replace('T', ' ') : ''}
                     </div>
                   </Col>
 
                   <Col md={6}>
                     <div className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>
-                      Người Ghi Biên Bản (Thư ký giao ban)
+                      {t('briefings.detail_logger', 'Người Ghi Biên Bản')}
                     </div>
                     <div className="fw-semibold text-dark mt-0.5">
                       {selectedBriefing.logged_by_name || selectedBriefing.logged_by}
                     </div>
                     <div className="text-secondary small mt-0.5">
-                      Phòng Kế Hoạch Tổng Hợp / Khoa Lâm Sàng
+                      {t('briefings.detail_dept_default', 'Phòng Kế Hoạch Tổng Hợp / Khoa Lâm Sàng')}
                     </div>
                   </Col>
                 </Row>
@@ -604,7 +604,7 @@ export const DailyBriefingsPage: React.FC = () => {
               {/* 24h Metrics Box */}
               <div className="p-3 rounded-2 border mb-3 bg-white">
                 <div className="text-muted text-uppercase fw-bold mb-2 small" style={{ fontSize: '10px' }}>
-                  Số Liệu Báo Cáo 24 Giờ Qua
+                  {t('briefings.detail_metrics_title', 'Số Liệu Báo Cáo 24 Giờ Qua')}
                 </div>
                 {(() => {
                   const m = parseMetrics(selectedBriefing.summary_metrics);
@@ -612,25 +612,25 @@ export const DailyBriefingsPage: React.FC = () => {
                     <Row className="g-2 text-center">
                       <Col xs={6} sm={3}>
                         <div className="p-2 border rounded-2 bg-light">
-                          <div className="text-muted small" style={{ fontSize: '11px' }}>Khám cấp cứu</div>
+                          <div className="text-muted small" style={{ fontSize: '11px' }}>{t('briefings.metric_label_emergency', 'Khám cấp cứu')}</div>
                           <div className="fs-5 fw-bold text-danger">{m.emergency}</div>
                         </div>
                       </Col>
                       <Col xs={6} sm={3}>
                         <div className="p-2 border rounded-2 bg-light">
-                          <div className="text-muted small" style={{ fontSize: '11px' }}>Vào viện</div>
+                          <div className="text-muted small" style={{ fontSize: '11px' }}>{t('briefings.metric_label_admission', 'Vào viện')}</div>
                           <div className="fs-5 fw-bold text-primary">{m.admitted}</div>
                         </div>
                       </Col>
                       <Col xs={6} sm={3}>
                         <div className="p-2 border rounded-2 bg-light">
-                          <div className="text-muted small" style={{ fontSize: '11px' }}>Mổ cấp cứu</div>
+                          <div className="text-muted small" style={{ fontSize: '11px' }}>{t('briefings.metric_label_surgery', 'Mổ cấp cứu')}</div>
                           <div className="fs-5 fw-bold text-warning-emphasis">{m.surgeries}</div>
                         </div>
                       </Col>
                       <Col xs={6} sm={3}>
                         <div className="p-2 border rounded-2 bg-light">
-                          <div className="text-muted small" style={{ fontSize: '11px' }}>Tử vong / Nặng</div>
+                          <div className="text-muted small" style={{ fontSize: '11px' }}>{t('briefings.metric_label_critical', 'Tử vong / Nặng')}</div>
                           <div className="fs-5 fw-bold text-dark">{m.deaths}</div>
                         </div>
                       </Col>
@@ -644,26 +644,26 @@ export const DailyBriefingsPage: React.FC = () => {
                 <div className="p-3 rounded-2 border mb-3 bg-warning-subtle text-warning-emphasis small">
                   <div className="fw-bold mb-1 d-flex align-items-center gap-1.5">
                     <BookOpen size={15} />
-                    <span>LƯU TRỮ TẠI SỔ GIAO BAN VẬT LÝ</span>
+                    <span>{t('briefings.physical_storage_title', 'LƯU TRỮ TẠI SỔ GIAO BAN VẬT LÝ')}</span>
                   </div>
-                  <div>Tên quyển sổ: <strong>{selectedBriefing.physical_book_name || 'Sổ giao ban bệnh viện'}</strong></div>
-                  <div>Số trang biên bản: <strong>{selectedBriefing.physical_book_page || 'Chưa ghi trang'}</strong></div>
-                  <div>Vị trí tủ lưu: <strong>{selectedBriefing.physical_storage_location || 'Phòng KHTH'}</strong></div>
+                  <div>{t('briefings.book_name_label', 'Tên quyển sổ:')} <strong>{selectedBriefing.physical_book_name || t('briefings.default_book_name', 'Sổ giao ban bệnh viện')}</strong></div>
+                  <div>{t('briefings.book_page_label', 'Số trang biên bản:')} <strong>{selectedBriefing.physical_book_page || t('handovers.unspecified_page', 'Chưa ghi trang')}</strong></div>
+                  <div>{t('briefings.book_location_label', 'Vị trí tủ lưu:')} <strong>{selectedBriefing.physical_storage_location || t('briefings.default_khth', 'Phòng KHTH')}</strong></div>
                 </div>
               )}
 
               {selectedBriefing.doc_type === 'IMAGE_UPLOAD' && selectedBriefing.file_url && (
                 <div className="mb-3">
-                  <label className="wd-label">Ảnh Chụp Trang Sổ Giao Ban Có Chữ Ký</label>
+                  <label className="wd-label">{t('briefings.signed_photo_label', 'Ảnh Chụp Trang Sổ Giao Ban Có Chữ Ký')}</label>
                   <div className="border rounded-2 p-2 text-center bg-light">
                     <img
                       src={selectedBriefing.file_url}
-                      alt="Ảnh trang sổ"
+                      alt={t('briefings.signed_photo_alt', 'Ảnh trang sổ')}
                       className="img-fluid rounded"
                       style={{ maxHeight: '350px', cursor: 'pointer' }}
                       onClick={() => setPreviewImage(selectedBriefing.file_url || null)}
                     />
-                    <div className="small text-muted mt-1">Nhấp vào ảnh để xem toàn màn hình</div>
+                    <div className="small text-muted mt-1">{t('briefings.click_to_zoom', 'Nhấp vào ảnh để xem toàn màn hình')}</div>
                   </div>
                 </div>
               )}
@@ -671,7 +671,7 @@ export const DailyBriefingsPage: React.FC = () => {
               {selectedBriefing.doc_type === 'DOCUMENT_LINK' && selectedBriefing.external_link && (
                 <div className="p-3 rounded-2 border mb-3 bg-light">
                   <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '10px' }}>
-                    Tài Liệu Liên Kết Trực Tuyến
+                    {t('briefings.online_doc_link', 'Tài Liệu Liên Kết Trực Tuyến')}
                   </div>
                   <a
                     href={selectedBriefing.external_link}
@@ -688,7 +688,7 @@ export const DailyBriefingsPage: React.FC = () => {
               {/* Directive & Conclusions */}
               <div className="mb-2">
                 <label className="wd-label">
-                  Ý Kiến Kết Luận &amp; Chỉ Đạo Của Giám Đốc / Trưởng Khoa
+                  {t('briefings.conclusion_title', 'Ý Kiến Kết Luận & Chỉ Đạo Của Giám Đốc / Trưởng Khoa')}
                 </label>
                 <div
                   className="p-3 rounded-2 border text-dark"
@@ -700,7 +700,7 @@ export const DailyBriefingsPage: React.FC = () => {
                     whiteSpace: 'pre-line'
                   }}
                 >
-                  {selectedBriefing.critical_notes || 'Không ghi nhận ý kiến chỉ đạo bổ sung.'}
+                  {selectedBriefing.critical_notes || t('briefings.no_extra_directives', 'Không ghi nhận ý kiến chỉ đạo bổ sung.')}
                 </div>
               </div>
             </Modal.Body>
@@ -711,7 +711,7 @@ export const DailyBriefingsPage: React.FC = () => {
                 className="wd-pill-btn-outline"
                 onClick={() => setShowDetailModal(false)}
               >
-                Đóng
+                {t('common.close', 'Đóng')}
               </button>
             </Modal.Footer>
           </>
@@ -723,26 +723,26 @@ export const DailyBriefingsPage: React.FC = () => {
         <Form onSubmit={handleCreateSubmit}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fs-6 fw-bold text-dark">
-              Lập Biên Bản Sổ Giao Ban (QĐ 1895/1997/QĐ-BYT)
+              {t('briefings.modal_create_title', 'Lập Biên Bản Sổ Giao Ban')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
             <Row className="g-3 mb-3">
               <Col md={6}>
-                <label className="wd-label">{lang === 'vi' ? 'Cấp Tổ Chức Giao Ban *' : 'Briefing Level *'}</label>
+                <label className="wd-label">{t('briefings.modal_level_label', 'Cấp Tổ Chức Giao Ban *')}</label>
                 <select
                   required
                   value={briefingCategory}
                   onChange={(e) => setBriefingCategory(e.target.value as HandoverCategory)}
                   className="wd-select w-100"
                 >
-                  <option value="HOSPITAL_BRIEFING">{lang === 'vi' ? 'Giao Ban Toàn Viện' : 'Hospital-wide Briefing'}</option>
-                  <option value="DEPT_BRIEFING">{lang === 'vi' ? 'Giao Ban Khoa Lâm Sàng' : 'Department Clinical Briefing'}</option>
+                  <option value="HOSPITAL_BRIEFING">{t('briefings.level_hospital', 'Giao Ban Toàn Viện')}</option>
+                  <option value="DEPT_BRIEFING">{t('briefings.level_dept', 'Giao Ban Khoa Lâm Sàng')}</option>
                 </select>
               </Col>
 
               <Col md={6}>
-                <label className="wd-label">{lang === 'vi' ? 'Đơn Vị / Khoa Phòng Ghi Sổ *' : 'Logging Department *'}</label>
+                <label className="wd-label">{t('briefings.modal_dept_label', 'Đơn Vị / Khoa Phòng Ghi Sổ *')}</label>
                 <select
                   required
                   disabled={briefingCategory === 'HOSPITAL_BRIEFING'}
@@ -751,7 +751,7 @@ export const DailyBriefingsPage: React.FC = () => {
                   className="wd-select w-100"
                 >
                   {briefingCategory === 'HOSPITAL_BRIEFING' ? (
-                    <option value="DEP-KHTH">{lang === 'vi' ? 'Phòng Kế Hoạch Tổng Hợp' : 'General Planning Department'}</option>
+                    <option value="DEP-KHTH">{t('briefings.modal_dept_khth', 'Phòng Kế Hoạch Tổng Hợp')}</option>
                   ) : (
                     departments?.map((d) => (
                       <option key={d.department_code} value={d.department_code}>
@@ -767,11 +767,11 @@ export const DailyBriefingsPage: React.FC = () => {
             <div className="p-3 rounded-2 border mb-3 bg-light">
               <div className="fw-semibold text-dark small mb-2 d-flex align-items-center gap-1.5">
                 <Activity size={15} className="text-primary" />
-                <span>{lang === 'vi' ? 'Số Liệu Thống Kê 24 Giờ Qua' : '24h Clinical Activity Metrics'}</span>
+                <span>{t('briefings.modal_metrics_title', 'Số Liệu Thống Kê 24 Giờ Qua')}</span>
               </div>
               <Row className="g-2">
                 <Col xs={6} md={3}>
-                  <label className="form-label small text-muted mb-1">{t('briefings.emergency_cases', 'Cấp Cứu Tiếp Nhận')}</label>
+                  <label className="form-label small text-muted mb-1">{t('briefings.modal_opt_emergency', 'Khám Cấp Cứu')}</label>
                   <input
                     type="number"
                     min="0"
@@ -781,7 +781,7 @@ export const DailyBriefingsPage: React.FC = () => {
                   />
                 </Col>
                 <Col xs={6} md={3}>
-                  <label className="form-label small text-muted mb-1">{t('briefings.admissions', 'Nhập Viện')}</label>
+                  <label className="form-label small text-muted mb-1">{t('briefings.modal_opt_admission', 'Vào Viện')}</label>
                   <input
                     type="number"
                     min="0"
@@ -791,7 +791,7 @@ export const DailyBriefingsPage: React.FC = () => {
                   />
                 </Col>
                 <Col xs={6} md={3}>
-                  <label className="form-label small text-muted mb-1">Mổ Cấp Cứu</label>
+                  <label className="form-label small text-muted mb-1">{t('briefings.modal_opt_surgery', 'Mổ Cấp Cứu')}</label>
                   <input
                     type="number"
                     min="0"
@@ -801,7 +801,7 @@ export const DailyBriefingsPage: React.FC = () => {
                   />
                 </Col>
                 <Col xs={6} md={3}>
-                  <label className="form-label small text-muted mb-1">Tử Vong / Tiên Lượng</label>
+                  <label className="form-label small text-muted mb-1">{t('briefings.modal_opt_death', 'Tử Vong / Tiên Lượng')}</label>
                   <input
                     type="number"
                     min="0"
@@ -815,7 +815,7 @@ export const DailyBriefingsPage: React.FC = () => {
 
             {/* Document Option Radio Cards */}
             <div className="mb-3">
-              <label className="wd-label mb-2">Hình Thức Lưu Trữ Biên Bản Sổ Giao Ban *</label>
+              <label className="wd-label mb-2">{t('briefings.modal_storage_type', 'Hình Thức Lưu Trữ Biên Bản Sổ Giao Ban *')}</label>
               <Row className="g-2">
                 <Col sm={6} md={4}>
                   <div
@@ -828,7 +828,7 @@ export const DailyBriefingsPage: React.FC = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <BookOpen size={18} className="mb-1 d-block mx-auto" />
-                    <span style={{ fontSize: '12px' }}>1. Sổ Giao Ban Vật Lý</span>
+                    <span style={{ fontSize: '12px' }}>{t('briefings.modal_opt_physical', '1. Sổ Giao Ban Vật Lý')}</span>
                   </div>
                 </Col>
 
@@ -843,7 +843,7 @@ export const DailyBriefingsPage: React.FC = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <Camera size={18} className="mb-1 d-block mx-auto" />
-                    <span style={{ fontSize: '12px' }}>2. Tải Ảnh Chụp Sổ</span>
+                    <span style={{ fontSize: '12px' }}>{t('briefings.modal_opt_upload', '2. Tải Ảnh Chụp Sổ')}</span>
                   </div>
                 </Col>
 
@@ -858,7 +858,7 @@ export const DailyBriefingsPage: React.FC = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <LinkIcon size={18} className="mb-1 d-block mx-auto" />
-                    <span style={{ fontSize: '12px' }}>3. Dán Link Biên Bản</span>
+                    <span style={{ fontSize: '12px' }}>{t('briefings.modal_opt_link', '3. Dán Link Biên Bản')}</span>
                   </div>
                 </Col>
               </Row>
@@ -869,22 +869,22 @@ export const DailyBriefingsPage: React.FC = () => {
               <div className="p-3 rounded-2 border mb-3 bg-light">
                 <div className="fw-semibold text-dark small mb-2 d-flex align-items-center gap-1.5">
                   <BookOpen size={14} className="text-primary" />
-                  <span>Khai Báo Thông Tin Sổ Giao Ban Giấy</span>
+                  <span>{t('briefings.modal_section_physical', 'Khai Báo Thông Tin Sổ Giao Ban Giấy')}</span>
                 </div>
                 <Row className="g-2">
                   <Col md={6}>
-                    <label className="form-label small text-muted mb-1">Tên Quyển Sổ *</label>
+                    <label className="form-label small text-muted mb-1">{t('briefings.modal_book_name', 'Tên Quyển Sổ *')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="VD: Sổ Giao Ban Toàn Viện - Quyển 01/2026"
+                      placeholder={t('briefings.modal_book_placeholder', 'VD: Sổ Giao Ban Toàn Viện - Quyển 01/2026')}
                       className="wd-input w-100"
                       value={physicalBookName}
                       onChange={(e) => setPhysicalBookName(e.target.value)}
                     />
                   </Col>
                   <Col md={6}>
-                    <label className="form-label small text-muted mb-1">Số Trang Biên Bản *</label>
+                    <label className="form-label small text-muted mb-1">{t('briefings.modal_book_page', 'Số Trang Biên Bản *')}</label>
                     <input
                       type="text"
                       required
@@ -895,10 +895,10 @@ export const DailyBriefingsPage: React.FC = () => {
                     />
                   </Col>
                   <Col md={12}>
-                    <label className="form-label small text-muted mb-1">Vị Trí Tủ Lưu Trữ Hồ Sơ Giao Ban</label>
+                    <label className="form-label small text-muted mb-1">{t('briefings.modal_book_location', 'Vị Trí Tủ Lưu Trữ Hồ Sơ Giao Ban')}</label>
                     <input
                       type="text"
-                      placeholder="VD: Tủ hồ sơ phòng KHTH / Phòng Trưởng khoa"
+                      placeholder={t('briefings.modal_location_placeholder', 'VD: Tủ hồ sơ phòng KHTH / Phòng Trưởng khoa')}
                       className="wd-input w-100"
                       value={physicalStorageLocation}
                       onChange={(e) => setPhysicalStorageLocation(e.target.value)}
@@ -912,7 +912,7 @@ export const DailyBriefingsPage: React.FC = () => {
               <div className="p-3 rounded-2 border mb-3 bg-light">
                 <div className="fw-semibold text-dark small mb-2 d-flex align-items-center gap-1.5">
                   <Camera size={14} className="text-success" />
-                  <span>Tải Lên Ảnh Chụp Trang Sổ Giao Ban Đã Có Kết Luận &amp; Chữ Ký</span>
+                  <span>{t('briefings.modal_section_upload', 'Tải Lên Ảnh Chụp Trang Sổ Giao Ban Đã Có Kết Luận & Chữ Ký')}</span>
                 </div>
                 <Form.Group className="mb-2">
                   <Form.Control
@@ -930,7 +930,7 @@ export const DailyBriefingsPage: React.FC = () => {
                       className="img-thumbnail"
                       style={{ maxHeight: '180px' }}
                     />
-                    <div className="small text-success mt-1">Đã chọn ảnh thành công!</div>
+                    <div className="small text-success mt-1">{t('handovers.image_selected_success', 'Đã chọn ảnh thành công!')}</div>
                   </div>
                 )}
               </div>
@@ -940,12 +940,12 @@ export const DailyBriefingsPage: React.FC = () => {
               <div className="p-3 rounded-2 border mb-3 bg-light">
                 <div className="fw-semibold text-dark small mb-2 d-flex align-items-center gap-1.5">
                   <LinkIcon size={14} className="text-info" />
-                  <span>{lang === 'vi' ? 'Dán Liên Kết Biên Bản Giao Ban' : 'Paste Briefing Document Link'}</span>
+                  <span>{t('briefings.modal_section_link', 'Dán Liên Kết Biên Bản Giao Ban')}</span>
                 </div>
                 <input
                   type="url"
                   required
-                  placeholder="https://docs.google.com/... hoặc link hồ sơ nội bộ"
+                  placeholder={t('briefings.modal_link_placeholder', 'https://docs.google.com/... hoặc link hồ sơ nội bộ')}
                   className="wd-input w-100"
                   value={externalLink}
                   onChange={(e) => setExternalLink(e.target.value)}
@@ -955,12 +955,12 @@ export const DailyBriefingsPage: React.FC = () => {
 
             <Form.Group className="mb-3">
               <label className="wd-label">
-                {lang === 'vi' ? 'Ý Kiến Kết Luận & Chỉ Đạo Của Chủ Trì *' : 'Chair Conclusion & Directives *'}
+                {t('briefings.modal_conclusion_label', 'Ý Kiến Kết Luận & Chỉ Đạo Của Chủ Trì *')}
               </label>
               <textarea
                 rows={4}
                 required
-                placeholder="Ghi nhận đánh giá tình hình ca trực, phân công mổ phiên, điều chuyển nhân lực, giải quyết vướng mắc phát sinh..."
+                placeholder={t('briefings.modal_conclusion_placeholder', 'Ghi nhận đánh giá tình hình ca trực, phân công mổ phiên, điều chuyển nhân lực, giải quyết vướng mắc phát sinh...')}
                 value={criticalNotes}
                 onChange={(e) => setCriticalNotes(e.target.value)}
                 className="wd-input w-100"
@@ -973,14 +973,14 @@ export const DailyBriefingsPage: React.FC = () => {
               className="wd-pill-btn-outline"
               onClick={() => setShowCreateModal(false)}
             >
-              Hủy
+              {t('common.cancel', 'Hủy')}
             </button>
             <button
               type="submit"
               disabled={createBriefingMutation.isPending}
               className="wd-pill-btn-primary"
             >
-              {createBriefingMutation.isPending ? 'Đang lưu...' : 'Lưu Vào Sổ Giao Ban'}
+              {createBriefingMutation.isPending ? t('handovers.saving', 'Đang lưu...') : t('briefings.save_btn', 'Lưu Vào Sổ Giao Ban')}
             </button>
           </Modal.Footer>
         </Form>
@@ -989,7 +989,7 @@ export const DailyBriefingsPage: React.FC = () => {
       {/* Modal 3: Fullscreen Image Preview */}
       <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} size="lg" centered>
         <Modal.Header closeButton className="py-2">
-          <Modal.Title className="fs-6 fw-bold">Ảnh Chụp Sổ Giao Ban</Modal.Title>
+          <Modal.Title className="fs-6 fw-bold">{t('briefings.photo_modal_title', 'Ảnh Chụp Sổ Giao Ban')}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-2 text-center bg-dark">
           {previewImage && (
