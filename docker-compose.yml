@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # MySQL Database Server for Hospital HRMS Monolith
+  mysql:
+    image: mysql:8.0
+    container_name: hrm-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_ROOT_PASSWORD: ''
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./monolith-backend/schema.sql:/docker-entrypoint-initdb.d/01_hrm_db.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:
+    driver: local

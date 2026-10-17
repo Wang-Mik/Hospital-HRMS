@@ -1,0 +1,27 @@
+{
+  "name": "hospital-hrm-monorepo",
+  "version": "1.0.0",
+  "description": "Hospital Human Resources Management System (HRMS) with Work Process Tracking Monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "monolith-backend",
+    "frontend"
+  ],
+  "scripts": {
+    "start": "npm start --workspace=monolith-backend",
+    "start:monolith": "npm start --workspace=monolith-backend",
+    "test": "npm test --workspace=monolith-backend",
+    "test:live": "npm run test:live --workspace=monolith-backend",
+    "db:migrate": "npm run db:migrate --workspace=monolith-backend",
+    "db:wipe": "npm run db:wipe --workspace=monolith-backend",
+    "db:seed": "node scripts/seed.js"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "mysql2": "^3.23.3"
+  }
+}
