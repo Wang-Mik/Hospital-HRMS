@@ -18,7 +18,6 @@ interface SystemPreferences {
   dateFormat: 'DD/MM/YYYY' | 'YYYY-MM-DD';
   defaultPage: '/' | '/shifts' | '/tasks' | '/profile';
   notifications: {
-    emergencyAlerts: boolean;
     shiftReminders: boolean;
     pendingHandovers: boolean;
     licenseExpiry: boolean;
@@ -31,7 +30,6 @@ const DEFAULT_PREFERENCES: SystemPreferences = {
   dateFormat: 'DD/MM/YYYY',
   defaultPage: '/',
   notifications: {
-    emergencyAlerts: true,
     shiftReminders: true,
     pendingHandovers: true,
     licenseExpiry: true,
@@ -348,11 +346,6 @@ export const Settings: React.FC = () => {
             <div className="d-flex flex-column gap-3">
               {(
                 [
-                  {
-                    key: 'emergencyAlerts',
-                    label: t('settings.notif_emergency_label'),
-                    desc: t('settings.notif_emergency_desc')
-                  },
                   {
                     key: 'shiftReminders',
                     label: t('settings.notif_shifts_label'),
