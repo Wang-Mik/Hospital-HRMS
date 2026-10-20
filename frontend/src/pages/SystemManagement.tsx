@@ -798,7 +798,7 @@ export const SystemManagement: React.FC = () => {
                     </p>
 
                     <div className="small text-muted mb-3">
-                      <div>📍 {dept.location || t('admin.dept_default_location', 'Khu nhà khám chữa bệnh')}</div>
+                      <div>{dept.location || t('admin.dept_default_location', 'Khu nhà khám chữa bệnh')}</div>
                     </div>
                   </div>
 
@@ -909,17 +909,17 @@ export const SystemManagement: React.FC = () => {
               <h3 className="h6 fw-bold text-dark mb-3">{t('admin.broadcast_standards_title', 'Quy Chuẩn Thông Báo Nội Bộ Bệnh Viện')}</h3>
               <div className="d-flex flex-column gap-3 text-muted small">
                 <div className="p-3 bg-light rounded-2 border">
-                  <strong className="text-dark d-block mb-1">🚨 {t('admin.announcement_emergency', 'Cảnh Báo Khẩn Cấp')}:</strong>
+                  <strong className="text-dark d-block mb-1">{t('admin.announcement_emergency', 'Cảnh Báo Khẩn Cấp')}:</strong>
                   {t('admin.broadcast_standards_urgent', 'Áp dụng cho báo động đỏ nội viện, tiếp nhận thảm họa hoặc dịch bệnh đột xuất.')}
                 </div>
 
                 <div className="p-3 bg-light rounded-2 border">
-                  <strong className="text-dark d-block mb-1">📢 {t('admin.announcement_general', 'Thông Báo Chung')}:</strong>
+                  <strong className="text-dark d-block mb-1">{t('admin.announcement_general', 'Thông Báo Chung')}:</strong>
                   {t('admin.broadcast_standards_info', 'Áp dụng cho quy chế lương thưởng, chính sách cấp phép chứng chỉ, kế hoạch đào tạo y khoa liên tục.')}
                 </div>
 
                 <div className="p-3 bg-light rounded-2 border">
-                  <strong className="text-dark d-block mb-1">📋 {t('admin.announcement_task', 'Giao Việc Điều Hành')}:</strong>
+                  <strong className="text-dark d-block mb-1">{t('admin.announcement_task', 'Giao Việc Điều Hành')}:</strong>
                   {t('admin.broadcast_standards_task', 'Áp dụng cho yêu cầu hoàn thiện hồ sơ bệnh án, rà soát trang thiết bị y tế và chuẩn bị kiểm tra chất lượng bệnh viện.')}
                 </div>
               </div>

@@ -19,8 +19,8 @@ const isCloudSsl =
 
 async function seedVietnamHospital() {
   console.log('====================================================================');
-  console.log('🏥 Khởi tạo dữ liệu Bệnh viện Đa khoa Việt Nam (Quy mô vừa & nhỏ)');
-  console.log(`📡 Kết nối tới MySQL: ${DB_HOST}:${DB_PORT}, Database: ${DB_NAME}`);
+  console.log('[Seed] Khởi tạo dữ liệu Bệnh viện Đa khoa Việt Nam (Quy mô vừa & nhỏ)');
+  console.log(`[Seed] Kết nối tới MySQL: ${DB_HOST}:${DB_PORT}, Database: ${DB_NAME}`);
   console.log('====================================================================');
 
   const conn = await mysql.createConnection({
@@ -36,7 +36,7 @@ async function seedVietnamHospital() {
 
   try {
     // 0. Nâng cấp độ chính xác trường tiền tệ VND sang DECIMAL(15, 2)
-    console.log('\n🔧 Bước 0: Tối ưu hoá kiểu dữ liệu tiền tệ VND trong Database...');
+    console.log('\n[Bước 0]: Tối ưu hoá kiểu dữ liệu tiền tệ VND trong Database...');
     await conn.query(`
       ALTER TABLE \`Pay_Rates\` MODIFY \`base_hourly_rate\` DECIMAL(15, 2) NOT NULL DEFAULT 0.00;
       ALTER TABLE \`Pay_Slips\` MODIFY \`base_pay\` DECIMAL(15, 2) NOT NULL DEFAULT 0.00;
@@ -44,10 +44,10 @@ async function seedVietnamHospital() {
       ALTER TABLE \`Pay_Slips\` MODIFY \`overtime_pay\` DECIMAL(15, 2) NOT NULL DEFAULT 0.00;
       ALTER TABLE \`Pay_Slips\` MODIFY \`net_pay\` DECIMAL(15, 2) NOT NULL DEFAULT 0.00;
     `);
-    console.log('   ✔ Đã cấu hình trường tiền tệ DECIMAL(15, 2) sẵn sàng cho VND.');
+    console.log('   [OK] Đã cấu hình trường tiền tệ DECIMAL(15, 2) sẵn sàng cho VND.');
 
     // 1. Truncate sạch toàn bộ 18 bảng
-    console.log('\n🧹 Bước 1: Dọn sạch các bảng trước khi nạp dữ liệu bệnh viện...');
+    console.log('\n[Bước 1]: Dọn sạch các bảng trước khi nạp dữ liệu bệnh viện...');
     await conn.query(`
       SET FOREIGN_KEY_CHECKS = 0;
       TRUNCATE TABLE \`Handover_Checklists\`;
@@ -73,10 +73,10 @@ async function seedVietnamHospital() {
       TRUNCATE TABLE \`Departments\`;
       SET FOREIGN_KEY_CHECKS = 1;
     `);
-    console.log('   ✔ Toàn bộ các bảng đã được làm sạch.');
+    console.log('   [OK] Toàn bộ các bảng đã được làm sạch.');
 
     // 1.5 Khởi tạo dữ liệu RBAC (Roles, Permissions, Role_Permissions)
-    console.log('\n🛡️ Bước 1.5: Thiết lập Vai trò & Phân quyền RBAC...');
+    console.log('\n[Bước 1.5]: Thiết lập Vai trò & Phân quyền RBAC...');
     const rbacRoles = [
       ['SUPER_ADMIN', 'Ban Giám Đốc / Quản Trị Hệ Thống Tối Cao', 'Toàn quyền điều hành, phê duyệt, giám sát hệ thống và phân quyền IAM.'],
       ['HR_MANAGER', 'Trưởng Phòng Tổ Chức Cán Bộ / HR Manager', 'Quản lý nhân sự, hợp đồng, định mức lương, phê duyệt nghỉ phép và chứng chỉ hành nghề.'],
@@ -170,10 +170,10 @@ async function seedVietnamHospital() {
         );
       }
     }
-    console.log('   ✔ Đã thiết lập 7 vai trò và 21 quyền hạn RBAC.');
+    console.log('   [OK] Đã thiết lập 7 vai trò và 21 quyền hạn RBAC.');
 
     // 2. Thêm 8 Khoa / Phòng chức năng chuẩn bệnh viện tuyến quận/huyện Việt Nam
-    console.log('\n🏥 Bước 2: Thiết lập 8 Khoa / Phòng chức năng Bệnh viện Việt Nam...');
+    console.log('\n[Bước 2]: Thiết lập 8 Khoa / Phòng chức năng Bệnh viện Việt Nam...');
     const departments = [
       {
         department_code: 'DEP-KHB',
@@ -231,10 +231,10 @@ async function seedVietnamHospital() {
         [d.department_code, d.name, d.description, d.location]
       );
     }
-    console.log(`   ✔ Đã thiết lập 8 khoa phòng chức năng.`);
+    console.log(`   [OK] Đã thiết lập 8 khoa phòng chức năng.`);
 
     // 3. Thêm nhân sự bệnh viện với tên chung chung Nguyễn Văn A, B, C, D...
-    console.log('\n👨‍⚕️ Bước 3: Thêm nhân sự bệnh viện (Nguyễn Văn A, B, C, D...)...');
+    console.log('\n[Bước 3]: Thêm nhân sự bệnh viện (Nguyễn Văn A, B, C, D...)...');
     const staffList = [
       {
         employee_code: 'EMP-ADM-001',
@@ -544,10 +544,10 @@ async function seedVietnamHospital() {
         [randomUUID(), s.employee_code, randomUUID(), s.employee_code, randomUUID(), s.employee_code, randomUUID(), s.employee_code]
       );
     }
-    console.log(`   ✔ Đã nạp 10 nhân sự y tế (EMP-ADM-001 đến EMP-HR-001) với tài khoản và định mức lương VND.`);
+    console.log(`   [OK] Đã nạp 10 nhân sự y tế (EMP-ADM-001 đến EMP-HR-001) với tài khoản và định mức lương VND.`);
 
     // 4. Thêm Chứng chỉ hành nghề y tế Việt Nam (Medical Licenses) do Sở Y Tế cấp
-    console.log('\n📜 Bước 4: Thêm Chứng chỉ hành nghề y tế (Sở Y Tế cấp)...');
+    console.log('\n[Bước 4]: Thêm Chứng chỉ hành nghề y tế (Sở Y Tế cấp)...');
     const licenses = [
       {
         emp_code: 'EMP-ADM-001',
@@ -615,10 +615,10 @@ async function seedVietnamHospital() {
         );
       }
     }
-    console.log(`   ✔ Đã thêm chứng chỉ hành nghề Sở Y Tế cho đội ngũ bác sĩ & điều dưỡng.`);
+    console.log(`   [OK] Đã thêm chứng chỉ hành nghề Sở Y Tế cho đội ngũ bác sĩ & điều dưỡng.`);
 
     // 5. Thêm 2 Kỳ quyết toán lương (Tháng 8/2026 và Tháng 9/2026) với số tiền VND
-    console.log('\n💰 Bước 5: Thêm 2 Đợt quyết toán lương và Phiếu lương tiền đồng (VND)...');
+    console.log('\n[Bước 5]: Thêm 2 Đợt quyết toán lương và Phiếu lương tiền đồng (VND)...');
     const runAugId = 'run-2026-08';
     const runSepId = 'run-2026-09';
 
@@ -661,10 +661,10 @@ async function seedVietnamHospital() {
         ]
       );
     }
-    console.log(`   ✔ Đã tạo bảng kê thu nhập điện tử chuẩn VND cho toàn bộ nhân sự.`);
+    console.log(`   [OK] Đã tạo bảng kê thu nhập điện tử chuẩn VND cho toàn bộ nhân sự.`);
 
     // 6. Thêm Lịch trực ca (Shifts) bệnh viện
-    console.log('\n⏰ Bước 6: Thêm Lịch trực ca bệnh viện (Sáng, Chiều, Đêm)...');
+    console.log('\n[Bước 6]: Thêm Lịch trực ca bệnh viện (Sáng, Chiều, Đêm)...');
     const shifts = [
       {
         id: 'shift-001',
@@ -735,10 +735,10 @@ async function seedVietnamHospital() {
         [sh.id, sh.staff_id, sh.dept_code, sh.start_time, sh.end_time, sh.shift_type, sh.status, sh.requires_handover]
       );
     }
-    console.log(`   ✔ Đã thiết lập các ca trực lâm sàng.`);
+    console.log(`   [OK] Đã thiết lập các ca trực lâm sàng.`);
 
     // 7. Thêm Bàn giao ca trực (Shift Handovers) với note là 1 chữ 'a', 'b', 'c'... theo đúng yêu cầu user!
-    console.log("\n📋 Bước 7: Thêm Bàn giao ca trực với note là 1 chữ 'a', 'b', 'c' theo yêu cầu...");
+    console.log("\n[Bước 7]: Thêm Bàn giao ca trực với note là 1 chữ 'a', 'b', 'c' theo yêu cầu...");
     const handovers = [
       {
         id: 'handover-001',
@@ -783,7 +783,7 @@ async function seedVietnamHospital() {
         [randomUUID(), h.id, randomUUID(), h.id, randomUUID(), h.id]
       );
     }
-    console.log("   ✔ Đã thêm biên bản bàn giao ca trực với critical_notes là 'a', 'b', 'c'.");
+    console.log("   [OK] Đã thêm biên bản bàn giao ca trực với critical_notes là 'a', 'b', 'c'.");
 
     // 8. Thêm Điểm danh chấm công (Attendances)
     console.log('\n⏱ Bước 8: Thêm dữ liệu Chấm công / Điểm danh...');
@@ -795,10 +795,10 @@ async function seedVietnamHospital() {
         (?, 'EMP-DOC-002', 'shift-003', '2026-09-20 06:58:00', NULL, 'KIOSK_TERMINAL', 'PRESENT', 0, 'Đúng giờ')`,
       [randomUUID(), randomUUID(), randomUUID()]
     );
-    console.log('   ✔ Đã thêm dữ liệu chấm công vân tay & thẻ từ bệnh viện.');
+    console.log('   [OK] Đã thêm dữ liệu chấm công vân tay & thẻ từ bệnh viện.');
 
     // 9. Thêm Nhiệm vụ lâm sàng trong ngày (Daily Tasks)
-    console.log('\n📝 Bước 9: Thêm Nhiệm vụ lâm sàng trong ngày...');
+    console.log('\n[Bước 9]: Thêm Nhiệm vụ lâm sàng trong ngày...');
     const tasks = [
       {
         title: 'Giao ban chuyên môn sáng toàn viện',
@@ -841,10 +841,10 @@ async function seedVietnamHospital() {
         [randomUUID(), t.title, t.desc, t.assigned_to, t.assigned_by, t.shift_id, t.status]
       );
     }
-    console.log('   ✔ Đã thêm danh mục nhiệm vụ chuyên môn y tế.');
+    console.log('   [OK] Đã thêm danh mục nhiệm vụ chuyên môn y tế.');
 
     // 10. Thêm Đơn xin nghỉ phép (Leave Requests) có nghỉ nửa ngày
-    console.log('\n🏖 Bước 10: Thêm Đơn xin nghỉ phép (bao gồm phép nửa ngày)...');
+    console.log('\n[Bước 10]: Thêm Đơn xin nghỉ phép (bao gồm phép nửa ngày)...');
     await conn.execute(
       `INSERT INTO Leave_Requests (id, staff_id, start_date, end_date, leave_type, day_part, days_requested, reason, status)
        VALUES 
@@ -852,10 +852,10 @@ async function seedVietnamHospital() {
         (?, 'EMP-DOC-002', '2026-09-28', '2026-09-30', 'ANNUAL', 'FULL', 3.0, 'Nghỉ phép năm kết hợp về thăm quê', 'PENDING')`,
       [randomUUID(), randomUUID()]
     );
-    console.log('   ✔ Đã thêm đơn nghỉ phép (hỗ trợ phép nửa ngày FIRST_HALF).');
+    console.log('   [OK] Đã thêm đơn nghỉ phép (hỗ trợ phép nửa ngày FIRST_HALF).');
 
     // 11. Thêm Thông báo hệ thống bệnh viện (Notifications)
-    console.log('\n🔔 Bước 11: Thêm Thông báo nội bộ bệnh viện...');
+    console.log('\n[Bước 11]: Thêm Thông báo nội bộ bệnh viện...');
     const notifs = [
       {
         target: 'EMP-ADM-001',
@@ -884,7 +884,7 @@ async function seedVietnamHospital() {
         [randomUUID(), n.target, n.title, n.msg, n.type]
       );
     }
-    console.log('   ✔ Đã thêm thông báo bệnh viện.');
+    console.log('   [OK] Đã thêm thông báo bệnh viện.');
 
     // 12. Báo cáo tổng kết số lượng bản ghi
     console.log('\n================ TỔNG KẾT DỮ LIỆU ĐÃ NẠP THÀNH CÔNG ================');
@@ -895,12 +895,12 @@ async function seedVietnamHospital() {
       console.log(`  ${t.padEnd(24)}: ${count} dòng`);
     }
     console.log('====================================================================');
-    console.log('🔑 Tài khoản đăng nhập quản trị: admin / admin123');
-    console.log('🔑 Tài khoản nhân viên (Bác sĩ B): dr.b / password123');
-    console.log('🔑 Tài khoản nhân viên (Bác sĩ C): dr.c / password123');
-    console.log('✨ Hoàn tất thiết lập cơ sở dữ liệu Bệnh viện Việt Nam!');
+    console.log('[Tài khoản] Tài khoản đăng nhập quản trị: admin / admin123');
+    console.log('[Tài khoản] Tài khoản nhân viên (Bác sĩ B): dr.b / password123');
+    console.log('[Tài khoản] Tài khoản nhân viên (Bác sĩ C): dr.c / password123');
+    console.log('[SUCCESS] Hoàn tất thiết lập cơ sở dữ liệu Bệnh viện Việt Nam!');
   } catch (err) {
-    console.error('❌ Lỗi khi nạp dữ liệu bệnh viện:', err);
+    console.error('[ERROR] Lỗi khi nạp dữ liệu bệnh viện:', err);
     process.exit(1);
   } finally {
     await conn.end();

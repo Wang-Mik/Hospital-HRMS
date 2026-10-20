@@ -380,7 +380,7 @@ export const ShiftHandovers: React.FC = () => {
                       {item.doc_type === 'PHYSICAL_BOOK' && (
                         <div>
                           <div className="text-dark fw-medium" style={{ fontSize: '12px' }}>
-                            📖 {item.physical_book_name || t('handovers.default_book', 'Sổ bàn giao trực khoa')}
+                            {item.physical_book_name || t('handovers.default_book', 'Sổ bàn giao trực khoa')}
                           </div>
                           <div className="text-muted" style={{ fontSize: '11px' }}>
                             {item.physical_book_page ? `${t('handovers.book_page', 'Trang')}: ${item.physical_book_page}` : ''}

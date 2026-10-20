@@ -430,11 +430,11 @@ export const DailyBriefings: React.FC = () => {
                         <div>
                           {item.handover_category === 'HOSPITAL_BRIEFING' ? (
                             <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5" style={{ fontSize: '11px' }}>
-                              🏛️ {t('briefings.level_hospital', 'Giao Ban Toàn Viện')}
+                              {t('briefings.level_hospital', 'Giao Ban Toàn Viện')}
                             </span>
                           ) : (
                             <span className="badge bg-info-subtle text-info border border-info-subtle px-2 py-0.5" style={{ fontSize: '11px' }}>
-                              🩺 {t('briefings.level_dept', 'Giao Ban Khoa Lâm Sàng')}
+                              {t('briefings.level_dept', 'Giao Ban Khoa Lâm Sàng')}
                             </span>
                           )}
                         </div>
@@ -467,7 +467,7 @@ export const DailyBriefings: React.FC = () => {
                         {item.doc_type === 'PHYSICAL_BOOK' && (
                           <div>
                             <div className="text-dark fw-medium" style={{ fontSize: '12px' }}>
-                              📖 {item.physical_book_name || t('briefings.default_book_name', 'Sổ giao ban bệnh viện')}
+                              {item.physical_book_name || t('briefings.default_book_name', 'Sổ giao ban bệnh viện')}
                             </div>
                             <div className="text-muted" style={{ fontSize: '11px' }}>
                               {item.physical_book_page ? `${t('handovers.book_page', 'Trang')}: ${item.physical_book_page}` : ''}
@@ -578,8 +578,8 @@ export const DailyBriefings: React.FC = () => {
                     </div>
                     <div className="fw-semibold text-dark fs-6 mt-0.5">
                       {selectedBriefing.handover_category === 'HOSPITAL_BRIEFING'
-                        ? `🏛️ ${t('briefings.level_hospital', 'Giao Ban Toàn Viện')}`
-                        : `🩺 ${t('briefings.level_dept', 'Giao Ban Khoa')}: ${selectedBriefing.department_name || selectedBriefing.department_code}`}
+                        ? t('briefings.level_hospital', 'Giao Ban Toàn Viện')
+                        : `${t('briefings.level_dept', 'Giao Ban Khoa')}: ${selectedBriefing.department_name || selectedBriefing.department_code}`}
                     </div>
                     <div className="text-secondary small mt-0.5">
                       {t('briefings.detail_time', 'Thời điểm ghi:')} {selectedBriefing.created_at ? selectedBriefing.created_at.slice(0, 16).replace('T', ' ') : ''}

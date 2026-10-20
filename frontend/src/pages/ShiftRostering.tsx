@@ -374,10 +374,10 @@ export const ShiftRostering: React.FC = () => {
               style={{ fontSize: '12px' }}
             >
               <option value="ALL">{t('shifts.all_tiers', '-- Tất cả Cấp Thường Trực --')}</option>
-              <option value="LEADERSHIP">🏛️ {t('shifts.level_1', 'Trực Lãnh Đạo')}</option>
-              <option value="CLINICAL">🩺 {t('shifts.level_2', 'Trực Lâm Sàng')}</option>
-              <option value="PARACLINICAL">🔬 {t('shifts.level_3', 'Trực Cận Lâm Sàng')}</option>
-              <option value="LOGISTICS">📦 {t('shifts.level_4', 'Trực Hậu Cần')}</option>
+              <option value="LEADERSHIP">{t('shifts.level_1', 'Trực Lãnh Đạo')}</option>
+              <option value="CLINICAL">{t('shifts.level_2', 'Trực Lâm Sàng')}</option>
+              <option value="PARACLINICAL">{t('shifts.level_3', 'Trực Cận Lâm Sàng')}</option>
+              <option value="LOGISTICS">{t('shifts.level_4', 'Trực Hậu Cần')}</option>
             </select>
           </Col>
 
@@ -594,10 +594,10 @@ export const ShiftRostering: React.FC = () => {
                   onChange={(e) => setNewOnCallTier(e.target.value as OnCallTier)}
                   className="wd-select w-100"
                 >
-                  <option value="LEADERSHIP">🏛️ {t('shifts.level_1', 'Trực Lãnh Đạo')}</option>
-                  <option value="CLINICAL">🩺 {t('shifts.level_2', 'Trực Lâm Sàng')}</option>
-                  <option value="PARACLINICAL">🔬 {t('shifts.level_3', 'Trực Cận Lâm Sàng')}</option>
-                  <option value="LOGISTICS">📦 {t('shifts.level_4', 'Trực Hậu Cần')}</option>
+                  <option value="LEADERSHIP">{t('shifts.level_1', 'Trực Lãnh Đạo')}</option>
+                  <option value="CLINICAL">{t('shifts.level_2', 'Trực Lâm Sàng')}</option>
+                  <option value="PARACLINICAL">{t('shifts.level_3', 'Trực Cận Lâm Sàng')}</option>
+                  <option value="LOGISTICS">{t('shifts.level_4', 'Trực Hậu Cần')}</option>
                 </select>
               </Col>
 
