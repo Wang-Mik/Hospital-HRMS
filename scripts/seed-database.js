@@ -65,12 +65,112 @@ async function seedVietnamHospital() {
       TRUNCATE TABLE \`Documents\`;
       TRUNCATE TABLE \`Emergency_Contacts\`;
       TRUNCATE TABLE \`Medical_Licenses\`;
+      TRUNCATE TABLE \`Role_Permissions\`;
+      TRUNCATE TABLE \`Permissions\`;
+      TRUNCATE TABLE \`Roles\`;
       TRUNCATE TABLE \`Accounts\`;
       TRUNCATE TABLE \`Employees\`;
       TRUNCATE TABLE \`Departments\`;
       SET FOREIGN_KEY_CHECKS = 1;
     `);
-    console.log('   ✔ Toàn bộ 18 bảng đã được làm sạch.');
+    console.log('   ✔ Toàn bộ các bảng đã được làm sạch.');
+
+    // 1.5 Khởi tạo dữ liệu RBAC (Roles, Permissions, Role_Permissions)
+    console.log('\n🛡️ Bước 1.5: Thiết lập Vai trò & Phân quyền RBAC...');
+    const rbacRoles = [
+      ['SUPER_ADMIN', 'Ban Giám Đốc / Quản Trị Hệ Thống Tối Cao', 'Toàn quyền điều hành, phê duyệt, giám sát hệ thống và phân quyền IAM.'],
+      ['HR_MANAGER', 'Trưởng Phòng Tổ Chức Cán Bộ / HR Manager', 'Quản lý nhân sự, hợp đồng, định mức lương, phê duyệt nghỉ phép và chứng chỉ hành nghề.'],
+      ['DEPARTMENT_HEAD', 'Trưởng Khoa / Lãnh Đạo Đơn Vị Chuyên Môn', 'Chủ trì giao ban khoa, điều phối lịch trực khoa, giám sát bàn giao ca và duyệt phép nội bộ.'],
+      ['DOCTOR', 'Bác Sĩ Điều Trị Lâm Sàng', 'Thực hiện khám chữa bệnh, trực cấp cứu, ghi sổ bàn giao ca trực và tham gia giao ban viện.'],
+      ['NURSE', 'Điều Dưỡng Viên / Nữ Hộ Sinh', 'Chăm sóc người bệnh, trực buồng bệnh, đối chiếu sổ bàn giao trực khoa và chấm công.'],
+      ['TECHNICIAN', 'Kỹ Thuật Viên Cận Lâm Sàng & Dược', 'Thực hiện chẩn đoán hình ảnh, xét nghiệm huyết học/vi sinh, cấp phát thuốc và vật tư.'],
+      ['STAFF', 'Nhân Viên Hành Chính & Hỗ Trợ Viện', 'Nhân viên dịch vụ, lễ tân, bảo vệ, lái xe cấp cứu và hậu cần bệnh viện.']
+    ];
+    for (const [code, name, desc] of rbacRoles) {
+      await conn.execute(
+        `INSERT INTO Roles (role_code, name, description) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description)`,
+        [code, name, desc]
+      );
+    }
+
+    const rbacPerms = [
+      ['iam:accounts:read', 'IAM', 'Xem danh sách và trạng thái tài khoản người dùng'],
+      ['iam:accounts:manage', 'IAM', 'Khóa / Mở khóa tài khoản và đặt lại mật khẩu'],
+      ['iam:roles:assign', 'IAM', 'Phân quyền và thay đổi vai trò tài khoản'],
+      ['hr:employees:read', 'HR', 'Tra cứu danh bạ và hồ sơ cán bộ nhân viên'],
+      ['hr:employees:manage', 'HR', 'Tiếp nhận cán bộ mới và cập nhật hồ sơ chủ'],
+      ['hr:departments:manage', 'HR', 'Quản lý cơ cấu tổ chức và khoa phòng bệnh viện'],
+      ['hr:licenses:manage', 'HR', 'Giám sát và hậu kiểm chứng chỉ hành nghề y tế'],
+      ['leaves:request:create', 'LEAVES', 'Lập đơn xin nghỉ phép cá nhân'],
+      ['leaves:request:approve', 'LEAVES', 'Phê duyệt hoặc từ chối đơn xin nghỉ phép'],
+      ['payroll:rates:view', 'PAYROLL', 'Xem bảng định mức lương và bậc thuế'],
+      ['payroll:rates:manage', 'PAYROLL', 'Điều chỉnh định mức lương và phụ cấp trực'],
+      ['payroll:runs:execute', 'PAYROLL', 'Tính toán và chốt kỳ chi trả lương bệnh viện'],
+      ['shifts:roster:read', 'SHIFTS', 'Xem lịch thường trực 4 cấp và kíp trực luân phiên'],
+      ['shifts:roster:schedule', 'SHIFTS', 'Phân bổ và điều phối ca trực lâm sàng'],
+      ['attendance:clock:record', 'ATTENDANCE', 'Chấm công vào/ra ca trực và điểm danh'],
+      ['handovers:shift:read', 'HANDOVERS', 'Xem sổ bàn giao ca trực lâm sàng'],
+      ['handovers:shift:create', 'HANDOVERS', 'Ghi sổ bàn giao ca trực và tải ảnh biên bản'],
+      ['briefings:daily:read', 'BRIEFINGS', 'Xem sổ giao ban toàn viện và giao ban khoa'],
+      ['briefings:daily:create', 'BRIEFINGS', 'Lập biên bản sổ giao ban và ghi nhận chỉ đạo'],
+      ['tasks:manage', 'TASKS', 'Giao việc và theo dõi tiến trình công việc'],
+      ['notifications:broadcast', 'NOTIFICATIONS', 'Phát lệnh thông báo khẩn cấp toàn viện']
+    ];
+    for (const [code, mod, desc] of rbacPerms) {
+      await conn.execute(
+        `INSERT INTO Permissions (permission_code, module, description) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE module = VALUES(module), description = VALUES(description)`,
+        [code, mod, desc]
+      );
+    }
+
+    const rolePermMap = {
+      SUPER_ADMIN: rbacPerms.map((p) => p[0]),
+      HR_MANAGER: [
+        'iam:accounts:read', 'iam:accounts:manage', 'iam:roles:assign',
+        'hr:employees:read', 'hr:employees:manage', 'hr:departments:manage', 'hr:licenses:manage',
+        'leaves:request:create', 'leaves:request:approve',
+        'payroll:rates:view', 'payroll:rates:manage', 'payroll:runs:execute',
+        'shifts:roster:read', 'attendance:clock:record', 'handovers:shift:read',
+        'briefings:daily:read', 'briefings:daily:create', 'tasks:manage', 'notifications:broadcast'
+      ],
+      DEPARTMENT_HEAD: [
+        'hr:employees:read', 'leaves:request:create', 'leaves:request:approve',
+        'shifts:roster:read', 'shifts:roster:schedule', 'attendance:clock:record',
+        'handovers:shift:read', 'handovers:shift:create',
+        'briefings:daily:read', 'briefings:daily:create', 'tasks:manage', 'notifications:broadcast'
+      ],
+      DOCTOR: [
+        'hr:employees:read', 'leaves:request:create', 'shifts:roster:read',
+        'attendance:clock:record', 'handovers:shift:read', 'handovers:shift:create',
+        'briefings:daily:read', 'tasks:manage'
+      ],
+      NURSE: [
+        'hr:employees:read', 'leaves:request:create', 'shifts:roster:read',
+        'attendance:clock:record', 'handovers:shift:read', 'handovers:shift:create', 'tasks:manage'
+      ],
+      TECHNICIAN: [
+        'hr:employees:read', 'leaves:request:create', 'shifts:roster:read',
+        'attendance:clock:record', 'tasks:manage'
+      ],
+      STAFF: [
+        'hr:employees:read', 'leaves:request:create', 'shifts:roster:read',
+        'attendance:clock:record', 'tasks:manage'
+      ]
+    };
+
+    for (const [roleCode, permCodes] of Object.entries(rolePermMap)) {
+      for (const permCode of permCodes) {
+        await conn.execute(
+          `INSERT IGNORE INTO Role_Permissions (role_id, permission_id)
+           SELECT r.id, p.id FROM Roles r, Permissions p
+           WHERE r.role_code = ? AND p.permission_code = ?`,
+          [roleCode, permCode]
+        );
+      }
+    }
+    console.log('   ✔ Đã thiết lập 7 vai trò và 21 quyền hạn RBAC.');
 
     // 2. Thêm 8 Khoa / Phòng chức năng chuẩn bệnh viện tuyến quận/huyện Việt Nam
     console.log('\n🏥 Bước 2: Thiết lập 8 Khoa / Phòng chức năng Bệnh viện Việt Nam...');
@@ -400,9 +500,9 @@ async function seedVietnamHospital() {
       // Tạo Account đăng nhập
       const pwHash = s.username === 'admin' ? adminPwHash : userPwHash;
       await conn.execute(
-        `INSERT INTO Accounts (id, employee_id, username, password_hash, is_locked)
-         VALUES (?, ?, ?, ?, FALSE)`,
-        [randomUUID(), empId, s.username, pwHash]
+        `INSERT INTO Accounts (id, employee_id, username, role_code, password_hash, is_locked)
+         VALUES (?, ?, ?, ?, ?, FALSE)`,
+        [randomUUID(), empId, s.username, s.role || 'STAFF', pwHash]
       );
 
       // Thêm Pay_Rates (Định mức lương VND)
