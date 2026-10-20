@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Dropdown } from 'react-bootstrap';
-import { Search, Bell, CheckSquare, User, LogOut, CreditCard, Activity, Users, CheckCheck } from 'lucide-react';
+import { Search, Bell, CheckSquare, User, LogOut, CreditCard, Activity, Users, CheckCheck, Settings } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
@@ -302,6 +302,10 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
             <Dropdown.Item as={Link} to="/payroll" className="small py-2 rounded-2 d-flex align-items-center gap-2">
               <CreditCard size={15} aria-hidden="true" />
               <span>{t('nav.payroll', 'Bảng lương')}</span>
+            </Dropdown.Item>
+            <Dropdown.Item as={Link} to="/settings" className="small py-2 rounded-2 d-flex align-items-center gap-2">
+              <Settings size={15} aria-hidden="true" />
+              <span>{t('common.settings', 'Cài đặt')}</span>
             </Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item onClick={handleLogout} className="small py-2 text-danger rounded-2 d-flex align-items-center gap-2">

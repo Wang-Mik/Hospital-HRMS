@@ -3,22 +3,28 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const dbHost = process.env.DB_HOST || 'localhost';
+const isCloudSsl =
+  process.env.DB_SSL === 'true' ||
+  /tidbcloud\.com|aivencloud\.com|clever-cloud\.com|psdb\.cloud/i.test(dbHost);
+
 /**
  * MySQL Connection Pool Configuration for HRMS Application
  */
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
+  host: dbHost,
+  port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'hrm_db',
   waitForConnections: process.env.DB_WAIT_FOR_CONNECTIONS === 'false' ? false : true,
-  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 15,
-  queueLimit: Number(process.env.DB_QUEUE_LIMIT) || 0,
+  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || (process.env.VERCEL ? 5 : 50)),
+  queueLimit: Number(process.env.DB_QUEUE_LIMIT || 0),
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
   charset: 'utf8mb4',
-  dateStrings: true
+  dateStrings: true,
+  ...(isCloudSsl ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: false } } : {})
 });
 
 /**

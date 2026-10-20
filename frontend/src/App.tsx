@@ -20,6 +20,7 @@ const AttendanceClock = React.lazy(() => import('./pages/AttendanceClock').then(
 const StaffDirectory = React.lazy(() => import('./pages/StaffDirectory').then((m) => ({ default: m.StaffDirectory })));
 const PayrollManagement = React.lazy(() => import('./pages/PayrollManagement').then((m) => ({ default: m.PayrollManagement })));
 const Notifications = React.lazy(() => import('./pages/Notifications').then((m) => ({ default: m.Notifications })));
+const Settings = React.lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
 
 export const App: React.FC = () => {
   return (
@@ -47,6 +48,7 @@ export const App: React.FC = () => {
               <Route path="employees" element={<StaffDirectory defaultTab="staff" />} />
               <Route path="licenses" element={<StaffDirectory defaultTab="licenses" />} />
               <Route path="payroll" element={<PayrollManagement />} />
+              <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Route>

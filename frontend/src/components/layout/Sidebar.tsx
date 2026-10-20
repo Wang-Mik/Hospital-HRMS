@@ -10,7 +10,6 @@ import {
   Clock,
   CheckSquare,
   ClipboardList,
-  FileText,
   Settings,
   ShieldCheck,
   UserCheck,
@@ -84,28 +83,17 @@ export const Sidebar: React.FC = () => {
         })}
       </div>
 
-      {/* Bottom Utility Icons */}
+      {/* Bottom Utility Icon */}
       <div className="d-flex flex-column gap-1 w-100 border-top pt-2">
-        <button
-          type="button"
-          className="wd-rail-link border-0 bg-transparent text-start w-100 p-0"
-          title={t('common.archive', 'Lưu Trữ')}
-          aria-label={t('common.archive', 'Lưu Trữ')}
-          style={{ cursor: 'pointer' }}
-        >
-          <FileText size={18} strokeWidth={1.8} aria-hidden="true" />
-          <span className="wd-rail-label">{t('common.archive', 'Lưu Trữ')}</span>
-        </button>
-        <button
-          type="button"
-          className="wd-rail-link border-0 bg-transparent text-start w-100 p-0"
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => `wd-rail-link ${isActive ? 'active' : ''}`}
           title={t('common.settings', 'Cài Đặt')}
           aria-label={t('common.settings', 'Cài Đặt')}
-          style={{ cursor: 'pointer' }}
         >
           <Settings size={18} strokeWidth={1.8} aria-hidden="true" />
           <span className="wd-rail-label">{t('common.settings', 'Cài Đặt')}</span>
-        </button>
+        </NavLink>
       </div>
     </nav>
   );

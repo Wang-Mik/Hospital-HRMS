@@ -14,19 +14,29 @@ async function runMigration() {
   console.log(' Running Database Migration...');
   console.log('====================================================');
 
+  const dbHost = process.env.DB_HOST || 'localhost';
+  const dbName = process.env.DB_NAME || 'hrm_db';
+  const isCloudSsl =
+    process.env.DB_SSL === 'true' ||
+    /tidbcloud\.com|aivencloud\.com|clever-cloud\.com|psdb\.cloud/i.test(dbHost);
+
   const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
+    host: dbHost,
     port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    multipleStatements: true
+    multipleStatements: true,
+    ...(isCloudSsl ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: false } } : {})
   });
 
   try {
     const schemaPath = path.join(__dirname, '../../schema.sql');
-    const sql = fs.readFileSync(schemaPath, 'utf8');
+    let sql = fs.readFileSync(schemaPath, 'utf8');
+    if (dbName !== 'hrm_db') {
+      sql = sql.replace(/`hrm_db`/g, `\`${dbName}\``);
+    }
 
-    console.log(`[Migration] Executing schema statements from: ${schemaPath}`);
+    console.log(`[Migration] Executing schema statements on database "${dbName}" (${dbHost})...`);
     await connection.query(sql);
     console.log('[Migration] Backend database migrated successfully!');
   } catch (error) {

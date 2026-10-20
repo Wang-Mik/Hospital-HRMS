@@ -13,6 +13,9 @@ const DB_PORT = Number(process.env.DB_PORT) || 3306;
 const DB_USER = process.env.DB_USER || 'admin';
 const DB_PASSWORD = process.env.DB_PASSWORD || 'admin';
 const DB_NAME = process.env.DB_NAME || 'hrm_db';
+const isCloudSsl =
+  process.env.DB_SSL === 'true' ||
+  /tidbcloud\.com|aivencloud\.com|clever-cloud\.com|psdb\.cloud/i.test(DB_HOST);
 
 async function seedVietnamHospital() {
   console.log('====================================================================');
@@ -27,7 +30,8 @@ async function seedVietnamHospital() {
     password: DB_PASSWORD,
     database: DB_NAME,
     multipleStatements: true,
-    dateStrings: true
+    dateStrings: true,
+    ...(isCloudSsl ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: false } } : {})
   });
 
   try {

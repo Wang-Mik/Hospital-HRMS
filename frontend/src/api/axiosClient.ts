@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const env = (import.meta as any).env || {};
+const defaultBaseUrl = env.VITE_API_BASE_URL || (env.PROD ? '' : 'http://localhost:4000');
+
 export const axiosClient = axios.create({
-  baseURL: (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:4000',
+  baseURL: defaultBaseUrl,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
