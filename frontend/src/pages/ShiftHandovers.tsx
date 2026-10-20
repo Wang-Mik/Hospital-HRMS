@@ -22,8 +22,7 @@ import {
   Calendar,
   Search,
   Info,
-  CheckCircle2,
-  FileSpreadsheet
+  CheckCircle2
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { handoverApi, ShiftHandoverRecord, DocType } from '../api/handoverApi';
@@ -298,6 +297,7 @@ export const ShiftHandovers: React.FC = () => {
             <Search size={14} className="position-absolute text-muted" style={{ top: '10px', left: '10px' }} />
             <input
               type="text"
+              aria-label={t('handovers.search_placeholder', 'Tìm theo sổ, người lập, nội dung...')}
               placeholder={t('handovers.search_placeholder', 'Tìm theo sổ, người lập, nội dung...')}
               className="wd-input ps-4 py-1.5 w-100"
               style={{ fontSize: '12px' }}
@@ -307,6 +307,7 @@ export const ShiftHandovers: React.FC = () => {
           </div>
 
           <select
+            aria-label={t('handovers.all_departments', 'Lọc theo khoa phòng')}
             className="wd-select py-1.5"
             style={{ fontSize: '12px', minWidth: '180px' }}
             value={selectedDeptFilter}
@@ -622,6 +623,7 @@ export const ShiftHandovers: React.FC = () => {
                 <label className="wd-label">{t('nav.department', 'Khoa / Phòng Trực')} *</label>
                 <select
                   required
+                  aria-label={t('nav.department', 'Khoa / Phòng Trực')}
                   value={departmentCode}
                   onChange={(e) => setDepartmentCode(e.target.value)}
                   className="wd-select w-100"
@@ -637,6 +639,7 @@ export const ShiftHandovers: React.FC = () => {
               <Col md={6}>
                 <label className="wd-label">{t('shifts.assign_shift', 'Ca Trực Bàn Giao')}</label>
                 <select
+                  aria-label={t('shifts.assign_shift', 'Ca Trực Bàn Giao')}
                   value={outgoingShiftId}
                   onChange={(e) => setOutgoingShiftId(e.target.value)}
                   className="wd-select w-100"

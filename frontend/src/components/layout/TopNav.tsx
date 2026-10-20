@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Dropdown } from 'react-bootstrap';
-import { Search, Bell, Inbox, User, LogOut, Sliders, Activity, Users, CheckCheck } from 'lucide-react';
+import { Search, Bell, CheckSquare, User, LogOut, CreditCard, Activity, Users, CheckCheck } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
@@ -62,7 +62,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
     }
   });
 
-  const pendingTasksCount = tasks?.filter((t: any) => t.status !== 'COMPLETED').length || 0;
+  const pendingTasksCount = tasks?.filter((taskItem: any) => taskItem.status !== 'COMPLETED').length || 0;
   const pendingHandoversCount = handovers?.filter((h: any) => h.status === 'PENDING_SIGNATURE').length || 0;
   const inboxCount = pendingTasksCount + pendingHandoversCount;
   const unreadNotificationsCount = notifications?.filter((n: any) => !n.is_read).length || 0;
@@ -83,10 +83,10 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
     ? `${employeeData.first_name} ${employeeData.last_name}`.trim()
     : (user?.name || t('common.hospital_staff', 'Cán Bộ Bệnh Viện'));
 
-  const nameParts = displayName.split(' ');
-  const initials = nameParts.length >= 2
-    ? `${nameParts[nameParts.length - 2][0]}${nameParts[nameParts.length - 1][0]}`
-    : displayName.slice(0, 2).toUpperCase();
+  const cleanParts = displayName.trim().split(/\s+/).filter(Boolean);
+  const initials = cleanParts.length >= 2
+    ? `${cleanParts[cleanParts.length - 2]?.[0] || ''}${cleanParts[cleanParts.length - 1]?.[0] || ''}`.toUpperCase()
+    : (cleanParts[0]?.slice(0, 2) || 'CB').toUpperCase();
 
   const userRoleText = user?.role
     ? t(`role.${user.role}`, user.role)
@@ -100,7 +100,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
       <div className="d-flex align-items-center gap-3">
         <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
           <div className="wd-logo-emblem">
-            <Activity size={18} strokeWidth={2.4} />
+            <Activity size={18} strokeWidth={2.4} aria-hidden="true" />
           </div>
           <span className="fw-bold text-dark d-none d-sm-inline" style={{ fontSize: '15px', letterSpacing: '-0.02em' }}>
             Hospital HRMS
@@ -136,9 +136,9 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
           title={t('nav.tasks', 'Nhiệm vụ')}
           aria-label={t('nav.tasks', 'Nhiệm vụ')}
         >
-          <Inbox size={20} aria-hidden="true" />
+          <CheckSquare size={20} aria-hidden="true" />
           {inboxCount > 0 && (
-            <span className="wd-badge-count">{inboxCount}</span>
+            <span className="wd-badge-count" aria-hidden="true">{inboxCount}</span>
           )}
         </Link>
 
@@ -152,7 +152,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
           >
             <Bell size={20} aria-hidden="true" />
             {unreadNotificationsCount > 0 && (
-              <span className="wd-badge-count">{unreadNotificationsCount}</span>
+              <span className="wd-badge-count" aria-hidden="true">{unreadNotificationsCount}</span>
             )}
           </Dropdown.Toggle>
 
@@ -176,7 +176,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
                   onClick={() => markAllReadMutation.mutate()}
                   disabled={markAllReadMutation.isPending}
                 >
-                  <CheckCheck size={13} />
+                  <CheckCheck size={13} aria-hidden="true" />
                   <span>{t('nav.mark_all_read', 'Đánh dấu đã đọc tất cả')}</span>
                 </button>
               )}
@@ -209,7 +209,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
                           : 'bg-primary bg-opacity-15 text-primary'
                       }`}
                     >
-                      <Bell size={14} />
+                      <Bell size={14} aria-hidden="true" />
                     </div>
                     <div className="flex-grow-1 overflow-hidden">
                       <div className="d-flex align-items-center justify-content-between gap-1 mb-0.5">
@@ -245,11 +245,10 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
         {/* User Profile Avatar Dropdown */}
         <Dropdown align="end">
           <Dropdown.Toggle
-            as="div"
-            role="button"
-            tabIndex={0}
-            aria-label={t('nav.user_menu', 'Menu người dùng')}
-            className="d-flex align-items-center gap-2 cursor-pointer p-1 rounded-pill"
+            as="button"
+            type="button"
+            aria-label={`${displayName} ${user?.employee_code || 'EMP-DOC-001'} - ${t('nav.user_menu', 'Menu người dùng')}`}
+            className="d-flex align-items-center gap-2 cursor-pointer p-1 rounded-pill border-0 bg-transparent shadow-none"
             style={{ cursor: 'pointer' }}
           >
             {employeeData?.avatar_url ? (
@@ -268,7 +267,7 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
                   width: '32px',
                   height: '32px',
                   fontSize: '12px',
-                  backgroundColor: '#0284c7'
+                  backgroundColor: '#0369a1'
                 }}
                 aria-hidden="true"
               >
@@ -293,20 +292,20 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
               </div>
             </div>
             <Dropdown.Item as={Link} to="/profile" className="small py-2 rounded-2 d-flex align-items-center gap-2">
-              <User size={15} />
+              <User size={15} aria-hidden="true" />
               <span>{t('nav.personal', 'Hồ sơ cá nhân')}</span>
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/employees" className="small py-2 rounded-2 d-flex align-items-center gap-2">
-              <Users size={15} />
+              <Users size={15} aria-hidden="true" />
               <span>{t('nav.directory', 'Danh bạ cán bộ')}</span>
             </Dropdown.Item>
             <Dropdown.Item as={Link} to="/payroll" className="small py-2 rounded-2 d-flex align-items-center gap-2">
-              <Sliders size={15} />
+              <CreditCard size={15} aria-hidden="true" />
               <span>{t('nav.payroll', 'Bảng lương')}</span>
             </Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item onClick={handleLogout} className="small py-2 text-danger rounded-2 d-flex align-items-center gap-2">
-              <LogOut size={15} />
+              <LogOut size={15} aria-hidden="true" />
               <span>{t('nav.sign_out', 'Đăng xuất')}</span>
             </Dropdown.Item>
           </Dropdown.Menu>

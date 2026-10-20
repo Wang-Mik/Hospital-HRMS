@@ -14,12 +14,10 @@ import {
   Building2,
   CheckCircle2,
   Search,
-  ArrowRight,
+  ChevronRight,
   Info,
-  Shield,
-  Stethoscope,
-  Microscope,
-  Truck,
+  ShieldCheck,
+  Activity,
   Users
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -184,28 +182,28 @@ export const ShiftRostering: React.FC = () => {
       case 'LEADERSHIP':
         return (
           <span className="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
-            <Shield size={11} />
+            <ShieldCheck size={11} />
             <span>{t('tier.LEADERSHIP', 'Trực Lãnh Đạo')}</span>
           </span>
         );
       case 'CLINICAL':
         return (
           <span className="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
-            <Stethoscope size={11} />
+            <Activity size={11} />
             <span>{t('tier.CLINICAL', 'Trực Lâm Sàng')}</span>
           </span>
         );
       case 'PARACLINICAL':
         return (
           <span className="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
-            <Microscope size={11} />
+            <Building2 size={11} />
             <span>{t('tier.PARACLINICAL', 'Trực Cận Lâm Sàng')}</span>
           </span>
         );
       case 'LOGISTICS':
         return (
           <span className="badge bg-secondary-subtle text-secondary border d-inline-flex align-items-center gap-1 px-2 py-0.5" style={{ fontSize: '11px' }}>
-            <Truck size={11} />
+            <Users size={11} />
             <span>{t('tier.LOGISTICS', 'Trực Hậu Cần')}</span>
           </span>
         );
@@ -369,6 +367,7 @@ export const ShiftRostering: React.FC = () => {
 
           <Col xs={6} md={3}>
             <select
+              aria-label={t('shifts.all_tiers', 'Cấp Thường Trực')}
               value={selectedTier}
               onChange={(e) => setSelectedTier(e.target.value)}
               className="wd-select w-100 py-1.5"
@@ -384,6 +383,7 @@ export const ShiftRostering: React.FC = () => {
 
           <Col xs={6} md={2}>
             <select
+              aria-label={t('shifts.all_teams', 'Kíp Trực')}
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
               className="wd-select w-100 py-1.5"
@@ -400,6 +400,7 @@ export const ShiftRostering: React.FC = () => {
 
           <Col xs={6} md={2}>
             <select
+              aria-label={t('shifts.all_departments', 'Khoa Phòng')}
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
               className="wd-select w-100 py-1.5"
@@ -416,6 +417,7 @@ export const ShiftRostering: React.FC = () => {
 
           <Col xs={6} md={2}>
             <select
+              aria-label={t('shifts.all_shift_types', 'Loại Ca')}
               value={selectedShiftType}
               onChange={(e) => setSelectedShiftType(e.target.value)}
               className="wd-select w-100 py-1.5"
@@ -439,11 +441,11 @@ export const ShiftRostering: React.FC = () => {
           <div className="d-flex align-items-center gap-3">
             <Link to="/briefings" className="text-decoration-none small d-flex align-items-center gap-1 text-primary fw-medium" style={{ fontSize: '12px' }}>
               <span>{t('shifts.view_briefing_book', 'Xem Sổ Giao Ban')}</span>
-              <ArrowRight size={13} />
+              <ChevronRight size={13} />
             </Link>
             <Link to="/handovers" className="text-decoration-none small d-flex align-items-center gap-1 text-primary fw-medium" style={{ fontSize: '12px' }}>
               <span>{t('shifts.view_handover_book', 'Xem Sổ Giao Ca')}</span>
-              <ArrowRight size={13} />
+              <ChevronRight size={13} />
             </Link>
           </div>
         </div>
@@ -545,6 +547,7 @@ export const ShiftRostering: React.FC = () => {
               <Col md={6}>
                 <label className="wd-label">{t('shifts.modal_staff_label', 'Cán Bộ Y Tế Nhận Ca')} *</label>
                 <select
+                  aria-label={t('shifts.modal_staff_label', 'Cán Bộ Y Tế Nhận Ca')}
                   value={newStaffCode}
                   onChange={(e) => setNewStaffCode(e.target.value)}
                   className="wd-select w-100"
@@ -568,6 +571,7 @@ export const ShiftRostering: React.FC = () => {
               <Col md={6}>
                 <label className="wd-label">{t('shifts.department_select', 'Khoa Phòng Phân Bổ')} *</label>
                 <select
+                  aria-label={t('shifts.department_select', 'Khoa Phòng Phân Bổ')}
                   value={newDeptCode}
                   onChange={(e) => setNewDeptCode(e.target.value)}
                   className="wd-select w-100"
@@ -585,6 +589,7 @@ export const ShiftRostering: React.FC = () => {
               <Col md={4}>
                 <label className="wd-label">{t('shifts.modal_tier_label', 'Cấp Thường Trực')} *</label>
                 <select
+                  aria-label={t('shifts.modal_tier_label', 'Cấp Thường Trực')}
                   value={newOnCallTier}
                   onChange={(e) => setNewOnCallTier(e.target.value as OnCallTier)}
                   className="wd-select w-100"
@@ -599,6 +604,7 @@ export const ShiftRostering: React.FC = () => {
               <Col md={4}>
                 <label className="wd-label">{t('shifts.modal_team_label', 'Kíp Trực Luân Phiên')} *</label>
                 <select
+                  aria-label={t('shifts.modal_team_label', 'Kíp Trực Luân Phiên')}
                   value={newTeamCode}
                   onChange={(e) => setNewTeamCode(e.target.value as TeamCode)}
                   className="wd-select w-100"
@@ -614,6 +620,7 @@ export const ShiftRostering: React.FC = () => {
               <Col md={4}>
                 <label className="wd-label">{t('shifts.modal_type_label', 'Loại Ca Trực')} *</label>
                 <select
+                  aria-label={t('shifts.modal_type_label', 'Loại Ca Trực')}
                   value={newType}
                   onChange={(e) => setNewType(e.target.value as any)}
                   className="wd-select w-100"

@@ -17,7 +17,7 @@ import {
   Search,
   Trash2,
   Info,
-  Layers,
+  FileText,
   Calendar
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -207,7 +207,7 @@ export const DailyTasks: React.FC = () => {
               className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
               onClick={() => setViewMode('kanban')}
             >
-              <Layers size={14} className="me-1" />
+              <CheckSquare size={14} className="me-1" />
               <span>{t('tasks.view_kanban', 'Bảng Kanban')}</span>
             </button>
             <button
@@ -215,7 +215,7 @@ export const DailyTasks: React.FC = () => {
               className={`btn btn-sm ${viewMode === 'list' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
               onClick={() => setViewMode('list')}
             >
-              <CheckSquare size={14} className="me-1" />
+              <FileText size={14} className="me-1" />
               <span>{t('tasks.view_list', 'Bảng Danh Sách')}</span>
             </button>
           </ButtonGroup>
@@ -314,6 +314,7 @@ export const DailyTasks: React.FC = () => {
               <input
                 type="text"
                 placeholder={t('tasks.search_placeholder', 'Tìm tiêu đề nhiệm vụ, chỉ dẫn y lệnh, tên nhân sự thực hiện...')}
+                aria-label={t('tasks.search_placeholder', 'Tìm tiêu đề nhiệm vụ, chỉ dẫn y lệnh, tên nhân sự thực hiện...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="wd-input w-100 ps-5"
@@ -322,6 +323,7 @@ export const DailyTasks: React.FC = () => {
           </Col>
           <Col xs={12} md={6} className="d-flex justify-content-md-end gap-2">
             <select
+              aria-label={t('common.status', 'Tất Cả Trạng Thái')}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="wd-select"
@@ -539,6 +541,7 @@ export const DailyTasks: React.FC = () => {
               <Col xs={6}>
                 <label className="wd-label">{t('tasks.assignee', 'Cán Bộ Phân Công')}</label>
                 <select
+                  aria-label={t('tasks.assignee', 'Cán Bộ Phân Công')}
                   value={newAssignedTo}
                   onChange={(e) => setNewAssignedTo(e.target.value)}
                   className="wd-select w-100"
@@ -557,6 +560,7 @@ export const DailyTasks: React.FC = () => {
               <Col xs={6}>
                 <label className="wd-label">{t('tasks.priority', 'Mức Độ Khẩn')}</label>
                 <select
+                  aria-label={t('tasks.priority', 'Mức Độ Khẩn')}
                   value={newPriority}
                   onChange={(e) => setNewPriority(e.target.value as any)}
                   className="wd-select w-100"
@@ -572,6 +576,7 @@ export const DailyTasks: React.FC = () => {
             <Form.Group className="mb-3">
               <label className="wd-label">{t('tasks.modal_shift', 'Ca Trực Phụ Trách')}</label>
               <select
+                aria-label={t('tasks.modal_shift', 'Ca Trực Phụ Trách')}
                 value={newShiftId}
                 onChange={(e) => setNewShiftId(e.target.value)}
                 className="wd-select w-100"

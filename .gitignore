@@ -1,25 +1,51 @@
-# Dependencies
+# ============================================================================
+# 1. Dependencies & Package Caches
+# ============================================================================
 node_modules/
 */node_modules/
+.npm/
+.eslintcache
 
-# Production build outputs
+# ============================================================================
+# 2. Build Outputs, TypeScript Caches & Coverage Reports
+# ============================================================================
 dist/
 */dist/
 build/
+coverage/
+*/coverage/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
-# Environment files
+# ============================================================================
+# 3. Environment & Secret Configuration Files
+# ============================================================================
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+backend/.env
+frontend/.env
 
-# Logs
+# ============================================================================
+# 4. Local Audit Reports, Reference Dumps & Logs
+# ============================================================================
+LightHouse/
+docs/reports/
+docs/references/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# OS metadata
+# ============================================================================
+# 5. IDE, Editor & OS Metadata
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+Desktop.ini

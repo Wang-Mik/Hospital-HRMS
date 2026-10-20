@@ -20,8 +20,11 @@ export default defineConfig({
       }
     }
   },
+  css: {
+    devSourcemap: false
+  },
   preview: {
-    port: 4173,
+    port: 5173,
     strictPort: true,
     proxy: {
       '/api': {
@@ -32,18 +35,18 @@ export default defineConfig({
     }
   },
   esbuild: {
-    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+    drop: ['console', 'debugger']
   },
   build: {
     target: 'es2020',
     minify: 'esbuild',
     cssCodeSplit: true,
+    sourcemap: false,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['react-bootstrap', 'bootstrap', 'clsx', 'lucide-react'],
           'vendor-query': ['@tanstack/react-query', 'axios', 'zustand']
         }
       }

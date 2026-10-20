@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # MySQL Database Server for Hospital HRMS Monolith
+  # MySQL Database Server for Hospital HRMS
   mysql:
     image: mysql:8.0
     container_name: hrm-mysql
@@ -13,7 +13,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./monolith-backend/schema.sql:/docker-entrypoint-initdb.d/01_hrm_db.sql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_hrm_db.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s

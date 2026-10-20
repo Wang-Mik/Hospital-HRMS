@@ -86,6 +86,8 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const setCredentials = useAuthStore((state) => state.setCredentials);
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const { t, lang, setLanguage } = useTranslation();
 
   const getRoleLabel = (roleKey: string) => {
@@ -123,10 +125,21 @@ export const Login: React.FC = () => {
   };
 
   React.useEffect(() => {
-    if (token) {
+    if (token && user) {
       navigate('/', { replace: true });
     }
-  }, [token, navigate]);
+  }, [token, user, navigate]);
+
+  const handleResetSession = () => {
+    logout();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {
+      // ignore
+    }
+    window.location.reload();
+  };
 
   const handleLogin = async (u = username, p = password) => {
     if (!u.trim() || !p.trim()) {
@@ -165,7 +178,9 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div
+    <main
+      id="main-content"
+      role="main"
       className="min-vh-100 d-flex flex-column align-items-center justify-content-center p-3"
       style={{ backgroundColor: 'var(--wd-canvas)' }}
     >
@@ -298,7 +313,6 @@ export const Login: React.FC = () => {
                       boxShadow: isSelected ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                       transition: 'all 0.15s ease-in-out'
                     }}
-                    aria-label={`${t('auth.quick_login', 'Đăng Nhập Nhanh')}: ${getRoleLabel(acc.roleKey)}`}
                   >
                     <span className="fw-semibold">{getRoleLabel(acc.roleKey)}</span>
                     <span
@@ -331,53 +345,63 @@ export const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer with Bilingual Switcher */}
+      {/* Enterprise Login Footer with Bilingual Switcher */}
       <footer className="d-flex flex-column align-items-center gap-2 mt-3 text-center" aria-label="Hospital Login Footer">
-        <div
-          className="d-inline-flex align-items-center gap-1.5 p-1 rounded-pill border bg-white shadow-sm"
-          style={{ fontSize: '12px' }}
-          role="group"
-          aria-label={t('common.language', 'Ngôn ngữ')}
-        >
-          <div className="d-flex align-items-center px-2 text-muted fw-semibold gap-1">
-            <Globe size={14} className="text-primary" aria-hidden="true" />
-            <span>{t('common.language', 'Ngôn ngữ')}:</span>
+        <div className="d-flex align-items-center justify-content-center flex-wrap gap-2">
+          <div
+            className="d-inline-flex align-items-center gap-1.5 p-1 rounded-pill border bg-white shadow-sm"
+            style={{ fontSize: '12px' }}
+            role="group"
+            aria-label={t('common.language', 'Ngôn ngữ')}
+          >
+            <div className="d-flex align-items-center px-2 text-muted fw-semibold gap-1">
+              <Globe size={14} className="text-primary" aria-hidden="true" />
+              <span>{t('common.language', 'Ngôn ngữ')}:</span>
+            </div>
+            <button
+              type="button"
+              className={`btn btn-sm py-0.5 px-2.5 rounded-pill fw-semibold border-0 ${
+                lang === 'vi'
+                  ? 'btn-primary text-white shadow-sm'
+                  : 'btn-light text-secondary bg-transparent'
+              }`}
+              style={{ fontSize: '11.5px', transition: 'all 0.15s ease' }}
+              onClick={() => setLanguage('vi')}
+              aria-pressed={lang === 'vi'}
+            >
+              Tiếng Việt
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm py-0.5 px-2.5 rounded-pill fw-semibold border-0 ${
+                lang === 'en'
+                  ? 'btn-primary text-white shadow-sm'
+                  : 'btn-light text-secondary bg-transparent'
+              }`}
+              style={{ fontSize: '11.5px', transition: 'all 0.15s ease' }}
+              onClick={() => setLanguage('en')}
+              aria-pressed={lang === 'en'}
+            >
+              English
+            </button>
           </div>
-          <button
-            type="button"
-            className={`btn btn-sm py-0.5 px-2.5 rounded-pill fw-semibold border-0 ${
-              lang === 'vi'
-                ? 'btn-primary text-white shadow-sm'
-                : 'btn-light text-secondary bg-transparent'
-            }`}
-            style={{ fontSize: '11.5px', transition: 'all 0.15s ease' }}
-            onClick={() => setLanguage('vi')}
-            aria-label={t('common.vietnamese', 'Tiếng Việt')}
-            aria-pressed={lang === 'vi'}
-          >
-            {t('common.vietnamese', 'Tiếng Việt')}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm py-0.5 px-2.5 rounded-pill fw-semibold border-0 ${
-              lang === 'en'
-                ? 'btn-primary text-white shadow-sm'
-                : 'btn-light text-secondary bg-transparent'
-            }`}
-            style={{ fontSize: '11.5px', transition: 'all 0.15s ease' }}
-            onClick={() => setLanguage('en')}
-            aria-label={t('common.english', 'English')}
-            aria-pressed={lang === 'en'}
-          >
-            English
-          </button>
         </div>
 
+        <button
+          type="button"
+          onClick={handleResetSession}
+          className="btn btn-link btn-sm text-muted text-decoration-none p-0 mt-0.5"
+          style={{ fontSize: '11px' }}
+        >
+          {t('auth.reset_cache', 'Xóa phiên cũ & Làm mới')}
+        </button>
+
         <div className="text-muted" style={{ fontSize: '11px' }}>
-          {t('common.copyright', 'Bản quyền thuộc Hệ Thống Bệnh Viện Đa Khoa')} &bull; {t('auth.security_notice', 'Bảo mật theo tiêu chuẩn y tế')}
+          {t('common.copyright', 'Bản quyền thuộc Hệ Thống Bệnh Viện Đa Khoa')} &copy; 2026 &bull;{' '}
+          {t('common.footer_moh_standard', 'Tuân thủ Quy chế Bệnh viện QĐ 1895/1997/BYT-QĐ')}
         </div>
       </footer>
-    </div>
+    </main>
   );
 };
 

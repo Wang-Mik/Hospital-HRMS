@@ -14,7 +14,7 @@ import {
   MapPin,
   Building2,
   Lock,
-  Edit3,
+  Edit2,
   Camera,
   ChevronRight,
   ExternalLink,
@@ -23,12 +23,9 @@ import {
   FileText,
   Award,
   CheckCircle2,
-  HeartHandshake,
-  ShieldAlert,
+  AlertTriangle,
   Info,
-  BookOpen,
-  HelpCircle,
-  Stethoscope
+  BookOpen
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
@@ -275,7 +272,7 @@ export const PersonalInformation: React.FC = () => {
             className="wd-pill-btn-primary"
             onClick={() => setShowEditProfileModal(true)}
           >
-            <Edit3 size={14} />
+            <Edit2 size={14} />
             <span>{t('common.edit', 'Cập Nhật Thông Tin')}</span>
           </button>
         </div>
@@ -410,7 +407,7 @@ export const PersonalInformation: React.FC = () => {
                       style={{ cursor: 'pointer' }}
                       onClick={() => setShowEditProfileModal(true)}
                     >
-                      <Edit3 size={9} /> {t('personal.badge_editable', 'Cho phép sửa')}
+                      <Edit2 size={9} /> {t('personal.badge_editable', 'Cho phép sửa')}
                     </span>
                   </div>
                   <div className="fw-semibold text-dark">{maritalDisplay}</div>
@@ -493,7 +490,7 @@ export const PersonalInformation: React.FC = () => {
               </div>
               <div className="d-flex align-items-center gap-2">
                 <span className="wd-badge-editable">
-                  <Edit3 size={9} /> {t('personal.badge_editable', 'Tự cập nhật')}
+                  <Edit2 size={9} /> {t('personal.badge_editable', 'Tự cập nhật')}
                 </span>
                 <button
                   type="button"
@@ -738,7 +735,7 @@ export const PersonalInformation: React.FC = () => {
                 }}
               >
                 <div className="d-flex align-items-center gap-2">
-                  <HeartHandshake size={14} style={{ color: 'var(--wd-blue)' }} />
+                  <User size={14} style={{ color: 'var(--wd-blue)' }} />
                   <div>
                     <div className="fw-semibold">{t('personal.sub_view_contacts', 'Tra Cứu Danh Sách Người Thân')}</div>
                     <div className="text-muted" style={{ fontSize: '11px' }}>{t('personal.sub_view_contacts_desc', 'Xem và quản lý quyền ưu tiên liên lạc')}</div>
@@ -828,7 +825,7 @@ export const PersonalInformation: React.FC = () => {
 
               <div className="wd-sub-action-item">
                 <div className="d-flex align-items-center gap-2">
-                  <ShieldAlert size={14} style={{ color: 'var(--wd-blue)' }} />
+                  <AlertTriangle size={14} style={{ color: 'var(--wd-blue)' }} />
                   <div>
                     <div className="fw-semibold">{t('personal.link_hipaa', 'Chính Sách Bảo Mật Bệnh Án')}</div>
                     <div className="text-muted" style={{ fontSize: '11px' }}>{t('personal.link_hipaa_desc', 'Tuân thủ HIPAA và an toàn dữ liệu y tế BYT')}</div>
@@ -839,7 +836,7 @@ export const PersonalInformation: React.FC = () => {
 
               <div className="wd-sub-action-item">
                 <div className="d-flex align-items-center gap-2">
-                  <HelpCircle size={14} style={{ color: 'var(--wd-blue)' }} />
+                  <Info size={14} style={{ color: 'var(--wd-blue)' }} />
                   <div>
                     <div className="fw-semibold">{t('personal.link_askhr', 'Hỗ Trợ Nhân Sự AskHR')}</div>
                     <div className="text-muted" style={{ fontSize: '11px' }}>{t('personal.link_askhr_desc', 'askhr@hospital.vn • Giải đáp thủ tục nhân sự')}</div>
@@ -854,7 +851,7 @@ export const PersonalInformation: React.FC = () => {
           <div id="emergency-contacts-table" className="wd-card">
             <div className="wd-card-header py-2.5">
               <div className="d-flex align-items-center gap-2">
-                <HeartHandshake size={15} style={{ color: 'var(--wd-blue)' }} />
+                <User size={15} style={{ color: 'var(--wd-blue)' }} />
                 <span className="wd-card-title" style={{ fontSize: '13.5px' }}>{t('personal.contacts_table_title', 'Danh Sách Người Thân')}</span>
               </div>
               <button
@@ -934,7 +931,7 @@ export const PersonalInformation: React.FC = () => {
         <Form onSubmit={handleSaveProfile}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
-              <Edit3 size={17} style={{ color: 'var(--wd-blue)' }} />
+              <Edit2 size={17} style={{ color: 'var(--wd-blue)' }} />
               <span>{t('personal.modal_edit_title', 'Chỉnh Sửa Hồ Sơ Cá Nhân')}</span>
             </Modal.Title>
           </Modal.Header>
@@ -947,7 +944,7 @@ export const PersonalInformation: React.FC = () => {
                   <div className="fw-bold text-dark mb-0.5">{t('personal.modal_guideline_title', 'Quy định hiển thị & cập nhật thông tin hồ sơ:')}</div>
                   <div className="text-muted" style={{ fontSize: '12px', lineHeight: 1.5 }}>
                     &bull; <strong>{t('personal.guideline_locked_prefix', 'Các trường bị khóa')} (<Lock size={10} className="text-secondary mx-0.5" /> {t('personal.badge_hr_locked', 'Khóa bởi HR')}):</strong> {t('personal.guideline_locked_desc', 'Bao gồm thông tin định danh pháp lý và phân công chuyên môn. Hệ thống hiển thị đầy đủ để cán bộ đối chiếu xem xét nhưng không được tự ý sửa đổi.')}<br />
-                    &bull; <strong>{t('personal.guideline_editable_prefix', 'Các trường cho phép sửa')} (<Edit3 size={10} className="text-success mx-0.5" /> {t('personal.badge_editable', 'Được sửa')}):</strong> {t('personal.guideline_editable_desc', 'Cán bộ y tế được chủ động cập nhật tình trạng hôn nhân và thông tin liên hệ thường trú. Dữ liệu sau khi lưu sẽ được cập nhật trực tiếp vào cơ sở dữ liệu.')}
+                    &bull; <strong>{t('personal.guideline_editable_prefix', 'Các trường cho phép sửa')} (<Edit2 size={10} className="text-success mx-0.5" /> {t('personal.badge_editable', 'Được sửa')}):</strong> {t('personal.guideline_editable_desc', 'Cán bộ y tế được chủ động cập nhật tình trạng hôn nhân và thông tin liên hệ thường trú. Dữ liệu sau khi lưu sẽ được cập nhật trực tiếp vào cơ sở dữ liệu.')}
                   </div>
                 </div>
               </div>
@@ -1192,7 +1189,7 @@ export const PersonalInformation: React.FC = () => {
                   <span>{t('personal.sec2_title', '2. Thông Tin Tình Trạng Cá Nhân & Liên Hệ')}</span>
                 </div>
                 <span className="wd-badge-editable" style={{ fontSize: '10px' }}>
-                  <Edit3 size={9} /> {t('personal.badge_editable', 'Được phép chỉnh sửa')}
+                  <Edit2 size={9} /> {t('personal.badge_editable', 'Được phép chỉnh sửa')}
                 </span>
               </div>
 
@@ -1202,10 +1199,11 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.marital_status', 'Tình Trạng Hôn Nhân')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <select
+                      aria-label={t('personal.marital_status', 'Tình Trạng Hôn Nhân')}
                       className="wd-select w-100"
                       value={maritalStatus}
                       onChange={(e) => setMaritalStatus(e.target.value as any)}
@@ -1223,7 +1221,7 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.personal_email', 'Email Cá Nhân')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <input
@@ -1242,7 +1240,7 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.phone', 'Điện Thoại Di Động')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <input
@@ -1261,7 +1259,7 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.lbl_home_phone', 'Điện Thoại Nhà Riêng')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <input
@@ -1279,7 +1277,7 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.address', 'Địa Chỉ Nhà Riêng')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <input
@@ -1298,7 +1296,7 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.lbl_district', 'Quận / Huyện')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <input
@@ -1317,7 +1315,7 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.lbl_city_province', 'Tỉnh / Thành Phố')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <input
@@ -1336,7 +1334,7 @@ export const PersonalInformation: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="wd-label mb-0">{t('personal.lbl_postal_code', 'Mã Bưu Chính')}</label>
                       <span className="wd-badge-editable" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                        <Edit3 size={8} /> {t('personal.badge_editable', 'Sửa')}
+                        <Edit2 size={8} /> {t('personal.badge_editable', 'Sửa')}
                       </span>
                     </div>
                     <input
@@ -1475,6 +1473,7 @@ export const PersonalInformation: React.FC = () => {
             <Form.Group className="mb-3">
               <label className="wd-label">{t('personal.lbl_relation', 'Mối Quan Hệ')}</label>
               <select
+                aria-label={t('personal.lbl_relation', 'Mối Quan Hệ')}
                 className="wd-select w-100"
                 value={emergencyRelation}
                 onChange={(e) => setEmergencyRelation(e.target.value)}
@@ -1491,6 +1490,7 @@ export const PersonalInformation: React.FC = () => {
               <label className="wd-label">{t('personal.lbl_emergency_phone', 'Số Điện Thoại Khẩn Cấp')}</label>
               <input
                 type="text"
+                aria-label={t('personal.lbl_emergency_phone', 'Số Điện Thoại Khẩn Cấp')}
                 className="wd-input w-100"
                 placeholder="0987 654 321"
                 value={emergencyPhone}
@@ -1502,6 +1502,7 @@ export const PersonalInformation: React.FC = () => {
             <Form.Group className="mb-2">
               <label className="wd-label">{t('personal.emergency_priority', 'Mức Độ Ưu Tiên')}</label>
               <select
+                aria-label={t('personal.emergency_priority', 'Mức Độ Ưu Tiên')}
                 className="wd-select w-100"
                 value={emergencyPriority}
                 onChange={(e) => setEmergencyPriority(e.target.value)}

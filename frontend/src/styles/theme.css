@@ -2,7 +2,7 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Workday Core Brand Palette */
+  /* Core Brand Palette */
   --wd-blue: #0875e1;
   --wd-blue-hover: #005cb9;
   --wd-blue-light: #e8f2fc;
@@ -13,10 +13,10 @@
   --wd-border-light: #f1f5f9;
   --wd-text-dark: #0f172a;
   --wd-text-secondary: #334155;
-  --wd-text-muted: #64748b;
+  --wd-text-muted: #475569;
   --wd-text-light: #94a3b8;
 
-  /* Workday Semantic Status Colors */
+  /* Semantic Status Colors */
   --wd-green: #047857;
   --wd-green-bg: #ecfdf5;
   --wd-green-border: #a7f3d0;
@@ -43,6 +43,11 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--wd-canvas);
@@ -53,7 +58,57 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Workday Top Navigation Bar */
+/* WCAG AA Compliant Semantic Text & Badges (Contrast >= 4.5:1 across all surfaces) */
+.text-muted {
+  color: var(--wd-text-muted) !important;
+}
+
+.text-primary {
+  color: var(--wd-blue-hover) !important;
+}
+
+.text-success {
+  color: var(--wd-green) !important;
+}
+
+.text-info {
+  color: #0369a1 !important;
+}
+
+.text-warning {
+  color: #92400e !important;
+}
+
+.text-danger {
+  color: var(--wd-red) !important;
+}
+
+.badge.bg-info:not(.bg-opacity-10):not(.bg-opacity-15):not(.bg-opacity-25) {
+  background-color: #0369a1 !important;
+  color: #ffffff !important;
+}
+
+.badge.bg-warning:not(.bg-opacity-10):not(.bg-opacity-15):not(.bg-opacity-25):not(.text-dark) {
+  background-color: #b45309 !important;
+  color: #ffffff !important;
+}
+
+.badge.bg-success:not(.bg-opacity-10):not(.bg-opacity-15):not(.bg-opacity-25) {
+  background-color: var(--wd-green) !important;
+  color: #ffffff !important;
+}
+
+.badge.bg-primary:not(.bg-opacity-10):not(.bg-opacity-15):not(.bg-opacity-25) {
+  background-color: var(--wd-blue-hover) !important;
+  color: #ffffff !important;
+}
+
+.badge.bg-danger:not(.bg-opacity-10):not(.bg-opacity-15):not(.bg-opacity-25) {
+  background-color: var(--wd-red) !important;
+  color: #ffffff !important;
+}
+
+/* Top Navigation Bar */
 .wd-topbar {
   position: fixed;
   top: 0;
@@ -130,7 +185,7 @@ body {
   border: 2px solid #ffffff;
 }
 
-/* Workday Left Vertical Navigation Rail */
+/* Left Vertical Navigation Rail */
 .wd-nav-rail {
   position: fixed;
   top: var(--wd-topbar-height);
@@ -166,9 +221,9 @@ body {
 }
 
 .wd-rail-link.active {
-  color: var(--wd-blue);
+  color: var(--wd-blue-hover);
   background-color: #f0f7ff;
-  border-left-color: var(--wd-blue);
+  border-left-color: var(--wd-blue-hover);
 }
 
 .wd-rail-label {
@@ -180,7 +235,7 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Workday Main Content Canvas */
+/* Main Content Canvas */
 .wd-main-canvas {
   margin-top: var(--wd-topbar-height);
   margin-left: var(--wd-rail-width);
@@ -199,7 +254,7 @@ body {
   }
 }
 
-/* Workday Cards */
+/* Cards */
 .wd-card {
   background-color: var(--wd-white);
   border: 1px solid var(--wd-border);
@@ -230,7 +285,7 @@ body {
   padding: 20px;
 }
 
-/* Workday Action Pill Buttons */
+/* Action Pill Buttons */
 .wd-pill-btn {
   display: inline-flex;
   align-items: center;
@@ -297,7 +352,7 @@ body {
   border-color: #9ca3af;
 }
 
-/* Workday Support Banner ("AskHR is here to help!") */
+/* Support Banner ("AskHR is here to help!") */
 .wd-support-banner {
   background-color: #f0f9ff;
   border: 1px solid #bae6fd;
@@ -321,7 +376,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Workday Corporate Tables */
+/* Corporate Tables */
 .wd-table {
   width: 100%;
   border-collapse: collapse;
@@ -352,7 +407,7 @@ body {
   background-color: #f9fafb;
 }
 
-/* Workday Status Badges */
+/* Status Badges */
 .wd-badge-success {
   background-color: var(--wd-green-bg);
   color: var(--wd-green);
@@ -418,7 +473,7 @@ body {
   gap: 4px;
 }
 
-/* Workday Right Taskbar Action Cards with Hover Sub-Items */
+/* Right Taskbar Action Cards with Hover Sub-Items */
 .wd-hover-action-card {
   border: 1px solid var(--wd-border);
   border-radius: 10px;
@@ -513,32 +568,122 @@ body {
   border-radius: 4px;
 }
 
-/* Workday Monospace */
+/* Monospace */
 .font-mono {
   font-family: var(--font-mono) !important;
 }
 
-/* Workday Footer */
+/* Enterprise Healthcare Footer */
 .wd-footer {
-  margin-top: 48px;
-  padding-top: 24px;
-  padding-bottom: 32px;
-  text-align: center;
-  color: var(--wd-text-light);
-  font-size: 11px;
-  line-height: 1.6;
-  border-top: 1px solid var(--wd-border-light);
+  margin-top: 40px;
+  margin-left: -32px;
+  margin-right: -32px;
+  margin-bottom: -24px;
+  text-align: left;
+  color: var(--wd-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.wd-footer-card {
+  background-color: var(--wd-white);
+  border-top: 1px solid var(--wd-border);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+  padding: 24px 32px 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .wd-footer {
+    margin-left: -16px;
+    margin-right: -16px;
+    margin-bottom: -16px;
+  }
+  .wd-footer-card {
+    padding: 20px 16px 16px;
+  }
+}
+
+.wd-footer-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0369a1 0%, #0875e1 50%, #0d9488 100%);
 }
 
 .wd-footer-emblem {
-  display: inline-block;
-  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
-  color: #64748b;
-  letter-spacing: -0.02em;
+  font-size: 14px;
+  color: var(--wd-text-dark);
+  letter-spacing: -0.01em;
 }
 
-/* Workday Typography & Page Headings */
+.wd-footer-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--wd-text-dark);
+  margin-bottom: 10px;
+}
+
+.wd-footer-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--wd-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 2px 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.wd-footer-link:hover {
+  color: var(--wd-blue-hover);
+  text-decoration: none;
+  transform: translateX(2px);
+}
+
+.wd-footer-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--wd-green-bg);
+  color: var(--wd-green);
+  border: 1px solid var(--wd-green-border);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.wd-footer-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+.wd-footer-bottom {
+  border-top: 1px solid var(--wd-border-light);
+  padding-top: 14px;
+  margin-top: 18px;
+  font-size: 11.5px;
+  color: var(--wd-text-muted);
+}
+
+/* Typography & Page Headings */
 .wd-page-title {
   font-size: 20px;
   font-weight: 700;
@@ -553,7 +698,7 @@ body {
   margin-bottom: 0;
 }
 
-/* Workday Minimal Avatar */
+/* Minimal Avatar */
 .wd-avatar {
   width: 38px;
   height: 38px;
@@ -582,39 +727,87 @@ body {
   flex-shrink: 0;
 }
 
-/* Workday Signature Tab Navigation */
+/* Signature Tab Navigation */
+.wd-tabs-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
 .wd-tabs {
   display: flex;
   align-items: center;
   gap: 4px;
-  border-bottom: 1px solid var(--wd-border);
-  margin-bottom: 24px;
+  border-bottom: 2px solid var(--wd-border);
+  margin-bottom: 0;
   padding-bottom: 0;
   position: relative;
   overflow-x: auto;
-  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  flex-grow: 1;
 }
 
 .wd-tabs::-webkit-scrollbar {
-  display: none;
+  height: 5px;
+}
+
+.wd-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wd-tabs::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 4px;
+}
+
+.wd-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.65);
+}
+
+.wd-tab-scroll-btn {
+  background: #ffffff;
+  border: 1px solid var(--wd-border);
+  color: var(--wd-text-secondary);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.wd-tab-scroll-btn:hover {
+  background: #f1f5f9;
+  color: var(--wd-blue);
+  border-color: #cbd5e1;
 }
 
 .wd-tab-btn {
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
-  padding: 10px 18px;
+  padding: 10px 16px;
   font-size: 13.5px;
   font-weight: 500;
   color: var(--wd-text-secondary);
   cursor: pointer;
   position: relative;
-  margin-bottom: -1px;
+  margin-bottom: -2px;
   border-radius: 6px 6px 0 0;
   transition: color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
               background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .wd-tab-btn:hover {
@@ -628,13 +821,13 @@ body {
 }
 
 .wd-tab-btn.active {
-  color: var(--wd-blue);
+  color: var(--wd-blue-hover);
   font-weight: 600;
   background-color: transparent;
-  border-bottom: 3px solid var(--wd-blue);
+  border-bottom: 3px solid var(--wd-blue-hover);
 }
 
-/* Workday Form Controls */
+/* Form Controls */
 .wd-input, .wd-select {
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -662,7 +855,7 @@ body {
 }
 
 /* ==========================================================================
-   Workday Spacing & Layout Utilities (Fractional Spacing Support in Bootstrap)
+   Spacing & Layout Utilities (Fractional Spacing Support in Bootstrap)
    ========================================================================== */
 
 /* Fractional Padding */
@@ -704,7 +897,7 @@ body {
   }
 }
 
-/* Workday Card Breathing Room Helper */
+/* Card Breathing Room Helper */
 .wd-card-padded {
   padding: 20px !important;
 }
@@ -712,5 +905,115 @@ body {
 .wd-card-padded-lg {
   padding: 24px !important;
 }
+
+/* Unified IAM Action Toolbar */
+.wd-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.wd-action-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(8, 117, 225, 0.25);
+}
+
+.wd-action-btn-icon-only {
+  width: 30px;
+  padding: 0;
+}
+
+/* Role Assignment button: soft indigo */
+.wd-action-btn-role {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #e0e7ff;
+}
+
+.wd-action-btn-role:hover {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+/* Edit Master Profile button: soft blue */
+.wd-action-btn-edit {
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border-color: #e0f2fe;
+}
+
+.wd-action-btn-edit:hover {
+  background-color: #e0e7fe;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+/* Lock/Unlock button */
+.wd-action-btn-locked {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-color: #fee2e2;
+}
+
+.wd-action-btn-locked:hover {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.wd-action-btn-active {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border-color: #dcfce7;
+}
+
+.wd-action-btn-active:hover {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+/* Reset Password button: soft slate neutral */
+.wd-action-btn-key {
+  background-color: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.wd-action-btn-key:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+/* Responsive Ribbon KPIs */
+@media (min-width: 1200px) {
+  .col-lg-2-4 {
+    flex: 0 0 auto !important;
+    width: 20% !important;
+    max-width: 20% !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .col-lg-2-4 {
+    flex: 0 0 auto !important;
+    width: 33.333333% !important;
+    max-width: 33.333333% !important;
+  }
+}
+
 
 

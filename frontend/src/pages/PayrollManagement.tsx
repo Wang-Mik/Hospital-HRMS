@@ -11,9 +11,7 @@ import {
   CreditCard,
   Building2,
   CheckCircle2,
-  Printer,
   FileText,
-  Landmark,
   ShieldCheck,
   Plus,
   Info
@@ -257,7 +255,7 @@ export const PayrollManagement: React.FC = () => {
         <div>
           <h1 className="wd-page-title">{t('payroll.page_heading', 'Thu Nhập & Đãi Ngộ')}</h1>
           <p className="wd-page-subtitle">
-            {t('payroll.page_desc', 'Bảng lương điện tử, phụ cấp ca trực cấp cứu, tài khoản ngân hàng chuyển khoản theo chuẩn Workday')}
+            {t('payroll.page_desc', 'Bảng lương điện tử, phụ cấp ca trực cấp cứu, tài khoản ngân hàng nhận chuyển khoản lương')}
           </p>
         </div>
         <div className="d-flex gap-2">
@@ -277,7 +275,7 @@ export const PayrollManagement: React.FC = () => {
               className="wd-pill-btn-primary"
               onClick={() => setShowElectionModal(true)}
             >
-              <Landmark size={15} />
+              <CreditCard size={15} />
               <span>{t('payroll.link_bank_btn', 'Liên Kết Tài Khoản Ngân Hàng')}</span>
             </button>
           )}
@@ -315,7 +313,7 @@ export const PayrollManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Workday Navigation Tabs */}
+      {/* Navigation Tabs */}
       <div className="wd-tabs">
         <button
           type="button"
@@ -797,7 +795,7 @@ export const PayrollManagement: React.FC = () => {
               className="wd-pill-btn-outline"
               onClick={() => window.print()}
             >
-              <Printer size={14} />
+              <FileText size={14} />
               <span>{t('payroll.btn_print_slip', 'In Bảng Kê Lương')}</span>
             </button>
             <button
@@ -888,6 +886,7 @@ export const PayrollManagement: React.FC = () => {
             <Form.Group className="mb-3">
               <label className="wd-label">{t('payroll.lbl_beneficiary_bank', 'Ngân Hàng Thụ Hưởng')}</label>
               <select
+                aria-label={t('payroll.lbl_beneficiary_bank', 'Ngân Hàng Thụ Hưởng')}
                 value={bankName}
                 onChange={(e) => {
                   setBankName(e.target.value);

@@ -13,9 +13,7 @@ import {
   AlertTriangle,
   LogOut,
   LogIn,
-  Timer,
   Calendar,
-  History,
   FileText,
   Info
 } from 'lucide-react';
@@ -262,7 +260,7 @@ export const AttendanceClock: React.FC = () => {
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-2">
                     <span className="text-muted fw-semibold small d-flex align-items-center gap-1">
-                      <Timer size={13} style={{ color: 'var(--wd-orange)' }} /> {t('attendance.in_shift_now', 'Đang Trong Ca Trực')}
+                      <Clock size={13} style={{ color: 'var(--wd-orange)' }} /> {t('attendance.in_shift_now', 'Đang Trong Ca Trực')}
                     </span>
                     <span className="wd-badge-success">{t('attendance.status_on_duty', 'Đang Trực')}</span>
                   </div>
@@ -284,6 +282,7 @@ export const AttendanceClock: React.FC = () => {
                 <div>
                   <label className="wd-label mb-1.5">{t('attendance.select_staff', 'Chọn Cán Bộ Y Tế Điểm Danh')}</label>
                   <select
+                    aria-label={t('attendance.select_staff', 'Chọn Cán Bộ Y Tế Điểm Danh')}
                     className="wd-select w-100 mb-2.5"
                     value={staffCode}
                     onChange={(e) => setStaffCode(e.target.value)}

@@ -1,7 +1,7 @@
 {
   "name": "Hospital HRMS - Quản Lý Nhân Sự Bệnh Viện",
   "short_name": "Hospital HRMS",
-  "description": "Hệ thống Quản lý Nhân sự & Quy trình Lâm sàng Bệnh viện chuẩn Bộ Y tế QĐ 1895 và tiêu chuẩn Workday Enterprise.",
+  "description": "Hệ thống Quản lý Nhân sự & Quy trình Lâm sàng Bệnh viện chuẩn Bộ Y tế QĐ 1895.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f6f8",

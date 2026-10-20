@@ -4,15 +4,16 @@ import {
   Home,
   User,
   Users,
-  CalendarCheck,
+  Calendar,
   CreditCard,
   CalendarDays,
   Clock,
   CheckSquare,
   ClipboardList,
-  Bookmark,
+  FileText,
   Settings,
   ShieldCheck,
+  UserCheck,
   Award,
   Bell,
   BookOpen
@@ -34,9 +35,10 @@ export const Sidebar: React.FC = () => {
   const hrRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
     { label: t('nav.admin', 'Quản Trị'), to: '/admin', icon: ShieldCheck },
+    { label: t('nav.hr_management', 'Nhân Sự'), to: '/hr', icon: UserCheck },
     { label: t('nav.briefings', 'Giao Ban'), to: '/briefings', icon: BookOpen },
     { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
-    { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: CalendarCheck },
+    { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: Calendar },
     { label: t('nav.payroll', 'Bảng Lương'), to: '/payroll', icon: CreditCard },
     { label: t('personal.practicing_license', 'Chứng Chỉ'), to: '/licenses', icon: Award },
     { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell },
@@ -52,7 +54,7 @@ export const Sidebar: React.FC = () => {
     { label: t('nav.handovers', 'Giao Ca'), to: '/handovers', icon: ClipboardList },
     { label: t('nav.briefings', 'Giao Ban'), to: '/briefings', icon: BookOpen },
     { label: t('nav.tasks', 'Công Việc'), to: '/tasks', icon: CheckSquare },
-    { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: CalendarCheck },
+    { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: Calendar },
     { label: t('nav.payroll', 'Bảng Lương'), to: '/payroll', icon: CreditCard },
     { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell }
   ];
@@ -84,28 +86,26 @@ export const Sidebar: React.FC = () => {
 
       {/* Bottom Utility Icons */}
       <div className="d-flex flex-column gap-1 w-100 border-top pt-2">
-        <div
-          className="wd-rail-link"
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
+          className="wd-rail-link border-0 bg-transparent text-start w-100 p-0"
           title={t('common.archive', 'Lưu Trữ')}
           aria-label={t('common.archive', 'Lưu Trữ')}
           style={{ cursor: 'pointer' }}
         >
-          <Bookmark size={18} strokeWidth={1.8} aria-hidden="true" />
+          <FileText size={18} strokeWidth={1.8} aria-hidden="true" />
           <span className="wd-rail-label">{t('common.archive', 'Lưu Trữ')}</span>
-        </div>
-        <div
-          className="wd-rail-link"
-          role="button"
-          tabIndex={0}
+        </button>
+        <button
+          type="button"
+          className="wd-rail-link border-0 bg-transparent text-start w-100 p-0"
           title={t('common.settings', 'Cài Đặt')}
           aria-label={t('common.settings', 'Cài Đặt')}
           style={{ cursor: 'pointer' }}
         >
           <Settings size={18} strokeWidth={1.8} aria-hidden="true" />
           <span className="wd-rail-label">{t('common.settings', 'Cài Đặt')}</span>
-        </div>
+        </button>
       </div>
     </nav>
   );

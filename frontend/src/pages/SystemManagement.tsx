@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -11,13 +12,8 @@ import {
 } from 'react-bootstrap';
 import {
   ShieldCheck,
-  Shield,
   Users,
   Building2,
-  CreditCard,
-  CalendarCheck,
-  Clock,
-  Award,
   Bell,
   Plus,
   Edit2,
@@ -26,30 +22,102 @@ import {
   Key,
   RefreshCw,
   CheckCircle2,
-  XCircle,
   AlertTriangle,
   Send,
   Search,
-  UserCheck,
   FileText,
-  DollarSign
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, AdminAccount, AdminPayRate } from '../api/adminApi';
+import { adminApi, AdminAccount } from '../api/adminApi';
 import { departmentApi, Department } from '../api/departmentApi';
-import { leaveApi } from '../api/leaveApi';
-import { payrollApi } from '../api/payrollApi';
-import { shiftApi } from '../api/shiftApi';
-import { handoverApi } from '../api/handoverApi';
-import { employeeApi } from '../api/employeeApi';
 import { useTranslation } from '../i18n/useTranslation';
+import { ConfirmModal, ConfirmDetailItem } from '../components/common/ConfirmModal';
 
 export const SystemManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const { t, lang } = useTranslation();
-  const [activeTab, setActiveTab] = useState<
-    'staff_iam' | 'departments' | 'compensation' | 'leaves' | 'shifts_handover' | 'licensing' | 'broadcast'
-  >('staff_iam');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Smooth redirect to dedicated HR Management portal if HR tab requested
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['leaves', 'compensation', 'shifts_handover', 'licensing'].includes(tabParam)) {
+      navigate(`/hr?tab=${tabParam}`, { replace: true });
+    }
+  }, [searchParams, navigate]);
+
+  const validTabs: Array<'staff_iam' | 'departments' | 'broadcast'> = [
+    'staff_iam',
+    'departments',
+    'broadcast'
+  ];
+
+  const initialTab = (searchParams.get('tab') as any);
+  const [activeTab, setActiveTab] = useState<'staff_iam' | 'departments' | 'broadcast'>(
+    validTabs.includes(initialTab) ? initialTab : 'staff_iam'
+  );
+
+  // Sync tab with search params when url changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as any;
+    if (tabParam && validTabs.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Handler to switch tabs and sync URL
+  const handleTabChange = (newTab: 'staff_iam' | 'departments' | 'broadcast') => {
+    setActiveTab(newTab);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', newTab);
+      return next;
+    }, { replace: true });
+  };
+
+  // Auto-scroll active tab into view
+  useEffect(() => {
+    if (tabsContainerRef.current) {
+      const activeEl = tabsContainerRef.current.querySelector('.wd-tab-btn.active') as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [activeTab]);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      const offset = direction === 'left' ? -220 : 220;
+      tabsContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  // Centralized Confirmation Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    show: boolean;
+    title: string;
+    message: React.ReactNode;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: 'danger' | 'warning' | 'primary' | 'success';
+    iconType?: 'alert' | 'lock' | 'unlock' | 'shield' | 'broadcast' | 'check';
+    isLoading?: boolean;
+    details?: ConfirmDetailItem[];
+    onConfirm: () => void;
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog(prev => ({ ...prev, show: false }));
+  };
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<'success' | 'danger'>('success');
@@ -76,36 +144,6 @@ export const SystemManagement: React.FC = () => {
     queryFn: departmentApi.getAll
   });
 
-  const { data: payRates = [], refetch: refetchPayRates } = useQuery({
-    queryKey: ['admin-pay-rates'],
-    queryFn: adminApi.getAllPayRates
-  });
-
-  const { data: payrollRuns = [], refetch: refetchPayrollRuns } = useQuery({
-    queryKey: ['payroll-runs'],
-    queryFn: () => payrollApi.getRuns()
-  });
-
-  const { data: leaveRequests = [], refetch: refetchLeaves } = useQuery({
-    queryKey: ['leave-requests'],
-    queryFn: () => leaveApi.getAllRequests()
-  });
-
-  const { data: shifts = [], refetch: refetchShifts } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => shiftApi.getAll()
-  });
-
-  const { data: handovers = [], refetch: refetchHandovers } = useQuery({
-    queryKey: ['handovers'],
-    queryFn: () => handoverApi.getAll()
-  });
-
-  const { data: licenses = [], refetch: refetchLicenses } = useQuery({
-    queryKey: ['licenses'],
-    queryFn: () => employeeApi.getAllLicenses()
-  });
-
   const { data: systemRoles = [] } = useQuery({
     queryKey: ['system-roles'],
     queryFn: adminApi.getAllRoles
@@ -114,7 +152,6 @@ export const SystemManagement: React.FC = () => {
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState('ALL');
-  const [leaveFilter, setLeaveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
 
   // Modals state
   const [showOnboardModal, setShowOnboardModal] = useState(false);
@@ -131,24 +168,6 @@ export const SystemManagement: React.FC = () => {
 
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [editingDept, setEditingDept] = useState<Partial<Department> | null>(null);
-
-  const [showPayRateModal, setShowPayRateModal] = useState(false);
-  const [selectedPayRate, setSelectedPayRate] = useState<AdminPayRate | null>(null);
-  const [newHourlyRate, setNewHourlyRate] = useState('');
-  const [newTaxTier, setNewTaxTier] = useState('');
-
-  const [showNewRunModal, setShowNewRunModal] = useState(false);
-  const [newRunStartDate, setNewRunStartDate] = useState(new Date().toISOString().slice(0, 7) + '-01');
-  const [newRunEndDate, setNewRunEndDate] = useState(new Date().toISOString().slice(0, 7) + '-30');
-
-  const [showAddShiftModal, setShowAddShiftModal] = useState(false);
-  const [newShiftData, setNewShiftData] = useState({
-    staff_id: '',
-    department_code: 'DEP-KHB',
-    start_time: new Date().toISOString().slice(0, 10) + 'T07:00',
-    end_time: new Date().toISOString().slice(0, 10) + 'T15:00',
-    shift_type: 'MORNING'
-  });
 
   const [broadcastData, setBroadcastData] = useState({
     title: '',
@@ -214,32 +233,6 @@ export const SystemManagement: React.FC = () => {
     }
   });
 
-  const updateLeaveStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'APPROVED' | 'REJECTED' }) =>
-      adminApi.updateLeaveRequestStatus(id, status),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      showToast(vars.status === 'APPROVED' ? t('admin.toast_leave_status_approved', 'Đã Phê Duyệt') : t('admin.toast_leave_status_rejected', 'Từ Chối'));
-    },
-    onError: (err: any) => {
-      showToast(`${t('admin.toast_leave_failed', 'Lỗi duyệt phép')}: ${err.message || ''}`, 'danger');
-    }
-  });
-
-  const updateLicenseStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number | string; status: any }) =>
-      adminApi.updateLicenseStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['licenses'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      showToast(t('admin.cchn_title', 'Giám Sát Chứng Chỉ Hành Nghề Y Tế'));
-    },
-    onError: (err: any) => {
-      showToast(`${t('admin.toast_update_failed', 'Lỗi')}: ${err.message || ''}`, 'danger');
-    }
-  });
-
   const saveDepartmentMutation = useMutation({
     mutationFn: (data: Partial<Department>) => {
       if (editingDept && editingDept.department_code && !data.department_code) {
@@ -256,42 +249,6 @@ export const SystemManagement: React.FC = () => {
     },
     onError: (err: any) => {
       showToast(`${t('admin.toast_dept_failed', 'Lỗi khoa phòng')}: ${err.message || ''}`, 'danger');
-    }
-  });
-
-  const updatePayRateMutation = useMutation({
-    mutationFn: ({ staffId, base_hourly_rate, tax_tier }: any) =>
-      adminApi.updatePayRate(staffId, { base_hourly_rate, tax_tier }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-pay-rates'] });
-      setShowPayRateModal(false);
-      showToast(t('admin.btn_update_rate', 'Cập Nhật Lương'));
-    },
-    onError: (err: any) => {
-      showToast(`${t('admin.toast_rate_failed', 'Lỗi cập nhật lương')}: ${err.message || ''}`, 'danger');
-    }
-  });
-
-  const generateRunMutation = useMutation({
-    mutationFn: ({ start_date, end_date }: any) =>
-      adminApi.generatePayrollRun(start_date, end_date),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      setShowNewRunModal(false);
-      showToast(t('admin.modal_create_run_title', 'Khởi Tạo Kỳ Lương Mới Bệnh Viện'));
-    },
-    onError: (err: any) => {
-      showToast(`${t('admin.toast_run_failed', 'Lỗi khởi tạo kỳ lương')}: ${err.message || ''}`, 'danger');
-    }
-  });
-
-  const updateRunStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      adminApi.updatePayrollRunStatus(id, status),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
-      showToast(`${t('admin.toast_run_status_changed', 'Trạng thái kỳ lương đã chuyển sang')} ${vars.status}`);
     }
   });
 
@@ -312,25 +269,11 @@ export const SystemManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-pay-rates'] });
       setShowOnboardModal(false);
       showToast(`${t('admin.toast_onboard_success', 'Tiếp nhận thành công nhân sự')} ${res.staff_name} (${res.employee_code}) - ${t('admin.toast_temp_pwd', 'Mật khẩu khởi tạo')}: ${res.temporary_password}`);
     },
     onError: (err: any) => {
       showToast(`${t('admin.toast_onboard_failed', 'Lỗi tiếp nhận')}: ${err.message || ''}`, 'danger');
-    }
-  });
-
-  const createShiftMutation = useMutation({
-    mutationFn: (data: any) => shiftApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shifts'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
-      setShowAddShiftModal(false);
-      showToast(t('admin.btn_confirm_shift', 'Xác Nhận Phân Ca'));
-    },
-    onError: (err: any) => {
-      showToast(`${t('admin.toast_shift_failed', 'Lỗi phân ca')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -364,34 +307,16 @@ export const SystemManagement: React.FC = () => {
     setShowEditProfileModal(true);
   };
 
-  const handleOpenPayRateEdit = (pr: AdminPayRate) => {
-    setSelectedPayRate(pr);
-    setNewHourlyRate(String(pr.base_hourly_rate));
-    setNewTaxTier(pr.tax_tier || 'Tier 1');
-    setShowPayRateModal(true);
-  };
-
   const handleRefreshAll = () => {
     refetchOverview();
     refetchAccounts();
     refetchDepartments();
-    refetchPayRates();
-    refetchPayrollRuns();
-    refetchLeaves();
-    refetchShifts();
-    refetchHandovers();
-    refetchLicenses();
-    showToast('Dữ liệu toàn hệ thống đã được đồng bộ mới nhất từ máy chủ!');
+    showToast(t('admin.toast_sync_success', 'Dữ liệu toàn hệ thống đã được đồng bộ mới nhất từ máy chủ!'));
   };
 
   const kpis = overviewData?.kpis || {
     total_employees: accounts.length || 10,
     total_departments: departments.length || 8,
-    pending_leaves: leaveRequests.filter((l: any) => l.status === 'PENDING').length,
-    expiring_licenses_30d: 0,
-    expired_licenses: 0,
-    total_disbursed_vnd: 367200000,
-    upcoming_shifts: shifts.length,
     locked_accounts: accounts.filter((a) => a.is_locked).length,
     active_accounts: accounts.filter((a) => !a.is_locked).length
   };
@@ -408,11 +333,94 @@ export const SystemManagement: React.FC = () => {
     return matchSearch && matchDept;
   });
 
-  // Filter leaves
-  const filteredLeaves = leaveRequests.filter((l: any) => {
-    if (leaveFilter === 'ALL') return true;
-    return l.status === leaveFilter;
-  });
+  // Confirmation action handlers
+  const handleToggleLockAccount = (acc: AdminAccount) => {
+    const isLocking = !acc.is_locked;
+    setConfirmDialog({
+      show: true,
+      title: isLocking
+        ? t('admin.confirm_lock_title', 'Xác Nhận Khóa Tài Khoản')
+        : t('admin.confirm_unlock_title', 'Xác Nhận Mở Khóa Tài Khoản'),
+      message: isLocking
+        ? t('admin.confirm_lock_body', 'Bạn có chắc chắn muốn khóa tài khoản này? Cán bộ sẽ không thể đăng nhập vào hệ thống bệnh viện cho đến khi được mở khóa.')
+        : t('admin.confirm_unlock_body', 'Bạn có chắc chắn muốn mở khóa tài khoản này? Cán bộ sẽ có thể đăng nhập lại vào hệ thống bệnh viện.'),
+      confirmText: isLocking
+        ? t('admin.action_lock_btn', 'Khóa')
+        : t('admin.action_unlock_btn', 'Mở'),
+      variant: isLocking ? 'danger' : 'success',
+      iconType: isLocking ? 'lock' : 'unlock',
+      details: [
+        { label: t('admin.label_staff_name', 'Cán bộ'), value: acc.staff_name || acc.first_name || 'N/A' },
+        { label: t('admin.label_account', 'Tài khoản'), value: `@${acc.username} • ${acc.employee_code}` },
+        { label: t('admin.label_department', 'Khoa phòng'), value: acc.department_name || acc.department_code || 'N/A' }
+      ],
+      onConfirm: () => {
+        lockAccountMutation.mutate(
+          { id: acc.account_id, is_locked: isLocking },
+          {
+            onSettled: () => closeConfirmDialog()
+          }
+        );
+      }
+    });
+  };
+
+  const handleRequestRoleChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAccountForRole) return;
+    const targetRole = systemRoles.find((r: any) => r.role_code === newRoleCode);
+    setConfirmDialog({
+      show: true,
+      title: t('admin.confirm_role_title', 'Xác Nhận Thay Đổi Vai Trò IAM'),
+      message: t('admin.confirm_role_body', 'Bạn có chắc chắn muốn cập nhật vai trò và quyền hạn truy cập của cán bộ này không? Thay đổi sẽ có hiệu lực ngay lập tức.'),
+      confirmText: t('admin.btn_update_role', 'Cập Nhật Quyền Hạn'),
+      variant: 'primary',
+      iconType: 'shield',
+      details: [
+        { label: t('admin.label_staff_name', 'Cán bộ'), value: selectedAccountForRole.staff_name },
+        { label: t('admin.label_account', 'Tài khoản'), value: `@${selectedAccountForRole.username}` },
+        { label: t('admin.label_current_role', 'Vai trò hiện tại'), value: selectedAccountForRole.role_code || selectedAccountForRole.role },
+        { label: t('admin.label_new_role', 'Vai trò mới'), value: targetRole ? `${targetRole.name} [${targetRole.role_code}]` : newRoleCode }
+      ],
+      onConfirm: () => {
+        updateRoleMutation.mutate(
+          {
+            id: selectedAccountForRole.account_id,
+            role_code: newRoleCode
+          },
+          {
+            onSettled: () => closeConfirmDialog()
+          }
+        );
+      }
+    });
+  };
+
+  const handleRequestBroadcast = (e: React.FormEvent) => {
+    e.preventDefault();
+    const deptName = broadcastData.department_code === 'ALL'
+      ? t('admin.broadcast_scope_all', 'Toàn Viện (Tất cả khoa phòng)')
+      : departments.find(d => d.department_code === broadcastData.department_code)?.name || broadcastData.department_code;
+
+    setConfirmDialog({
+      show: true,
+      title: t('admin.confirm_broadcast_title', 'Xác Nhận Phát Lệnh Thông Báo'),
+      message: t('admin.confirm_broadcast_body', 'Thông báo sẽ được gửi trực tiếp đến toàn thể cán bộ trong phạm vi đã chọn ngay lập tức. Bạn có chắc chắn muốn phát lệnh không?'),
+      confirmText: t('admin.btn_send_broadcast', 'Phát Lệnh Thông Báo Ngay'),
+      variant: broadcastData.type === 'ALERT' ? 'danger' : 'primary',
+      iconType: 'broadcast',
+      details: [
+        { label: t('admin.label_scope', 'Phạm vi gửi'), value: deptName },
+        { label: t('admin.label_type', 'Phân loại'), value: broadcastData.type },
+        { label: t('admin.label_title', 'Tiêu đề'), value: broadcastData.title }
+      ],
+      onConfirm: () => {
+        broadcastMutation.mutate(broadcastData, {
+          onSettled: () => closeConfirmDialog()
+        });
+      }
+    });
+  };
 
   return (
     <Container fluid className="px-0">
@@ -427,10 +435,10 @@ export const SystemManagement: React.FC = () => {
           </div>
           <div>
             <h1 className="h4 fw-bold text-dark mb-1">
-              {t('admin.page_title', 'Cổng Quản Trị Hệ Thống & Nhân Sự Bệnh Viện')}
+              {t('admin.page_title', 'Cổng Quản Trị Hệ Thống')}
             </h1>
             <p className="text-muted small mb-0">
-              {t('admin.page_subtitle', 'Trung tâm chỉ huy HR & IAM: Phê duyệt phép, điều hành ca trực, định mức lương VND, giám sát CCHN và phân quyền tài khoản')}
+              {t('admin.page_subtitle', 'Trung tâm chỉ huy IT & Quản trị hệ thống: Quản lý định danh IAM, phân quyền vai trò, cơ cấu tổ chức khoa phòng và phát lệnh thông báo toàn viện.')}
             </p>
           </div>
         </div>
@@ -451,7 +459,7 @@ export const SystemManagement: React.FC = () => {
             className="wd-pill-btn-primary d-flex align-items-center gap-2 px-3 py-1.5"
             onClick={() => setShowOnboardModal(true)}
           >
-            <UserCheck size={16} />
+            <Plus size={16} />
             <span>{t('admin.onboard_new_staff', 'Tiếp Nhận Cán Bộ Mới')}</span>
           </button>
         </div>
@@ -469,18 +477,18 @@ export const SystemManagement: React.FC = () => {
         </Alert>
       )}
 
-      {/* Command Center Ribbon - 5 Live KPIs */}
+      {/* Command Center Ribbon - 2 Live IT KPIs */}
       <Row className="g-3 mb-4">
-        {/* KPI 1: Staff */}
-        <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
+        {/* KPI 1: IAM Accounts */}
+        <Col xs={12} sm={6}>
           <div className="wd-card p-3.5 h-100 border-start border-4 border-primary">
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">{t('admin.kpi_total_staff', 'Tổng Cán Bộ Y Tế')}</span>
+              <span className="text-muted small fw-semibold">{t('admin.kpi_total_accounts', 'Tổng Tài Khoản IAM')}</span>
               <div className="p-1.5 rounded-2 bg-primary bg-opacity-10 text-primary">
                 <Users size={16} />
               </div>
             </div>
-            <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.total_employees}</div>
+            <div className="h3 fw-bold text-dark my-1 font-mono">{accounts.length}</div>
             <div className="d-flex align-items-center gap-1.5 small text-muted mt-2">
               <span className="badge bg-success bg-opacity-10 text-success fw-normal">{t('admin.kpi_active_100', '100% Đang hoạt động')}</span>
             </div>
@@ -488,157 +496,83 @@ export const SystemManagement: React.FC = () => {
         </Col>
 
         {/* KPI 2: Departments */}
-        <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
+        <Col xs={12} sm={6}>
           <div className="wd-card p-3.5 h-100 border-start border-4 border-info">
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">{t('admin.kpi_departments', 'Khoa / Phòng Chức Năng')}</span>
+              <span className="text-muted small fw-semibold">{t('admin.kpi_departments_count', 'Khoa Phòng Chức Năng')}</span>
               <div className="p-1.5 rounded-2 bg-info bg-opacity-10 text-info">
                 <Building2 size={16} />
               </div>
             </div>
-            <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.total_departments}</div>
+            <div className="h3 fw-bold text-dark my-1 font-mono">{departments.length}</div>
             <div className="small text-muted mt-2">{t('admin.kpi_org_complete', 'Cơ cấu tổ chức hoàn chỉnh')}</div>
-          </div>
-        </Col>
-
-        {/* KPI 3: Pending Leaves */}
-        <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
-          <div className={`wd-card p-3.5 h-100 border-start border-4 ${kpis.pending_leaves > 0 ? 'border-warning' : 'border-secondary'}`}>
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">{t('admin.kpi_pending_leaves', 'Phép Chờ HR Duyệt')}</span>
-              <div className={`p-1.5 rounded-2 ${kpis.pending_leaves > 0 ? 'bg-warning bg-opacity-10 text-warning' : 'bg-secondary bg-opacity-10 text-secondary'}`}>
-                <CalendarCheck size={16} />
-              </div>
-            </div>
-            <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.pending_leaves}</div>
-            <div className="small mt-2">
-              {kpis.pending_leaves > 0 ? (
-                <span className="badge bg-warning bg-opacity-15 text-dark fw-normal">{t('admin.kpi_action_needed', 'Cần duyệt ngay')}</span>
-              ) : (
-                <span className="text-muted">{t('admin.kpi_no_backlog', 'Không tồn đọng')}</span>
-              )}
-            </div>
-          </div>
-        </Col>
-
-        {/* KPI 4: Licenses Expiry */}
-        <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
-          <div className={`wd-card p-3.5 h-100 border-start border-4 ${kpis.expiring_licenses_30d > 0 ? 'border-danger' : 'border-success'}`}>
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">{t('admin.kpi_cchn_expiring', 'CCHN Sắp Hết Hạn')}</span>
-              <div className={`p-1.5 rounded-2 ${kpis.expiring_licenses_30d > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'}`}>
-                <Award size={16} />
-              </div>
-            </div>
-            <div className="h3 fw-bold text-dark my-1 font-mono">{kpis.expiring_licenses_30d}</div>
-            <div className="small mt-2">
-              {kpis.expiring_licenses_30d > 0 ? (
-                <span className="badge bg-danger bg-opacity-10 text-danger fw-normal">{t('admin.kpi_urgent_renewal', 'Yêu cầu gia hạn khẩn')}</span>
-              ) : (
-                <span className="text-success fw-medium">{t('admin.kpi_compliant_100', 'Đạt chuẩn 100%')}</span>
-              )}
-            </div>
-          </div>
-        </Col>
-
-        {/* KPI 5: Total Payroll Disbursed */}
-        <Col xs={12} sm={6} lg={2} className="col-lg-2-4">
-          <div className="wd-card p-3.5 h-100 border-start border-4 border-success">
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-muted small fw-semibold">{t('admin.kpi_total_disbursed', 'Quỹ Lương Đã Chi Trả')}</span>
-              <div className="p-1.5 rounded-2 bg-success bg-opacity-10 text-success">
-                <CreditCard size={16} />
-              </div>
-            </div>
-            <div className="h4 fw-bold text-success my-1 font-mono" style={{ fontSize: '18px' }}>
-              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(kpis.total_disbursed_vnd))}
-            </div>
-            <div className="small text-muted mt-2">{t('admin.kpi_net_cumulative', 'Tổng tích lũy thực nhận')}</div>
           </div>
         </Col>
       </Row>
 
-      {/* Workday Operational Tabs */}
-      <div className="wd-tabs mb-4">
+      {/* Operational Tabs */}
+      <div className="wd-tabs-container mb-4">
         <button
           type="button"
-          className={`wd-tab-btn ${activeTab === 'staff_iam' ? 'active' : ''}`}
-          onClick={() => setActiveTab('staff_iam')}
+          className="wd-tab-scroll-btn d-none d-md-flex"
+          onClick={() => scrollTabs('left')}
+          title={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
+          aria-label={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
         >
-          <Users size={15} className="me-2" />
-          {t('admin.tab_staff_iam', 'Cán Bộ & Tài Khoản IAM')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{accounts.length}</span>
+          <ChevronLeft size={16} />
         </button>
+
+        <div className="wd-tabs" ref={tabsContainerRef}>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'staff_iam' ? 'active' : ''}`}
+            onClick={() => handleTabChange('staff_iam')}
+          >
+            <Users size={15} className="me-2" />
+            {t('admin.tab_staff_iam', 'Cán Bộ & Tài Khoản IAM')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{accounts.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'departments' ? 'active' : ''}`}
+            onClick={() => handleTabChange('departments')}
+          >
+            <Building2 size={15} className="me-2" />
+            {t('admin.tab_departments', 'Khoa Phòng & Cơ Cấu')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{departments.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'broadcast' ? 'active' : ''}`}
+            onClick={() => handleTabChange('broadcast')}
+          >
+            <Bell size={15} className="me-2" />
+            {t('admin.tab_broadcast', 'Phát Lệnh Thông Báo')}
+          </button>
+        </div>
 
         <button
           type="button"
-          className={`wd-tab-btn ${activeTab === 'departments' ? 'active' : ''}`}
-          onClick={() => setActiveTab('departments')}
+          className="wd-tab-scroll-btn d-none d-md-flex"
+          onClick={() => scrollTabs('right')}
+          title={t('admin.tab_scroll_next', 'Cuộn sang phải')}
+          aria-label={t('admin.tab_scroll_next', 'Cuộn sang phải')}
         >
-          <Building2 size={15} className="me-2" />
-          {t('admin.tab_departments', 'Khoa Phòng & Cơ Cấu')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{departments.length}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'compensation' ? 'active' : ''}`}
-          onClick={() => setActiveTab('compensation')}
-        >
-          <DollarSign size={15} className="me-2" />
-          {t('admin.tab_pay_rates', 'Định Mức Lương & Kỳ Lương')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{payRates.length}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'leaves' ? 'active' : ''}`}
-          onClick={() => setActiveTab('leaves')}
-        >
-          <CalendarCheck size={15} className="me-2" />
-          {t('admin.tab_leave_approvals', 'Phê Duyệt Nghỉ Phép')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{leaveRequests.length}</span>
-          {kpis.pending_leaves > 0 && (
-            <Badge bg="warning" text="dark" pill className="ms-2">
-              {kpis.pending_leaves}
-            </Badge>
-          )}
-        </button>
-
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'shifts_handover' ? 'active' : ''}`}
-          onClick={() => setActiveTab('shifts_handover')}
-        >
-          <Clock size={15} className="me-2" />
-          {t('admin.tab_shifts_handovers', 'Lịch Trực & Bàn Giao Ca')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{shifts.length}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'licensing' ? 'active' : ''}`}
-          onClick={() => setActiveTab('licensing')}
-        >
-          <Award size={15} className="me-2" />
-          {t('admin.tab_cchn_compliance', 'Tuân Thủ CCHN')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{licenses.length}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'broadcast' ? 'active' : ''}`}
-          onClick={() => setActiveTab('broadcast')}
-        >
-          <Bell size={15} className="me-2" />
-          {t('admin.tab_broadcast', 'Phát Lệnh Thông Báo')}
+          <ChevronRight size={16} />
         </button>
       </div>
 
       {/* TAB 1: STAFF & IAM */}
       {activeTab === 'staff_iam' && (
-        <div className="wd-card mb-4">
+        <div className="wd-card mb-4" style={{ minHeight: '480px' }}>
           <div className="p-3.5 pb-3 border-bottom d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ maxWidth: '600px' }}>
               <div className="position-relative flex-grow-1">
-                <Search size={15} className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
+                <Search size={15} aria-hidden="true" className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
                 <input
                   type="text"
                   placeholder={t('admin.search_staff_placeholder', 'Tìm kiếm họ tên cán bộ, mã NV, username hoặc email...')}
+                  aria-label={t('admin.search_staff_placeholder', 'Tìm kiếm họ tên cán bộ, mã NV, username hoặc email...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="wd-input w-100 ps-5"
@@ -647,6 +581,7 @@ export const SystemManagement: React.FC = () => {
 
               <select
                 className="wd-select"
+                aria-label={t('admin.all_departments_filter', 'Lọc theo khoa phòng')}
                 style={{ width: '220px' }}
                 value={selectedDeptFilter}
                 onChange={(e) => setSelectedDeptFilter(e.target.value)}
@@ -755,59 +690,56 @@ export const SystemManagement: React.FC = () => {
                     </td>
 
                     <td className="text-end">
-                      <div className="d-flex align-items-center justify-content-end gap-2">
+                      <div className="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
                         {/* Assign IAM Role */}
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-info py-1.5 px-2.5 rounded-2 d-inline-flex align-items-center gap-1.5"
+                          className="wd-action-btn wd-action-btn-role"
                           onClick={() => {
                             setSelectedAccountForRole(acc);
                             setNewRoleCode(acc.role_code || acc.role || 'STAFF');
                             setShowRoleModal(true);
                           }}
-                          title={t('admin.assign_role', 'Phân Quyền')}
+                          title={t('admin.action_role_tooltip', 'Phân quyền vai trò IAM')}
                         >
-                          <Shield size={13} />
-                          <span>{t('admin.assign_role', 'Phân Quyền')}</span>
+                          <ShieldCheck size={14} />
+                          <span>{t('admin.action_role_btn', 'Vai Trò')}</span>
                         </button>
 
                         {/* Master Profile Edit */}
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-primary py-1.5 px-2.5 rounded-2 d-inline-flex align-items-center gap-1.5"
+                          className="wd-action-btn wd-action-btn-edit"
                           onClick={() => handleOpenMasterEdit(acc)}
-                          title={t('admin.btn_edit_profile_tooltip', 'Sửa Toàn Bộ Hồ Sơ Nhân Viên')}
+                          title={t('admin.action_edit_tooltip', 'Chỉnh sửa toàn bộ hồ sơ cán bộ')}
                         >
                           <Edit2 size={13} />
-                          <span>{t('common.edit', 'Sửa')}</span>
+                          <span>{t('admin.action_edit_btn', 'Sửa')}</span>
                         </button>
 
-                        {/* Lock / Unlock */}
+                        {/* Lock / Unlock with Confirmation */}
                         <button
                           type="button"
-                          className={`btn btn-sm ${acc.is_locked ? 'btn-outline-success' : 'btn-outline-warning'} py-1.5 px-2.5 rounded-2 d-inline-flex align-items-center`}
-                          onClick={() =>
-                            lockAccountMutation.mutate({
-                              id: acc.account_id,
-                              is_locked: !acc.is_locked
-                            })
-                          }
+                          className={`wd-action-btn wd-action-btn-icon-only ${acc.is_locked ? 'wd-action-btn-locked' : 'wd-action-btn-active'}`}
+                          onClick={() => handleToggleLockAccount(acc)}
                           title={acc.is_locked ? t('admin.btn_unlock_tooltip', 'Mở khóa tài khoản') : t('admin.btn_lock_tooltip', 'Khóa tài khoản')}
+                          aria-label={acc.is_locked ? t('admin.btn_unlock_tooltip', 'Mở khóa tài khoản') : t('admin.btn_lock_tooltip', 'Khóa tài khoản')}
                         >
-                          {acc.is_locked ? <Unlock size={14} /> : <Lock size={14} />}
+                          {acc.is_locked ? <Lock size={14} aria-hidden="true" /> : <Unlock size={14} aria-hidden="true" />}
                         </button>
 
                         {/* Reset Password */}
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-secondary py-1.5 px-2.5 rounded-2 d-inline-flex align-items-center"
+                          className="wd-action-btn wd-action-btn-icon-only wd-action-btn-key"
                           onClick={() => {
                             setSelectedAccountForPassword(acc);
                             setShowResetPasswordModal(true);
                           }}
                           title={t('admin.btn_reset_pwd_tooltip', 'Đặt lại mật khẩu')}
+                          aria-label={t('admin.btn_reset_pwd_tooltip', 'Đặt lại mật khẩu')}
                         >
-                          <Key size={14} />
+                          <Key size={14} aria-hidden="true" />
                         </button>
                       </div>
                     </td>
@@ -893,503 +825,7 @@ export const SystemManagement: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: COMPENSATION & PAYROLL */}
-      {activeTab === 'compensation' && (
-        <div>
-          {/* Top Actions */}
-          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-            <div>
-              <h2 className="h5 fw-bold mb-1">{t('admin.payrates_title', 'Định Mức Lương & Bảng Lương Bệnh Viện')}</h2>
-              <p className="text-muted small mb-0">
-                {t('admin.payrates_subtitle', 'Toàn bộ định mức lương được thiết lập chuẩn tiền tệ Việt Nam Đồng (VND), tính theo giờ và tháng tiêu chuẩn (176h)')}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
-              onClick={() => setShowNewRunModal(true)}
-            >
-              <Plus size={16} /> {t('admin.btn_create_run', 'Tạo Kỳ Lương Mới (Chạy Bảng Lương)')}
-            </button>
-          </div>
-
-          {/* Section A: Pay Rates table */}
-          <div className="wd-card p-3 mb-4">
-            <h3 className="h6 fw-bold text-dark mb-3">{t('admin.table_rates_title', 'Bảng Định Mức Lương Theo Giờ / Chức Danh')}</h3>
-            <div className="table-responsive">
-              <table className="wd-table w-100">
-                <thead>
-                  <tr>
-                    <th>{t('admin.col_medical_staff', 'Cán Bộ Y Tế')}</th>
-                    <th>{t('admin.col_department', 'Khoa / Phòng')}</th>
-                    <th>{t('admin.col_role', 'Chức Danh')}</th>
-                    <th>{t('admin.col_base_hourly', 'Mức Lương Cơ Bản / Giờ')}</th>
-                    <th>{t('admin.col_monthly_est', 'Ước Tính Tháng')}</th>
-                    <th>{t('admin.col_tax_tier', 'Bậc Thuế / Chế Độ')}</th>
-                    <th className="text-end">{t('common.actions', 'Hành Động')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payRates.map((pr) => {
-                    const hourly = Number(pr.base_hourly_rate) || 0;
-                    const monthly = hourly * 176;
-                    return (
-                      <tr key={pr.employee_code}>
-                        <td>
-                          <div className="fw-semibold text-dark">{pr.staff_name}</div>
-                          <div className="text-muted small">{pr.employee_code}</div>
-                        </td>
-                        <td>{pr.department_name || pr.department_code}</td>
-                        <td>
-                          <Badge bg="secondary" className="fw-normal">
-                            {pr.role}
-                          </Badge>
-                        </td>
-                        <td>
-                          <strong className="text-dark">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(hourly)} / {t('admin.per_hour', 'giờ')}
-                          </strong>
-                        </td>
-                        <td>
-                          <span className="text-success fw-semibold">
-                            ~{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(monthly)} / {t('admin.per_month', 'tháng')}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="badge bg-light text-dark border">{pr.tax_tier}</span>
-                        </td>
-                        <td className="text-end">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-primary py-1 px-2.5"
-                            onClick={() => handleOpenPayRateEdit(pr)}
-                          >
-                            <Edit2 size={13} className="me-1" /> {t('admin.btn_edit_rate', 'Sửa Lương')}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Section B: Payroll Runs History */}
-          <div className="wd-card p-3">
-            <h3 className="h6 fw-bold text-dark mb-3">{t('admin.table_runs_title', 'Lịch Sử Kỳ Lương Bệnh Viện')}</h3>
-            <div className="table-responsive">
-              <table className="wd-table w-100">
-                <thead>
-                  <tr>
-                    <th>{t('admin.col_run_id', 'Mã Kỳ Lương')}</th>
-                    <th>{t('admin.col_date_range', 'Khoảng Thời Gian')}</th>
-                    <th>{t('admin.col_staff_count', 'Số Cán Bộ')}</th>
-                    <th>{t('admin.col_total_payout', 'Tổng Tiền Chi Trả')}</th>
-                    <th>{t('common.status', 'Trạng Thái')}</th>
-                    <th className="text-end">{t('admin.col_run_actions', 'Thao Tác Duyệt')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payrollRuns.map((run: any) => (
-                    <tr key={run.id}>
-                      <td className="font-monospace fw-medium text-dark">{run.id.slice(0, 8)}...</td>
-                      <td>
-                        {run.start_date?.slice(0, 10)} &rarr; {run.end_date?.slice(0, 10)}
-                      </td>
-                      <td>{run.employee_count ?? 10} {t('admin.people_unit', 'người')}</td>
-                      <td>
-                        <strong className="text-success">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(run.total_disbursed || 0))}
-                        </strong>
-                      </td>
-                      <td>
-                        <Badge
-                          bg={
-                            run.status === 'COMPLETED'
-                              ? 'success'
-                              : run.status === 'APPROVED'
-                              ? 'primary'
-                              : run.status === 'PROCESSING'
-                              ? 'warning'
-                              : 'secondary'
-                          }
-                          className="fw-normal px-2 py-1"
-                        >
-                          {run.status}
-                        </Badge>
-                      </td>
-                      <td className="text-end">
-                        {run.status !== 'COMPLETED' && (
-                          <div className="d-flex align-items-center justify-content-end gap-1.5">
-                            {run.status === 'DRAFT' && (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-warning py-1 px-2"
-                                onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'PROCESSING' })}
-                              >
-                                {t('admin.btn_calculate', 'Tính Toán')}
-                              </button>
-                            )}
-                            {run.status === 'PROCESSING' && (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary py-1 px-2"
-                                onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'APPROVED' })}
-                              >
-                                {t('admin.btn_approve_run', 'Phê Duyệt')}
-                              </button>
-                            )}
-                            {run.status === 'APPROVED' && (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-success py-1 px-2"
-                                onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'COMPLETED' })}
-                              >
-                                {t('admin.btn_complete_payout', 'Hoàn Tất Chi Lương')}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: LEAVE APPROVALS */}
-      {activeTab === 'leaves' && (
-        <div className="wd-card p-3 mb-4">
-          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
-            <div>
-              <h2 className="h5 fw-bold mb-1">{t('admin.leave_approvals_title', 'Xét Duyệt Đơn Nghỉ Phép & Hạn Mức Thường Niên')}</h2>
-              <p className="text-muted small mb-0">
-                {t('admin.leave_approvals_subtitle', '1-click phê duyệt hoặc từ chối đơn nghỉ phép. Hệ thống tự động trừ hạn mức trong cơ sở dữ liệu.')}
-              </p>
-            </div>
-
-            <div className="d-flex align-items-center gap-1.5">
-              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  className={`btn btn-sm ${leaveFilter === st ? 'btn-primary' : 'btn-outline-secondary'} py-1 px-2.5`}
-                  onClick={() => setLeaveFilter(st)}
-                >
-                  {st === 'ALL' ? t('admin.filter_all', 'Tất Cả') : st === 'PENDING' ? t('admin.filter_pending', 'Chờ Duyệt') : st === 'APPROVED' ? t('admin.filter_approved', 'Đã Duyệt') : t('admin.filter_rejected', 'Từ Chối')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="table-responsive">
-            <table className="wd-table w-100">
-              <thead>
-                <tr>
-                  <th>{t('admin.col_medical_staff', 'Cán Bộ Y Tế')}</th>
-                  <th>{t('admin.col_department', 'Khoa Phòng')}</th>
-                  <th>{t('admin.col_leave_type', 'Loại Phép')}</th>
-                  <th>{t('admin.col_leave_time', 'Thời Gian Nghỉ')}</th>
-                  <th>{t('admin.col_leave_days', 'Số Ngày')}</th>
-                  <th>{t('admin.col_leave_reason', 'Lý Do')}</th>
-                  <th>{t('common.status', 'Trạng Thái')}</th>
-                  <th className="text-end">{t('admin.btn_approve', 'Phê Duyệt')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLeaves.map((lr: any) => (
-                  <tr key={lr.id}>
-                    <td>
-                      <div className="fw-semibold text-dark">{lr.staff_name || lr.staff_id}</div>
-                      <div className="text-muted small">{lr.staff_id}</div>
-                    </td>
-                    <td>{lr.department_name || lr.department_code || t('admin.col_department', 'Khoa Lâm Sàng')}</td>
-                    <td>
-                      <span className="badge bg-light text-dark border">{lr.leave_type}</span>
-                    </td>
-                    <td>
-                      {lr.start_date?.slice(0, 10)}
-                      {lr.end_date && lr.end_date !== lr.start_date && ` → ${lr.end_date?.slice(0, 10)}`}
-                    </td>
-                    <td>
-                      <strong className="text-dark">
-                        {lr.days_requested || (lr.day_part !== 'FULL' ? '0.5' : '1.0')} {t('admin.days_unit', 'ngày')}
-                      </strong>
-                      {lr.day_part === 'FIRST_HALF' && <span className="text-muted small d-block">{t('admin.morning_half', 'Buổi sáng')}</span>}
-                      {lr.day_part === 'SECOND_HALF' && <span className="text-muted small d-block">{t('admin.afternoon_half', 'Buổi chiều')}</span>}
-                    </td>
-                    <td style={{ maxWidth: '200px' }} className="text-truncate" title={lr.reason}>
-                      {lr.reason || t('admin.no_reason', 'Không có lý do')}
-                    </td>
-                    <td>
-                      <Badge
-                        bg={lr.status === 'APPROVED' ? 'success' : lr.status === 'PENDING' ? 'warning' : 'danger'}
-                        text={lr.status === 'PENDING' ? 'dark' : 'white'}
-                        className="fw-normal px-2 py-1"
-                      >
-                        {lr.status === 'APPROVED' ? t('admin.filter_approved', 'Đã Duyệt') : lr.status === 'PENDING' ? t('admin.filter_pending', 'Chờ Duyệt') : t('admin.filter_rejected', 'Từ Chối')}
-                      </Badge>
-                    </td>
-                    <td className="text-end">
-                      {lr.status === 'PENDING' ? (
-                        <div className="d-flex align-items-center justify-content-end gap-1.5">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-success py-1 px-2.5"
-                            onClick={() => updateLeaveStatusMutation.mutate({ id: lr.id, status: 'APPROVED' })}
-                          >
-                            {t('admin.btn_approve', 'Duyệt')}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-danger py-1 px-2"
-                            onClick={() => updateLeaveStatusMutation.mutate({ id: lr.id, status: 'REJECTED' })}
-                          >
-                            {t('admin.btn_reject', 'Từ Chối')}
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-muted small">{t('admin.status_processed', 'Đã xử lý')}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 5: ROSTERING & SHIFT HANDOVER */}
-      {activeTab === 'shifts_handover' && (
-        <div>
-          <div className="d-flex align-items-center justify-content-between mb-3">
-            <div>
-              <h2 className="h5 fw-bold mb-1">{t('admin.shifts_handovers_title', 'Giám Sát Lịch Trực 24/7 & Nhật Ký Bàn Giao Ca')}</h2>
-              <p className="text-muted small mb-0">
-                {t('admin.shifts_handovers_subtitle', 'Điều phối ca cấp cứu, theo dõi ghi chú bàn giao lâm sàng và danh mục an toàn người bệnh')}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
-              onClick={() => setShowAddShiftModal(true)}
-            >
-              <Plus size={16} /> {t('admin.btn_assign_urgent_shift', 'Phân Ca Trực Khẩn Cấp')}
-            </button>
-          </div>
-
-          <Row className="g-4">
-            {/* Shifts list */}
-            <Col xs={12} lg={6}>
-              <div className="wd-card p-3 h-100">
-                <h3 className="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-                  <span>{t('admin.active_shifts_card', 'Ca Trực Hiện Diện')}</span>
-                  <Badge bg="secondary" pill className="fw-normal">{shifts.length}</Badge>
-                </h3>
-                <div className="table-responsive">
-                  <table className="wd-table w-100">
-                    <thead>
-                      <tr>
-                        <th>{t('admin.col_shift_staff', 'Cán Bộ')}</th>
-                        <th>{t('admin.col_shift_dept', 'Khoa Phòng')}</th>
-                        <th>{t('admin.col_shift_time', 'Thời Gian Trực')}</th>
-                        <th>{t('admin.col_shift_type', 'Loại Ca')}</th>
-                        <th>{t('common.status', 'Trạng Thái')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {shifts.map((s: any) => (
-                        <tr key={s.id}>
-                          <td>
-                            <div className="fw-semibold text-dark">{s.staff_name || s.staff_id}</div>
-                          </td>
-                          <td>{s.department_code}</td>
-                          <td>
-                            <div className="small">
-                              {s.start_time?.slice(11, 16)} - {s.end_time?.slice(11, 16)}
-                            </div>
-                            <div className="text-muted small">{s.start_time?.slice(0, 10)}</div>
-                          </td>
-                          <td>
-                            <Badge bg="info" className="fw-normal">
-                              {s.shift_type}
-                            </Badge>
-                          </td>
-                          <td>
-                            <Badge bg={s.status === 'COMPLETED' ? 'success' : 'primary'} className="fw-normal">
-                              {s.status}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </Col>
-
-            {/* Handovers list */}
-            <Col xs={12} lg={6}>
-              <div className="wd-card p-3 h-100">
-                <h3 className="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-                  <span>{t('admin.clinical_handovers_card', 'Nhật Ký Bàn Giao Ca Lâm Sàng')}</span>
-                  <Badge bg="secondary" pill className="fw-normal">{handovers.length}</Badge>
-                </h3>
-                <div className="table-responsive">
-                  <table className="wd-table w-100">
-                    <thead>
-                      <tr>
-                        <th>{t('admin.col_handover_transfer', 'Bàn Giao → Tiếp Nhận')}</th>
-                        <th>{t('admin.col_handover_notes', 'Ghi Chú Bàn Giao Ca')}</th>
-                        <th>{t('admin.col_critical_patients', 'Bệnh Nhân Cần Chú Ý')}</th>
-                        <th>{t('admin.col_sign_protocol', 'Ký Biên Bản')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {handovers.map((h: any) => (
-                        <tr key={h.id}>
-                          <td>
-                            <div className="fw-semibold text-dark">
-                              {h.outgoing_staff_name || h.outgoing_staff_id} &rarr; {h.incoming_staff_name || h.incoming_staff_id}
-                            </div>
-                            <div className="text-muted small">{h.created_at?.slice(0, 16)}</div>
-                          </td>
-                          <td>
-                            <span className="badge bg-light text-dark border px-2 py-1 font-monospace">
-                              {h.general_notes || 'a'}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="badge bg-warning bg-opacity-15 text-dark">
-                              {h.critical_patients_count ?? 0} {t('admin.critical_patients_unit', 'ca nặng')}
-                            </span>
-                          </td>
-                          <td>
-                            {h.status === 'COMPLETED' || h.status === 'SIGNED' ? (
-                              <span className="badge bg-success bg-opacity-10 text-success">
-                                <CheckCircle2 size={12} className="me-1" /> {t('admin.status_signed', 'Đã Ký')}
-                              </span>
-                            ) : (
-                              <span className="badge bg-warning bg-opacity-10 text-warning">{t('admin.status_awaiting_signature', 'Chờ Ký')}</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </div>
-      )}
-
-      {/* TAB 6: MEDICAL LICENSING COMPLIANCE */}
-      {activeTab === 'licensing' && (
-        <div className="wd-card p-3 mb-4">
-          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
-            <div>
-              <h2 className="h5 fw-bold mb-1">{t('admin.cchn_title', 'Giám Sát Chứng Chỉ Hành Nghề Y Tế')}</h2>
-              <p className="text-muted small mb-0">
-                {t('admin.cchn_subtitle', 'Tuân thủ quy định Bộ Y Tế. Tự động cảnh báo trước 30 ngày và kiểm soát quyền trực lâm sàng.')}
-              </p>
-            </div>
-          </div>
-
-          <div className="table-responsive">
-            <table className="wd-table w-100">
-              <thead>
-                <tr>
-                  <th>{t('admin.col_cchn_doctor', 'Bác Sĩ / Cán Bộ')}</th>
-                  <th>{t('admin.col_cchn_specialty', 'Khoa Chuyên Môn')}</th>
-                  <th>{t('admin.col_cchn_number', 'Số Hiệu CCHN')}</th>
-                  <th>{t('admin.col_cchn_authority', 'Cơ Quan Cấp')}</th>
-                  <th>{t('admin.col_cchn_expiry', 'Thời Hạn Hiệu Lực')}</th>
-                  <th>{t('admin.col_cchn_countdown', 'Đếm Ngược')}</th>
-                  <th>{t('admin.col_cchn_legal', 'Trạng Thái Pháp Lý')}</th>
-                  <th className="text-end">{t('admin.col_cchn_actions', 'Xác Thực CCHN')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {licenses.map((lic: any) => {
-                  const daysLeft = Number(lic.days_until_expiry) || 0;
-                  return (
-                    <tr key={lic.id}>
-                      <td>
-                        <div className="fw-semibold text-dark">{lic.staff_name}</div>
-                        <div className="text-muted small">{lic.staff_code}</div>
-                      </td>
-                      <td>{lic.department_name}</td>
-                      <td>
-                        <span className="font-monospace fw-semibold text-primary">{lic.license_number}</span>
-                        <div className="text-muted small">{lic.license_type}</div>
-                      </td>
-                      <td>{lic.issuing_authority}</td>
-                      <td>
-                        {lic.issue_date?.slice(0, 10)} &rarr; {lic.expiration_date?.slice(0, 10)}
-                      </td>
-                      <td>
-                        {daysLeft < 30 ? (
-                          <Badge bg="danger">{t('admin.days_remaining', 'Còn {days} ngày').replace('{days}', String(daysLeft))}</Badge>
-                        ) : daysLeft < 90 ? (
-                          <Badge bg="warning" text="dark">{t('admin.days_remaining', 'Còn {days} ngày').replace('{days}', String(daysLeft))}</Badge>
-                        ) : (
-                          <Badge bg="success">{t('admin.days_remaining', 'Còn {days} ngày').replace('{days}', String(daysLeft))}</Badge>
-                        )}
-                      </td>
-                      <td>
-                        <Badge
-                          bg={
-                            lic.verification_status === 'VERIFIED'
-                              ? 'success'
-                              : lic.verification_status === 'EXPIRED'
-                              ? 'danger'
-                              : 'secondary'
-                          }
-                          className="fw-normal px-2 py-1"
-                        >
-                          {lic.verification_status}
-                        </Badge>
-                      </td>
-                      <td className="text-end">
-                        <div className="d-flex align-items-center justify-content-end gap-1">
-                          {lic.verification_status !== 'VERIFIED' && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-success py-0.5 px-2"
-                              onClick={() => updateLicenseStatusMutation.mutate({ id: lic.id, status: 'VERIFIED' })}
-                            >
-                              {t('admin.btn_verify_cchn', 'Xác Thực')}
-                            </button>
-                          )}
-                          {lic.verification_status !== 'EXPIRED' && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger py-0.5 px-2"
-                              onClick={() => updateLicenseStatusMutation.mutate({ id: lic.id, status: 'EXPIRED' })}
-                            >
-                              {t('admin.btn_expired_cchn', 'Hết Hạn')}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 7: BROADCAST CENTER */}
+      {/* TAB 3: BROADCAST CENTER */}
       {activeTab === 'broadcast' && (
         <Row className="g-4">
           <Col xs={12} md={6}>
@@ -1399,15 +835,11 @@ export const SystemManagement: React.FC = () => {
                 {t('admin.broadcast_subtitle', 'Thông báo sẽ xuất hiện trực tiếp trên bảng điều khiển Dashboard và thanh thông báo của các cán bộ mục tiêu.')}
               </p>
 
-              <Form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  broadcastMutation.mutate(broadcastData);
-                }}
-              >
+              <Form onSubmit={handleRequestBroadcast}>
                 <Form.Group className="mb-3">
                   <Form.Label className="small fw-semibold">{t('admin.broadcast_scope_label', 'Phạm Vi Tiếp Nhận Thông Báo')}</Form.Label>
                   <Form.Select
+                    aria-label={t('admin.broadcast_scope_label', 'Phạm Vi Tiếp Nhận Thông Báo')}
                     value={broadcastData.department_code}
                     onChange={(e) => setBroadcastData({ ...broadcastData, department_code: e.target.value })}
                     className="wd-input"
@@ -1424,6 +856,7 @@ export const SystemManagement: React.FC = () => {
                 <Form.Group className="mb-3">
                   <Form.Label className="small fw-semibold">{t('admin.broadcast_type_label', 'Phân Loại Thông Báo')}</Form.Label>
                   <Form.Select
+                    aria-label={t('admin.broadcast_type_label', 'Phân Loại Thông Báo')}
                     value={broadcastData.type}
                     onChange={(e) => setBroadcastData({ ...broadcastData, type: e.target.value as any })}
                     className="wd-input"
@@ -1527,6 +960,7 @@ export const SystemManagement: React.FC = () => {
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')}</Form.Label>
                   <Form.Select
+                    aria-label={t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')}
                     value={profileFormData.department_code || ''}
                     onChange={(e) => setProfileFormData({ ...profileFormData, department_code: e.target.value })}
                     className="wd-input"
@@ -1544,6 +978,7 @@ export const SystemManagement: React.FC = () => {
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_assigned_role', 'Chức Danh Phân Quyền')}</Form.Label>
                   <Form.Select
+                    aria-label={t('admin.field_assigned_role', 'Chức Danh Phân Quyền')}
                     value={profileFormData.role || 'STAFF'}
                     onChange={(e) => setProfileFormData({ ...profileFormData, role: e.target.value })}
                     className="wd-input"
@@ -1564,6 +999,7 @@ export const SystemManagement: React.FC = () => {
                   <Form.Label className="small fw-semibold">{t('admin.field_specialty', 'Chuyên Khoa / Bổ Nhiệm')}</Form.Label>
                   <Form.Control
                     type="text"
+                    aria-label={t('admin.field_specialty', 'Chuyên Khoa / Bổ Nhiệm')}
                     value={profileFormData.specialty || ''}
                     onChange={(e) => setProfileFormData({ ...profileFormData, specialty: e.target.value })}
                     className="wd-input"
@@ -1575,6 +1011,7 @@ export const SystemManagement: React.FC = () => {
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_staff_status', 'Trạng Thái Nhân Sự')}</Form.Label>
                   <Form.Select
+                    aria-label={t('admin.field_staff_status', 'Trạng Thái Nhân Sự')}
                     value={profileFormData.status || 'ACTIVE'}
                     onChange={(e) => setProfileFormData({ ...profileFormData, status: e.target.value })}
                     className="wd-input"
@@ -1680,7 +1117,7 @@ export const SystemManagement: React.FC = () => {
       <Modal show={showOnboardModal} onHide={() => setShowOnboardModal(false)} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
-            <UserCheck size={18} className="text-primary" />
+            <Users size={18} className="text-primary" />
             {t('admin.modal_onboard_title', 'Tiếp Nhận Cán Bộ Y Tế & Khởi Tạo Tài Khoản IAM')}
           </Modal.Title>
         </Modal.Header>
@@ -1754,7 +1191,7 @@ export const SystemManagement: React.FC = () => {
               <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')} *</Form.Label>
-                  <Form.Select name="department_code" className="wd-input">
+                  <Form.Select name="department_code" aria-label={t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')} className="wd-input">
                     {departments.map((d) => (
                       <option key={d.department_code} value={d.department_code}>
                         {d.name}
@@ -1766,7 +1203,7 @@ export const SystemManagement: React.FC = () => {
               <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_role_req', 'Chức Vụ *')}</Form.Label>
-                  <Form.Select name="role" defaultValue="DOCTOR" className="wd-input">
+                  <Form.Select name="role" aria-label={t('admin.field_role_req', 'Chức Vụ')} defaultValue="DOCTOR" className="wd-input">
                     <option value="DOCTOR">{t('roles.doctor', 'Bác Sĩ Điều Trị')}</option>
                     <option value="NURSE">{t('roles.nurse', 'Điều Dưỡng Viên')}</option>
                     <option value="TECHNICIAN">{t('roles.technician', 'Kỹ Thuật Viên')}</option>
@@ -1780,7 +1217,7 @@ export const SystemManagement: React.FC = () => {
               <Col xs={12}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_specialty_req', 'Chuyên Khoa / Bằng Cấp Chuyên Môn')}</Form.Label>
-                  <Form.Control name="specialty" placeholder={t('admin.placeholder_specialty', 'VD: Bác sĩ Đa khoa, CKI Hồi sức cấp cứu...')} className="wd-input" />
+                  <Form.Control name="specialty" aria-label={t('admin.field_specialty_req', 'Chuyên Khoa / Bằng Cấp Chuyên Môn')} placeholder={t('admin.placeholder_specialty', 'VD: Bác sĩ Đa khoa, CKI Hồi sức cấp cứu...')} className="wd-input" />
                 </Form.Group>
               </Col>
             </Row>
@@ -1790,13 +1227,13 @@ export const SystemManagement: React.FC = () => {
               <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.col_username', 'Tên Đăng Nhập')}</Form.Label>
-                  <Form.Control name="username" placeholder={t('admin.placeholder_username', 'Để trống tự tạo theo mã NV')} className="wd-input font-monospace" />
+                  <Form.Control name="username" aria-label={t('admin.col_username', 'Tên Đăng Nhập')} placeholder={t('admin.placeholder_username', 'Để trống tự tạo theo mã NV')} className="wd-input font-monospace" />
                 </Form.Group>
               </Col>
               <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.placeholder_initial_pwd', 'Mật Khẩu Khởi Tạo')}</Form.Label>
-                  <Form.Control name="password" defaultValue="bv123456" className="wd-input" />
+                  <Form.Control name="password" aria-label={t('admin.placeholder_initial_pwd', 'Mật Khẩu Khởi Tạo')} defaultValue="bv123456" className="wd-input" />
                 </Form.Group>
               </Col>
             </Row>
@@ -1806,13 +1243,13 @@ export const SystemManagement: React.FC = () => {
               <Col xs={12} md={4}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_base_hourly', 'Lương Cơ Bản / Giờ')}</Form.Label>
-                  <Form.Control name="base_hourly_rate" type="number" defaultValue="120000" step="5000" className="wd-input" />
+                  <Form.Control name="base_hourly_rate" aria-label={t('admin.field_base_hourly', 'Lương Cơ Bản / Giờ')} type="number" defaultValue="120000" step="5000" className="wd-input" />
                 </Form.Group>
               </Col>
               <Col xs={12} md={4}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.field_tax_tier', 'Bậc Thuế / Chế Độ')}</Form.Label>
-                  <Form.Select name="tax_tier" defaultValue="Tier 1" className="wd-input">
+                  <Form.Select name="tax_tier" aria-label={t('admin.field_tax_tier', 'Bậc Thuế / Chế Độ')} defaultValue="Tier 1" className="wd-input">
                     <option value="Tier 1 - Staff">Tier 1 - Staff</option>
                     <option value="Tier 2 - Doctor">Tier 2 - Doctor</option>
                     <option value="Tier 3 - Head of Dept">Tier 3 - Head of Dept</option>
@@ -1965,6 +1402,7 @@ export const SystemManagement: React.FC = () => {
             <Form.Group className="mb-3">
               <Form.Label className="small fw-semibold">{t('admin.field_dept_status', 'Trạng Thái Hoạt Động')}</Form.Label>
               <Form.Select
+                aria-label={t('admin.field_dept_status', 'Trạng Thái Hoạt Động')}
                 value={editingDept?.status || 'ACTIVE'}
                 onChange={(e) => setEditingDept({ ...editingDept, status: e.target.value as any })}
                 className="wd-input"
@@ -1986,249 +1424,16 @@ export const SystemManagement: React.FC = () => {
       </Modal>
 
       {/* ========================================================================= */}
-      {/* MODAL 5: EDIT PAY RATE */}
-      {/* ========================================================================= */}
-      <Modal show={showPayRateModal} onHide={() => setShowPayRateModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
-            <DollarSign size={18} className="text-success" />
-            {t('admin.modal_edit_rate_title', 'Cập Nhật Định Mức Lương Cơ Bản')}
-          </Modal.Title>
-        </Modal.Header>
-        <Form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (selectedPayRate) {
-              updatePayRateMutation.mutate({
-                staffId: selectedPayRate.employee_code,
-                base_hourly_rate: Number(newHourlyRate),
-                tax_tier: newTaxTier
-              });
-            }
-          }}
-        >
-          <Modal.Body>
-            <p className="small text-muted mb-3">
-              {t('admin.rate_staff_label', 'Cán bộ')}: <strong>{selectedPayRate?.staff_name}</strong> — {selectedPayRate?.employee_code} • {selectedPayRate?.role}
-            </p>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{t('admin.field_base_hourly_req', 'Mức Lương Cơ Bản Theo Giờ *')}</Form.Label>
-              <Form.Control
-                type="number"
-                required
-                step="5000"
-                min="0"
-                value={newHourlyRate}
-                onChange={(e) => setNewHourlyRate(e.target.value)}
-                className="wd-input fw-bold"
-              />
-              <Form.Text className="text-muted small">
-                {t('admin.monthly_estimate_label', 'Ước tính lương tháng 176h')}: ~{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(newHourlyRate || 0) * 176)}
-              </Form.Text>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{t('admin.field_tax_tier_benefits', 'Bậc Thuế / Chế Độ Đãi Ngộ')}</Form.Label>
-              <Form.Control
-                type="text"
-                value={newTaxTier}
-                onChange={(e) => setNewTaxTier(e.target.value)}
-                placeholder={t('admin.placeholder_tax_tier', 'VD: Bậc 2 - Bác sĩ chính...')}
-                className="wd-input"
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowPayRateModal(false)}>
-              {t('admin.btn_cancel', 'Hủy')}
-            </Button>
-            <Button type="submit" variant="success" disabled={updatePayRateMutation.isPending}>
-              {updatePayRateMutation.isPending ? t('admin.btn_saving', 'Đang lưu...') : t('admin.btn_update_rate', 'Cập Nhật Lương')}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      {/* ========================================================================= */}
-      {/* MODAL 6: GENERATE PAYROLL RUN */}
-      {/* ========================================================================= */}
-      <Modal show={showNewRunModal} onHide={() => setShowNewRunModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
-            <CreditCard size={18} className="text-primary" />
-            {t('admin.modal_create_run_title', 'Khởi Tạo Kỳ Lương Mới Bệnh Viện')}
-          </Modal.Title>
-        </Modal.Header>
-        <Form
-          onSubmit={(e) => {
-            e.preventDefault();
-            generateRunMutation.mutate({
-              start_date: newRunStartDate,
-              end_date: newRunEndDate
-            });
-          }}
-        >
-          <Modal.Body>
-            <Alert variant="info" className="small py-2 mb-3">
-              {t('admin.modal_create_run_desc', 'Hệ thống sẽ tự động quét danh sách toàn bộ cán bộ y tế đang hoạt động, lấy định mức lương VND theo giờ và tạo phiếu lương tương ứng.')}
-            </Alert>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{t('timeoff.from_date', 'Từ Ngày')} *</Form.Label>
-              <Form.Control
-                type="date"
-                required
-                value={newRunStartDate}
-                onChange={(e) => setNewRunStartDate(e.target.value)}
-                className="wd-input"
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{t('timeoff.to_date', 'Đến Ngày')} *</Form.Label>
-              <Form.Control
-                type="date"
-                required
-                value={newRunEndDate}
-                onChange={(e) => setNewRunEndDate(e.target.value)}
-                className="wd-input"
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowNewRunModal(false)}>
-              {t('admin.btn_cancel', 'Hủy')}
-            </Button>
-            <Button type="submit" variant="primary" disabled={generateRunMutation.isPending}>
-              {generateRunMutation.isPending ? t('admin.btn_calculating', 'Đang tính toán...') : t('admin.btn_create_and_generate_slips', 'Khởi Tạo & Tạo Phiếu Lương')}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      {/* ========================================================================= */}
-      {/* MODAL 7: QUICK DISPATCH SHIFT */}
-      {/* ========================================================================= */}
-      <Modal show={showAddShiftModal} onHide={() => setShowAddShiftModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
-            <Clock size={18} className="text-primary" />
-            {t('admin.modal_shift_title', 'Phân Ca Trực Khẩn Cấp 24/7')}
-          </Modal.Title>
-        </Modal.Header>
-        <Form
-          onSubmit={(e) => {
-            e.preventDefault();
-            createShiftMutation.mutate(newShiftData);
-          }}
-        >
-          <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{t('admin.field_assign_staff_req', 'Cán Bộ Y Tế Nhận Ca *')}</Form.Label>
-              <Form.Select
-                required
-                value={newShiftData.staff_id}
-                onChange={(e) => setNewShiftData({ ...newShiftData, staff_id: e.target.value })}
-                className="wd-input"
-              >
-                <option value="">-- {t('admin.select_staff_placeholder', 'Chọn Cán Bộ')} --</option>
-                {accounts.map((a) => (
-                  <option key={a.employee_code} value={a.employee_code}>
-                    {a.staff_name} — {a.employee_code} • {a.role}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{t('nav.department', 'Khoa / Phòng Trực')} *</Form.Label>
-              <Form.Select
-                value={newShiftData.department_code}
-                onChange={(e) => setNewShiftData({ ...newShiftData, department_code: e.target.value })}
-                className="wd-input"
-              >
-                {departments.map((d) => (
-                  <option key={d.department_code} value={d.department_code}>
-                    {d.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">{t('admin.field_shift_type', 'Loại Ca')}</Form.Label>
-              <Form.Select
-                value={newShiftData.shift_type}
-                onChange={(e) => setNewShiftData({ ...newShiftData, shift_type: e.target.value })}
-                className="wd-input"
-              >
-                <option value="MORNING">{t('shifts.morning', 'Ca Sáng')}</option>
-                <option value="AFTERNOON">{t('shifts.afternoon', 'Ca Chiều')}</option>
-                <option value="NIGHT">{t('shifts.night', 'Ca Đêm')}</option>
-                <option value="ON_CALL">{t('shifts.on_call', 'Trực Thường Trú')}</option>
-                <option value="EMERGENCY_COVER">{t('shifts.emergency', 'Tăng Cường Khẩn Cấp')}</option>
-              </Form.Select>
-            </Form.Group>
-
-            <Row className="g-2">
-              <Col xs={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">{t('admin.field_start_time', 'Bắt Đầu')}</Form.Label>
-                  <Form.Control
-                    type="datetime-local"
-                    required
-                    value={newShiftData.start_time}
-                    onChange={(e) => setNewShiftData({ ...newShiftData, start_time: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-              <Col xs={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">{t('admin.field_end_time', 'Kết Thúc')}</Form.Label>
-                  <Form.Control
-                    type="datetime-local"
-                    required
-                    value={newShiftData.end_time}
-                    onChange={(e) => setNewShiftData({ ...newShiftData, end_time: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowAddShiftModal(false)}>
-              {t('admin.btn_cancel', 'Hủy')}
-            </Button>
-            <Button type="submit" variant="primary" disabled={createShiftMutation.isPending}>
-              {createShiftMutation.isPending ? t('admin.btn_assigning', 'Đang phân ca...') : t('admin.btn_confirm_shift', 'Xác Nhận Phân Ca')}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      {/* ========================================================================= */}
       {/* MODAL 8: ASSIGN RBAC ROLE AND PERMISSIONS */}
       {/* ========================================================================= */}
       <Modal show={showRoleModal} onHide={() => setShowRoleModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-bottom pb-3">
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2 mb-0">
-            <Shield className="text-primary" size={20} />
+            <ShieldCheck className="text-primary" size={20} />
             <span>{t('admin.modal_role_title', 'Phân Quyền Vai Trò Tài Khoản')}</span>
           </Modal.Title>
         </Modal.Header>
-        <Form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!selectedAccountForRole) return;
-            updateRoleMutation.mutate({
-              id: selectedAccountForRole.account_id,
-              role_code: newRoleCode
-            });
-          }}
-        >
+        <Form onSubmit={handleRequestRoleChange}>
           <Modal.Body className="p-4">
             {selectedAccountForRole && (
               <div className="p-3 mb-4 rounded-3 border bg-light">
@@ -2267,6 +1472,7 @@ export const SystemManagement: React.FC = () => {
                 <span className="text-muted fw-normal small">{t('admin.rbac_standard_note', 'Hệ thống áp dụng chuẩn RBAC')}</span>
               </Form.Label>
               <Form.Select
+                aria-label={t('admin.field_select_new_role', 'Chọn Vai Trò Mới')}
                 value={newRoleCode}
                 onChange={(e) => setNewRoleCode(e.target.value)}
                 className="wd-input fs-6 py-2"
@@ -2364,6 +1570,25 @@ export const SystemManagement: React.FC = () => {
           </Modal.Footer>
         </Form>
       </Modal>
+
+      {/* GLOBAL CONFIRMATION MODAL */}
+      <ConfirmModal
+        show={confirmDialog.show}
+        onClose={closeConfirmDialog}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+        variant={confirmDialog.variant}
+        iconType={confirmDialog.iconType}
+        isLoading={
+          lockAccountMutation.isPending ||
+          updateRoleMutation.isPending ||
+          broadcastMutation.isPending
+        }
+        details={confirmDialog.details}
+      />
     </Container>
   );
 };

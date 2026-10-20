@@ -314,7 +314,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         </div>
       </div>
 
-      {/* Workday Navigation Tabs */}
+      {/* Navigation Tabs */}
       <div className="wd-tabs">
         <button
           type="button"
@@ -337,10 +337,15 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         <Row className="g-3 align-items-center">
           <Col xs={12} md={activeTab === 'staff' ? 5 : 8}>
             <div className="position-relative">
-              <Search size={15} className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
+              <Search size={15} aria-hidden="true" className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
               <input
                 type="text"
                 placeholder={
+                  activeTab === 'staff'
+                    ? t('directory.search_staff_placeholder', 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...')
+                    : t('directory.search_license_placeholder', 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...')
+                }
+                aria-label={
                   activeTab === 'staff'
                     ? t('directory.search_staff_placeholder', 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...')
                     : t('directory.search_license_placeholder', 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...')
@@ -355,6 +360,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             <>
               <Col xs={6} md={3}>
                 <select
+                  aria-label={t('directory.all_departments', 'Tất Cả Khoa Phòng')}
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
                   className="wd-select w-100"
@@ -369,6 +375,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               </Col>
               <Col xs={6} md={2}>
                 <select
+                  aria-label={t('directory.all_roles', 'Tất Cả Chức Danh')}
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="wd-select w-100"
@@ -383,17 +390,19 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                 <ButtonGroup size="sm">
                   <button
                     type="button"
+                    aria-label={t('directory.view_grid', 'Xem dạng lưới')}
                     className={`btn btn-sm ${viewFormat === 'grid' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
                     onClick={() => setViewFormat('grid')}
                   >
-                    <LayoutGrid size={14} />
+                    <LayoutGrid size={14} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
+                    aria-label={t('directory.view_table', 'Xem dạng bảng')}
                     className={`btn btn-sm ${viewFormat === 'table' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
                     onClick={() => setViewFormat('table')}
                   >
-                    <List size={14} />
+                    <List size={14} aria-hidden="true" />
                   </button>
                 </ButtonGroup>
               </Col>
@@ -783,6 +792,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             <Form.Group className="mb-3">
               <label className="wd-label">{t('directory.lbl_assign_dept', 'Khoa Phòng Phân Công')}</label>
               <select
+                aria-label={t('directory.lbl_assign_dept', 'Khoa Phòng Phân Công')}
                 value={newDept}
                 onChange={(e) => setNewDept(e.target.value)}
                 className="wd-select w-100"
@@ -799,6 +809,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               <Col xs={6}>
                 <label className="wd-label">{t('directory.lbl_role_title', 'Chức Vụ Chuyên Môn')}</label>
                 <select
+                  aria-label={t('directory.lbl_role_title', 'Chức Vụ Chuyên Môn')}
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as any)}
                   className="wd-select w-100"
@@ -812,6 +823,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               <Col xs={6}>
                 <label className="wd-label">{t('directory.lbl_specific_spec', 'Chuyên Khoa Cụ Thể')}</label>
                 <input
+                  aria-label={t('directory.lbl_specific_spec', 'Chuyên Khoa Cụ Thể')}
                   placeholder={t('directory.placeholder_spec', 'VD: Hồi Sức Cấp Cứu')}
                   value={newSpecialty}
                   onChange={(e) => setNewSpecialty(e.target.value)}
@@ -851,6 +863,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             <Form.Group className="mb-3">
               <label className="wd-label">{t('directory.lbl_lic_staff', 'Cán Bộ Y Tế Đăng Ký')}</label>
               <select
+                aria-label={t('directory.lbl_lic_staff', 'Cán Bộ Y Tế Đăng Ký')}
                 value={licStaff}
                 onChange={(e) => setLicStaff(e.target.value)}
                 className="wd-select w-100"

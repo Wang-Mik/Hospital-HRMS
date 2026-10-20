@@ -8,7 +8,7 @@ import {
   Alert
 } from 'react-bootstrap';
 import {
-  CalendarPlus,
+  Plus,
   ExternalLink,
   Info,
   Calendar,
@@ -194,7 +194,7 @@ export const TimeOffLeaves: React.FC = () => {
 
   return (
     <Container fluid className="px-0">
-      {/* Workday Page Header */}
+      {/* Page Header */}
       <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4">
         <div>
           <h1 className="wd-page-title">{t('timeoff.title', 'Quản Lý Nghỉ Phép')}</h1>
@@ -208,7 +208,7 @@ export const TimeOffLeaves: React.FC = () => {
             className="wd-pill-btn-primary"
             onClick={() => setShowRequestModal(true)}
           >
-            <CalendarPlus size={15} />
+            <Plus size={15} />
             <span>{t('timeoff.leave_registration', 'Xin Nghỉ Phép / Vắng Mặt')}</span>
           </button>
         </div>
@@ -225,7 +225,7 @@ export const TimeOffLeaves: React.FC = () => {
         </Alert>
       )}
 
-      {/* Workday Support Banner (AskHR) */}
+      {/* Support Banner (AskHR) */}
       <div className="wd-support-banner">
         <div className="wd-support-icon">
           <Info size={18} />
@@ -247,7 +247,7 @@ export const TimeOffLeaves: React.FC = () => {
         </button>
       </div>
 
-      {/* 2-Column Workday Layout */}
+      {/* 2-Column Layout */}
       <Row className="g-4">
         {/* COLUMN 1 (LEFT): AVAILABLE BALANCE */}
         <Col lg={6}>
@@ -414,6 +414,7 @@ export const TimeOffLeaves: React.FC = () => {
                 {t('timeoff.leave_type', 'Loại Nghỉ Phép')}
               </label>
               <select
+                aria-label={t('timeoff.leave_type', 'Loại Nghỉ Phép')}
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value)}
                 className="wd-select w-100"

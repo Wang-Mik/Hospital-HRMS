@@ -1,23 +1,22 @@
 import React from 'react';
 import { Row, Col, Card, Badge } from 'react-bootstrap';
 import {
-  Inbox,
+  ClipboardList,
   Clock,
   Calendar,
   ChevronRight,
   ShieldCheck,
   CheckSquare,
-  AlertCircle,
   ExternalLink,
   Users,
   Building2,
   Award,
   CreditCard,
   Send,
-  UserCheck,
   Bell,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  UserCheck
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -135,16 +134,19 @@ export const Dashboard: React.FC = () => {
               <span className="badge rounded-pill bg-white text-primary fw-semibold px-2.5 py-1 mb-2 text-uppercase" style={{ fontSize: '11px' }}>
                 {t('dashboard.banner_hr_dept', 'KHỐI TỔ CHỨC CÁN BỘ • BAN GIÁM ĐỐC')}
               </span>
-              <h4 className="fw-bold mb-1 text-white" style={{ letterSpacing: '-0.02em' }}>
+              <h1 className="fw-bold mb-1 text-white" style={{ letterSpacing: '-0.02em', fontSize: '1.4rem' }}>
                 {t('dashboard.banner_hr_title', 'Trung Tâm Chỉ Huy Quản Trị Nhân Sự Bệnh Viện')}
-              </h4>
+              </h1>
               <p className="text-white text-opacity-85 mb-0 small" style={{ maxWidth: '640px', fontSize: '13px' }}>
                 {t('dashboard.banner_hr_desc', 'Điều hành hồ sơ cán bộ, quản trị tài khoản IAM, duyệt nghỉ phép, định mức chi trả lương VND và tuân thủ chứng chỉ hành nghề y tế.')}
               </p>
             </div>
             <div className="d-flex gap-2 flex-shrink-0">
-              <Link to="/admin" className="btn btn-sm btn-light fw-semibold text-primary px-3.5 py-2 rounded-pill shadow-sm">
-                {t('dashboard.banner_hr_btn', 'Vào Cổng Quản Trị Toàn Diện')} &rarr;
+              <Link to="/hr" className="btn btn-sm btn-light fw-semibold text-primary px-3.5 py-2 rounded-pill shadow-sm">
+                {t('dashboard.banner_hr_portal_btn', 'Vào Cổng Quản Trị Nhân Sự')} &rarr;
+              </Link>
+              <Link to="/admin" className="btn btn-sm btn-outline-light fw-semibold px-3 py-2 rounded-pill">
+                {t('dashboard.banner_admin_btn', 'Quản Trị Hệ Thống')}
               </Link>
             </div>
           </div>
@@ -152,31 +154,34 @@ export const Dashboard: React.FC = () => {
 
         {/* 2. Welcome Title & HR Quick Action Pills */}
         <div className="text-center my-4 py-1">
-          <h3 className="fw-bold text-dark mb-1" style={{ letterSpacing: '-0.02em', fontSize: '24px' }}>
+          <h2 className="fw-bold text-dark mb-1" style={{ letterSpacing: '-0.02em', fontSize: '24px' }}>
             {t('top_nav.welcome', 'Chào mừng')}, {currentStaffName}
-          </h3>
+          </h2>
           <p className="text-muted small mb-3">
             {user?.role === 'SUPER_ADMIN' ? t('dashboard.role_super_admin', 'Ban Giám Đốc Bệnh Viện') : t('dashboard.role_hr_manager', 'Trưởng Phòng Tổ Chức Cán Bộ')}
           </p>
 
           <div className="d-flex flex-wrap justify-content-center gap-2">
             <Link to="/admin" className="wd-pill-btn text-primary fw-semibold">
-              <ShieldCheck size={14} className="me-1" /> {t('dashboard.quick_iam', 'Quản trị hệ thống & IAM')}
+              <ShieldCheck size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_iam', 'Quản trị hệ thống & IAM')}
             </Link>
-            <Link to="/leave" className="wd-pill-btn">
-              <Calendar size={14} className="me-1" /> {t('dashboard.quick_leave_review', 'Duyệt phép')} ({kpis.pending_leaves} {t('dashboard.pending_approval_count', 'chờ duyệt')})
+            <Link to="/hr" className="wd-pill-btn text-success fw-semibold">
+              <UserCheck size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_hr', 'Quản trị nhân sự')}
             </Link>
-            <Link to="/payroll" className="wd-pill-btn">
-              <CreditCard size={14} className="me-1" /> {t('dashboard.quick_pay_vnd', 'Định mức lương VND')}
+            <Link to="/hr?tab=leaves" className="wd-pill-btn">
+              <Calendar size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_leave_review', 'Duyệt phép')} ({kpis.pending_leaves} {t('dashboard.pending_approval_count', 'chờ duyệt')})
+            </Link>
+            <Link to="/hr?tab=compensation" className="wd-pill-btn">
+              <CreditCard size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_pay_vnd', 'Định mức lương VND')}
             </Link>
             <Link to="/employees" className="wd-pill-btn">
-              <Users size={14} className="me-1" /> {t('dashboard.quick_staff_records', 'Hồ sơ cán bộ')} ({kpis.total_employees})
+              <Users size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_staff_records', 'Hồ sơ cán bộ')} ({kpis.total_employees})
             </Link>
-            <Link to="/licenses" className="wd-pill-btn">
-              <Award size={14} className="me-1" /> {t('dashboard.quick_cchn', 'Giám sát CCHN y tế')}
+            <Link to="/hr?tab=licensing" className="wd-pill-btn">
+              <Award size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_cchn', 'Giám sát CCHN y tế')}
             </Link>
-            <Link to="/notifications" className="wd-pill-btn">
-              <Bell size={14} className="me-1" /> {t('dashboard.quick_broadcast', 'Phát lệnh thông báo')}
+            <Link to="/admin?tab=broadcast" className="wd-pill-btn">
+              <Bell size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_broadcast', 'Phát lệnh thông báo')}
             </Link>
           </div>
         </div>
@@ -188,9 +193,9 @@ export const Dashboard: React.FC = () => {
             {/* Section: Awaiting HR Action */}
             <div className="mb-4">
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <h5 className="fw-bold text-dark mb-0" style={{ fontSize: '17px' }}>
+                <h3 className="fw-bold text-dark mb-0" style={{ fontSize: '17px' }}>
                   {t('dashboard.awaiting_hr', 'Cần HR Xử Lý Ngay')}
-                </h5>
+                </h3>
                 <span className="text-muted small">
                   {kpis.pending_leaves + kpis.expiring_licenses_30d} {t('dashboard.priority_items', 'mục ưu tiên')}
                 </span>
@@ -278,7 +283,7 @@ export const Dashboard: React.FC = () => {
                 <h5 className="fw-bold text-dark mb-0" style={{ fontSize: '17px' }}>
                   {t('dashboard.dept_structure_title', 'Cơ Cấu Nhân Lực 8 Khoa Phòng Bệnh Viện')}
                 </h5>
-                <Link to="/admin" className="text-decoration-none fw-semibold text-primary small">
+                <Link to="/admin?tab=departments" className="text-decoration-none fw-semibold text-primary small">
                   {t('dashboard.manage_depts', 'Quản lý khoa phòng')} &gt;
                 </Link>
               </div>
@@ -355,7 +360,7 @@ export const Dashboard: React.FC = () => {
                   <Link to="/notifications" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
                     <span>{t('dashboard.open_notifications', 'Mở trung tâm thông báo')} &gt;</span>
                   </Link>
-                  <Link to="/admin" className="btn btn-sm btn-outline-primary py-0.5 px-2" style={{ fontSize: '11.5px' }}>
+                  <Link to="/admin?tab=broadcast" className="btn btn-sm btn-outline-primary py-0.5 px-2" style={{ fontSize: '11.5px' }}>
                     {t('dashboard.publish_notice', 'Phát thông báo')}
                   </Link>
                 </div>
@@ -395,6 +400,10 @@ export const Dashboard: React.FC = () => {
                     <span className="small fw-semibold">{t('dashboard.shortcut_iam', '🛡️ Cổng Quản Trị Hệ Thống & IAM')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
+                  <Link to="/hr" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                    <span className="small fw-semibold">{t('dashboard.shortcut_hr', '👥 Cổng Quản Trị Nhân Sự')}</span>
+                    <ChevronRight size={15} className="text-muted" />
+                  </Link>
                   <Link to="/employees" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
                     <span className="small fw-semibold">{t('dashboard.shortcut_staff', '👥 Danh Bạ Cán Bộ & Bổ Nhiệm')}</span>
                     <ChevronRight size={15} className="text-muted" />
@@ -417,7 +426,7 @@ export const Dashboard: React.FC = () => {
   // (Shift roster, patient bed handovers, attendance clock-in, clinical tasks)
   // =========================================================================
   const pendingHandovers = handovers?.filter((h: any) => h.status === 'PENDING_SIGNATURE') || [];
-  const pendingTasks = tasks?.filter((t: any) => t.status !== 'COMPLETED') || [];
+  const pendingTasks = tasks?.filter((taskItem: any) => taskItem.status !== 'COMPLETED') || [];
   const annualBal = Array.isArray(leaveBalances) ? leaveBalances.find((b: any) => b.leave_type === 'ANNUAL') : null;
   const annualRemaining = annualBal ? annualBal.remaining_days : 0;
   const upcomingLeave = Array.isArray(leaveRequests) ? leaveRequests.find((r: any) => r.status === 'APPROVED' || r.status === 'PENDING') : null;
@@ -461,7 +470,7 @@ export const Dashboard: React.FC = () => {
           {t('dashboard.staff_code_label', 'Mã số cán bộ:')} <strong>{currentStaffCode}</strong> &bull; {t('dashboard.staff_role_label', 'Chức vụ:')} {user?.role || 'DOCTOR'}
         </p>
 
-        {/* Workday Quick Action Pill Row for Doctors/Nurses */}
+        {/* Quick Action Pill Row for Doctors/Nurses */}
         <div className="d-flex flex-wrap justify-content-center gap-2">
           <Link to="/leave" className="wd-pill-btn">
             {t('dashboard.action_manage_leaves', 'Quản lý nghỉ phép')}
@@ -519,7 +528,7 @@ export const Dashboard: React.FC = () => {
                             className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
                             style={{ width: '38px', height: '38px', backgroundColor: '#e8f2fc' }}
                           >
-                            <Inbox size={20} />
+                            <ClipboardList size={20} />
                           </div>
                           <div>
                             <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
@@ -541,8 +550,8 @@ export const Dashboard: React.FC = () => {
                   ))}
 
                   {/* Tasks */}
-                  {pendingTasks.slice(0, 2).map((t: any) => (
-                    <Card key={t.id} className="wd-card mb-0">
+                  {pendingTasks.slice(0, 2).map((taskItem: any) => (
+                    <Card key={taskItem.id} className="wd-card mb-0">
                       <Card.Body className="p-3.5 d-flex align-items-start justify-content-between gap-3">
                         <div className="d-flex align-items-start gap-3">
                           <div
@@ -553,10 +562,10 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
-                              {t.title}
+                              {taskItem.title}
                             </div>
                             <div className="text-muted small mt-0.5" style={{ fontSize: '12.5px' }}>
-                              {t.description || t('dashboard.ward_order_default', 'Y lệnh chăm sóc buồng bệnh')}
+                              {taskItem.description || t('dashboard.ward_order_default', 'Y lệnh chăm sóc buồng bệnh')}
                             </div>
                           </div>
                         </div>
@@ -571,7 +580,8 @@ export const Dashboard: React.FC = () => {
 
               <div className="text-start ps-1 pt-1">
                 <Link to="/tasks" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
-                  <span>{t('dashboard.go_to_all_tasks', 'Chuyển đến Toàn bộ Nhiệm vụ của tôi')} ({pendingTasks.length + pendingHandovers.length})</span>
+                  <span>{t('dashboard.go_to_all_tasks', 'Chuyển đến Toàn bộ Nhiệm vụ của tôi')}</span>
+                  <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary ms-1">{pendingTasks.length + pendingHandovers.length}</span>
                   <ChevronRight size={14} />
                 </Link>
               </div>
