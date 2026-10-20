@@ -397,19 +397,19 @@ export const Dashboard: React.FC = () => {
               <Card.Body className="p-3">
                 <div className="d-flex flex-column gap-2">
                   <Link to="/admin" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_iam', '🛡️ Cổng Quản Trị Hệ Thống & IAM')}</span>
+                    <span className="small fw-semibold">{t('dashboard.shortcut_iam', 'Cổng Quản Trị Hệ Thống & IAM')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
                   <Link to="/hr" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_hr', '👥 Cổng Quản Trị Nhân Sự')}</span>
+                    <span className="small fw-semibold">{t('dashboard.shortcut_hr', 'Cổng Quản Trị Nhân Sự')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
                   <Link to="/employees" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_staff', '👥 Danh Bạ Cán Bộ & Bổ Nhiệm')}</span>
+                    <span className="small fw-semibold">{t('dashboard.shortcut_staff', 'Danh Bạ Cán Bộ & Bổ Nhiệm')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
                   <Link to="/licenses" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_cchn', '📜 Giám Sát Chứng Chỉ Hành Nghề')}</span>
+                    <span className="small fw-semibold">{t('dashboard.shortcut_cchn', 'Giám Sát Chứng Chỉ Hành Nghề')}</span>
                     <ChevronRight size={15} className="text-muted" />
                   </Link>
                 </div>
