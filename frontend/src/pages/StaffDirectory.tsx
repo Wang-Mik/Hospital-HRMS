@@ -433,7 +433,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                       </div>
 
                       <div className="fw-bold text-dark mb-1" style={{ fontSize: '15.5px' }}>
-                        {emp.first_name} {emp.last_name}
+                        {lang === 'vi' ? `${emp.last_name || ''} ${emp.first_name || ''}`.trim() : `${emp.first_name || ''} ${emp.last_name || ''}`.trim()}
                       </div>
                       <div className="font-mono text-muted mb-2.5" style={{ fontSize: '11px' }}>
                         {emp.employee_code}
@@ -503,7 +503,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                             </div>
                             <div>
                               <div className="fw-semibold text-dark">
-                                {e.first_name} {e.last_name}
+                                {lang === 'vi' ? `${e.last_name || ''} ${e.first_name || ''}`.trim() : `${e.first_name || ''} ${e.last_name || ''}`.trim()}
                               </div>
                               <span className="font-mono text-muted" style={{ fontSize: '11px' }}>{e.employee_code}</span>
                             </div>
@@ -692,7 +692,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               </div>
               <div>
                 <h5 className="fw-bold text-dark mb-0.5">
-                  {selectedProfile.first_name} {selectedProfile.last_name}
+                  {lang === 'vi' ? `${selectedProfile.last_name || ''} ${selectedProfile.first_name || ''}`.trim() : `${selectedProfile.first_name || ''} ${selectedProfile.last_name || ''}`.trim()}
                 </h5>
                 <div className="text-muted" style={{ fontSize: '12px' }}>
                   <span className="font-mono">{selectedProfile.employee_code}</span> &bull; {selectedProfile.role} &bull; {selectedProfile.department_name}
@@ -870,7 +870,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               >
                 {employees.map((e) => (
                   <option key={e.id} value={e.employee_code}>
-                    {e.first_name} {e.last_name} ({e.employee_code}) - {e.department_name}
+                    {lang === 'vi' ? `${e.last_name || ''} ${e.first_name || ''}`.trim() : `${e.first_name || ''} ${e.last_name || ''}`.trim()} ({e.employee_code}) - {e.department_name}
                   </option>
                 ))}
               </select>

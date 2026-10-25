@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Row,
@@ -16,7 +16,12 @@ import {
   Calendar,
   FileText,
   Info,
-  UserCheck
+  UserCheck,
+  Search,
+  Users,
+  Filter,
+  RotateCcw,
+  Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,8 +32,17 @@ import { useTranslation } from '../i18n/useTranslation';
 
 export interface AttendanceRecord {
   id: string;
+  shift_id: string | null;
   staff_id: string;
   staff_name: string;
+  staff_role?: string;
+  department_code?: string;
+  department_name?: string;
+  specialty?: string;
+  shift_type?: string;
+  on_call_tier?: string;
+  scheduled_start?: string;
+  scheduled_end?: string;
   shift_label: string;
   clock_in_time: string;
   clock_out_time: string | null;
@@ -36,6 +50,61 @@ export interface AttendanceRecord {
   attendance_status: 'PRESENT' | 'LATE' | 'OVERTIME' | 'EARLY_DEPARTURE' | 'HALF_DAY';
   overtime_minutes: number;
   handover_notes: string | null;
+}
+
+/**
+ * Resolves professional clinical & administrative shift description based on employee role and scheduled duty
+ */
+function resolveAttendanceShiftLabel(r: any, serverEmployees?: any[]): string {
+  const emp = serverEmployees?.find((e: any) => e.employee_code === r.staff_id);
+  const role = r.staff_role || emp?.role;
+  const deptCode = r.department_code || emp?.department_code;
+  const deptName = r.department_name || (deptCode === 'DEP-HSTC' ? 'Khoa Hồi Sức Tích Cực' : deptCode === 'DEP-NOI' ? 'Khoa Nội Tổng Hợp' : deptCode === 'DEP-NGOAI' ? 'Khoa Ngoại Phẫu Thuật' : deptCode === 'DEP-KHTH' ? 'Phòng Kế Hoạch Tổng Hợp' : deptCode === 'DEP-SANNHI' ? 'Khoa Phụ Sản & Nhi' : deptCode === 'DEP-CDHA' ? 'Khoa Chẩn Đoán Hình Ảnh' : deptCode === 'DEP-DUOC' ? 'Khoa Dược Bệnh Viện' : 'Khoa Khám Bệnh');
+
+  const isDoc = role === 'DOCTOR' || role === 'DEPARTMENT_HEAD';
+  const isNur = role === 'NURSE';
+  const isTech = role === 'TECHNICIAN';
+  const isPharm = deptCode === 'DEP-DUOC' || role === 'STAFF';
+  const isHRorAdmin = role === 'HR_MANAGER' || role === 'SUPER_ADMIN' || deptCode === 'DEP-KHTH';
+
+  const timeSlot = (r.clock_in_time || '').slice(11, 16);
+  const isNight = r.shift_type === 'NIGHT' || (r.scheduled_start && r.scheduled_start.includes('21:00')) || (r.clock_in_time && (timeSlot >= '20:30' || timeSlot < '06:00'));
+  const isAfternoon = r.shift_type === 'AFTERNOON' || (r.scheduled_start && r.scheduled_start.includes('14:00')) || (r.clock_in_time && timeSlot >= '13:30' && timeSlot < '18:00');
+  const isLeadership = r.on_call_tier === 'LEADERSHIP' || r.shift_type === 'ON_CALL';
+
+  let shiftName = '';
+  if (isLeadership) {
+    shiftName = 'Trực Lãnh Đạo Viện (16:30 – 07:30)';
+  } else if (isNight) {
+    if (isDoc) shiftName = 'Ca 3: Trực Đêm Lâm Sàng (21:00 – 07:00)';
+    else if (isNur) shiftName = 'Ca 3: Trực Đêm Điều Dưỡng (21:00 – 07:00)';
+    else if (isTech) shiftName = 'Ca 3: Trực Đêm CĐHA 24/7 (21:00 – 07:00)';
+    else shiftName = 'Ca 3: Trực Đêm (21:00 – 07:00)';
+  } else if (isAfternoon) {
+    if (isDoc) shiftName = 'Ca 2: Chiều Khám Bệnh (14:00 – 21:00)';
+    else if (isNur) shiftName = 'Ca 2: Chiều Điều Dưỡng (14:00 – 21:00)';
+    else if (isTech) shiftName = 'Ca 2: Chiều Kỹ Thuật (14:00 – 21:00)';
+    else shiftName = 'Ca 2: Chiều (14:00 – 21:00)';
+  } else {
+    // Daytime
+    const isMorningCa1 = (r.scheduled_start && r.scheduled_start.includes('07:00') && r.scheduled_end && r.scheduled_end.includes('14:00'));
+    if (isMorningCa1) {
+      if (isDoc) shiftName = 'Ca 1: Sáng Khám Lâm Sàng (07:00 – 14:00)';
+      else if (isNur) shiftName = 'Ca 1: Sáng Chăm Sóc Buồng Bệnh (07:00 – 14:00)';
+      else if (isTech) shiftName = 'Ca 1: Sáng Chụp X-Quang / CT (07:00 – 14:00)';
+      else shiftName = 'Ca 1: Sáng (07:00 – 14:00)';
+    } else {
+      // Standard daytime
+      if (isDoc) shiftName = 'Khám Bệnh Hành Chính (07:30 – 16:30)';
+      else if (isNur) shiftName = 'Hành Chính Điều Dưỡng (07:30 – 16:30)';
+      else if (isTech) shiftName = 'Kỹ Thuật Cận Lâm Sàng (07:30 – 16:30)';
+      else if (isPharm) shiftName = 'Cấp Phát Dược Phẩm BHYT (07:30 – 16:30)';
+      else if (isHRorAdmin) shiftName = 'Làm Việc Hành Chính (07:30 – 16:30)';
+      else shiftName = 'Làm Việc Hành Chính (07:30 – 16:30)';
+    }
+  }
+
+  return `${shiftName} • ${deptName}`;
 }
 
 export const AttendanceClock: React.FC = () => {
@@ -79,8 +148,10 @@ export const AttendanceClock: React.FC = () => {
   const [handoverNotes, setHandoverNotes] = useState<string>('');
   const [overtimeExtra, setOvertimeExtra] = useState<number>(0);
 
-  // Table filter: All hospital vs My shifts
-  const [filterMineOnly, setFilterMineOnly] = useState<boolean>(false);
+  // Table options: Hide past shifts, Hide colleagues, Search query
+  const [hidePastShifts, setHidePastShifts] = useState<boolean>(false);
+  const [hideColleagues, setHideColleagues] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Live ticking clock
   useEffect(() => {
@@ -134,9 +205,18 @@ export const AttendanceClock: React.FC = () => {
 
         return {
           id: r.id,
+          shift_id: r.shift_id || null,
           staff_id: r.staff_id,
           staff_name: staffName,
-          shift_label: r.shift_type ? `${t('shifts.morning', 'Ca')} ${r.shift_type}` : t('attendance.emergency_icu_dept', 'Khoa Cấp Cứu / ICU'),
+          staff_role: r.staff_role,
+          department_code: r.department_code,
+          department_name: r.department_name,
+          specialty: r.specialty,
+          shift_type: r.shift_type,
+          on_call_tier: r.on_call_tier,
+          scheduled_start: r.scheduled_start,
+          scheduled_end: r.scheduled_end,
+          shift_label: resolveAttendanceShiftLabel(r, serverEmployees),
           clock_in_time: r.clock_in_time,
           clock_out_time: r.clock_out_time,
           clock_in_method: r.clock_in_method || 'BIOMETRIC',
@@ -146,6 +226,39 @@ export const AttendanceClock: React.FC = () => {
         };
       })
     : [];
+
+  // Local date helper (YYYY-MM-DD)
+  const todayYmd = useMemo(() => {
+    const y = currentTime.getFullYear();
+    const m = String(currentTime.getMonth() + 1).padStart(2, '0');
+    const d = String(currentTime.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [currentTime]);
+
+  // Today's records (clocked in today)
+  const todayRecords = useMemo(() => {
+    return records.filter((r: AttendanceRecord) => (r.clock_in_time || '').startsWith(todayYmd));
+  }, [records, todayYmd]);
+
+  // Active sessions: not clocked out and clocked in within the last 24 hours
+  const activeSessions = useMemo(() => {
+    const nowMs = currentTime.getTime();
+    return records.filter((r: AttendanceRecord) => {
+      if (r.clock_out_time) return false;
+      const inMs = new Date(r.clock_in_time.replace(' ', 'T')).getTime();
+      return !isNaN(inMs) && (nowMs - inMs) <= 24 * 60 * 60 * 1000;
+    });
+  }, [records, currentTime]);
+
+  // Today's late count
+  const todayLateCount = useMemo(() => {
+    return todayRecords.filter((r: AttendanceRecord) => r.attendance_status === 'LATE').length;
+  }, [todayRecords]);
+
+  // Total overtime minutes
+  const totalOvertimeMin = useMemo(() => {
+    return records.reduce((acc: number, r: AttendanceRecord) => acc + (r.overtime_minutes || 0), 0);
+  }, [records]);
 
   // Scoped to the current targeted staff ID (by default, logged-in user)
   const activeSession = records.find(
@@ -200,9 +313,36 @@ export const AttendanceClock: React.FC = () => {
     }
   };
 
-  const displayRecords = filterMineOnly
-    ? records.filter((r) => r.staff_id === (user?.employee_code || currentStaffId))
-    : records;
+  const displayRecords = useMemo(() => {
+    return records.filter((r) => {
+      // 1. Option Hide Colleagues
+      if (hideColleagues) {
+        const myId = user?.employee_code || currentStaffId;
+        if (r.staff_id !== myId) return false;
+      }
+
+      // 2. Option Hide Past Shifts (Only show today's shifts or active open sessions)
+      if (hidePastShifts) {
+        const isToday = (r.clock_in_time || '').startsWith(todayYmd);
+        const isOpen = !r.clock_out_time;
+        if (!isToday && !isOpen) return false;
+      }
+
+      // 3. Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const staffName = (r.staff_name || '').toLowerCase();
+        const staffId = (r.staff_id || '').toLowerCase();
+        const dept = (r.department_name || r.department_code || '').toLowerCase();
+        const label = (r.shift_label || '').toLowerCase();
+        const spec = (r.specialty || r.staff_role || '').toLowerCase();
+        const match = staffName.includes(q) || staffId.includes(q) || dept.includes(q) || label.includes(q) || spec.includes(q);
+        if (!match) return false;
+      }
+
+      return true;
+    });
+  }, [records, hideColleagues, hidePastShifts, searchQuery, user?.employee_code, currentStaffId, todayYmd]);
 
   return (
     <Container fluid className="px-0">
@@ -391,7 +531,7 @@ export const AttendanceClock: React.FC = () => {
                             {user?.name || user?.full_name || (serverEmployees?.find((e: any) => e.employee_code === currentStaffId) ? `${serverEmployees.find((e: any) => e.employee_code === currentStaffId).last_name} ${serverEmployees.find((e: any) => e.employee_code === currentStaffId).first_name}` : currentStaffId)}
                           </div>
                           <div className="text-muted small font-mono" style={{ fontSize: '11px' }}>
-                            {currentStaffId} &bull; {user?.department || (user?.role ? user.role : t('attendance.emergency_icu_dept', 'Khoa Cấp Cứu / ICU'))}
+                            {currentStaffId} &bull; {user?.department || (serverEmployees?.find((e: any) => e.employee_code === currentStaffId)?.department_name || serverEmployees?.find((e: any) => e.employee_code === currentStaffId)?.department_code || user?.role || t('attendance.general_dept', 'Khoa Khám Bệnh'))}
                           </div>
                         </div>
                         <span className="wd-badge-success flex-shrink-0" style={{ fontSize: '10px' }}>
@@ -439,7 +579,7 @@ export const AttendanceClock: React.FC = () => {
                   {t('attendance.stat_active_shift', 'Đang Trực Ca Hiện Hành')}
                 </div>
                 <div className="fw-bold mt-1 font-mono" style={{ fontSize: '24px', color: 'var(--wd-green)' }}>
-                  {records.filter((r) => !r.clock_out_time).length}
+                  {activeSessions.length}
                 </div>
                 <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('attendance.stat_active_sub', 'Nhân sự có mặt tại khoa phòng')}</div>
               </div>
@@ -451,7 +591,7 @@ export const AttendanceClock: React.FC = () => {
                   {t('attendance.stat_late', 'Vào Ca Muộn / Đi Trễ')}
                 </div>
                 <div className="fw-bold mt-1 font-mono" style={{ fontSize: '24px', color: 'var(--wd-red)' }}>
-                  {records.filter((r) => r.attendance_status === 'LATE').length}
+                  {todayLateCount}
                 </div>
                 <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('attendance.stat_late_sub', 'Sau 15 phút so với lịch ca')}</div>
               </div>
@@ -463,7 +603,7 @@ export const AttendanceClock: React.FC = () => {
                   {t('attendance.stat_ot', 'Tổng Số Phút Tăng Ca')}
                 </div>
                 <div className="fw-bold text-dark mt-1 font-mono" style={{ fontSize: '24px' }}>
-                  {records.reduce((acc, r) => acc + r.overtime_minutes, 0)} <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#6b7280' }}>{t('attendance.overtime_minutes_label', 'phút')}</span>
+                  {totalOvertimeMin} <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#6b7280' }}>{t('attendance.overtime_minutes_label', 'phút')}</span>
                 </div>
                 <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('attendance.stat_ot_sub', 'Trực ca cấp cứu ngoài giờ')}</div>
               </div>
@@ -475,7 +615,7 @@ export const AttendanceClock: React.FC = () => {
                   {t('attendance.stat_today_logs', 'Lượt Chấm Công Hôm Nay')}
                 </div>
                 <div className="fw-bold text-dark mt-1 font-mono" style={{ fontSize: '24px' }}>
-                  {records.length}
+                  {todayRecords.length}
                 </div>
                 <div className="text-muted mt-1" style={{ fontSize: '11px' }}>{t('attendance.stat_today_sub', 'Vân tay, thẻ từ & kiosk viện')}</div>
               </div>
@@ -495,28 +635,79 @@ export const AttendanceClock: React.FC = () => {
 
       {/* Attendance Logs Table */}
       <div className="wd-card">
-        <div className="wd-card-header d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+        <div className="wd-card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
           <div className="d-flex align-items-center gap-2">
             <span className="wd-card-title">{t('attendance.log_title', 'Nhật Ký Chấm Công & Điểm Danh')}</span>
-            <span className="badge bg-secondary rounded-pill fw-normal">{displayRecords.length}</span>
+            <span className="badge bg-secondary rounded-pill fw-normal">
+              {displayRecords.length} / {records.length}
+            </span>
           </div>
-          <div className="d-flex align-items-center gap-2">
+
+          {/* Options toolbar: Search, Hide past shifts, Hide colleagues, Reset */}
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            {/* Search Box */}
+            <div className="position-relative" style={{ minWidth: '220px' }}>
+              <input
+                type="text"
+                className="wd-input py-1 ps-4 pe-2"
+                style={{ fontSize: '11px', height: '30px' }}
+                placeholder="Tìm cán bộ, mã NV, khoa..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Search
+                size={12}
+                className="position-absolute text-muted"
+                style={{ left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+              />
+            </div>
+
+            {/* Option 1: Ẩn các ca cũ */}
             <button
               type="button"
-              className={`wd-pill-btn py-1 px-2.5 ${!filterMineOnly ? 'wd-pill-btn-primary' : 'wd-pill-btn-outline'}`}
-              style={{ fontSize: '11px' }}
-              onClick={() => setFilterMineOnly(false)}
+              className={`wd-pill-btn py-1 px-2.5 d-flex align-items-center gap-1.5 ${
+                hidePastShifts ? 'wd-pill-btn-primary' : 'wd-pill-btn-outline'
+              }`}
+              style={{ fontSize: '11px', height: '30px' }}
+              onClick={() => setHidePastShifts(!hidePastShifts)}
+              title="Chỉ hiển thị các ca trực hôm nay hoặc đang mở"
             >
-              {t('attendance.filter_all', 'Tất Cả Viện')} ({records.length})
+              <Clock size={12} />
+              <span>Ẩn Các Ca Cũ</span>
+              {hidePastShifts && <Check size={11} className="ms-0.5" />}
             </button>
+
+            {/* Option 2: Ẩn đồng nghiệp */}
             <button
               type="button"
-              className={`wd-pill-btn py-1 px-2.5 ${filterMineOnly ? 'wd-pill-btn-primary' : 'wd-pill-btn-outline'}`}
-              style={{ fontSize: '11px' }}
-              onClick={() => setFilterMineOnly(true)}
+              className={`wd-pill-btn py-1 px-2.5 d-flex align-items-center gap-1.5 ${
+                hideColleagues ? 'wd-pill-btn-primary' : 'wd-pill-btn-outline'
+              }`}
+              style={{ fontSize: '11px', height: '30px' }}
+              onClick={() => setHideColleagues(!hideColleagues)}
+              title="Chỉ hiển thị các ca trực của riêng tài khoản này"
             >
-              {t('attendance.filter_mine', 'Ca Của Tôi')} ({records.filter((r) => r.staff_id === (user?.employee_code || currentStaffId)).length})
+              <UserCheck size={12} />
+              <span>Ẩn Đồng Nghiệp</span>
+              {hideColleagues && <Check size={11} className="ms-0.5" />}
             </button>
+
+            {/* Reset Filter Button */}
+            {(hidePastShifts || hideColleagues || searchQuery) && (
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 text-muted small text-decoration-none d-flex align-items-center gap-1 ms-1"
+                style={{ fontSize: '11px' }}
+                onClick={() => {
+                  setHidePastShifts(false);
+                  setHideColleagues(false);
+                  setSearchQuery('');
+                }}
+              >
+                <RotateCcw size={11} />
+                <span>Hiện Tất Cả</span>
+              </button>
+            )}
           </div>
         </div>
         <div className="table-responsive">
@@ -534,61 +725,101 @@ export const AttendanceClock: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {displayRecords.map((r) => {
-                const isMyRecord = r.staff_id === (user?.employee_code || currentStaffId);
-                return (
-                  <tr key={r.id}>
-                    <td>
-                      <div className="d-flex align-items-center gap-1.5">
-                        <div className="fw-semibold text-dark">{r.staff_name}</div>
-                        {isMyRecord && (
-                          <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                            {t('attendance.me_badge', 'Tôi')}
-                          </span>
-                        )}
-                      </div>
-                      <span className="font-mono text-muted" style={{ fontSize: '11px' }}>{r.staff_id}</span>
-                    </td>
-                    <td>
-                      <span className="text-secondary" style={{ fontSize: '12px' }}>{r.shift_label}</span>
-                    </td>
-                    <td>
-                      <div className="fw-semibold font-mono text-dark">{r.clock_in_time.split(' ')[1] || r.clock_in_time}</div>
-                      <div className="text-muted" style={{ fontSize: '10px' }}>{r.clock_in_time.split(' ')[0]}</div>
-                    </td>
-                    <td>
-                      {r.clock_out_time ? (
-                        <div>
-                          <div className="fw-semibold font-mono text-dark">{r.clock_out_time.split(' ')[1] || r.clock_out_time}</div>
-                          <div className="text-muted" style={{ fontSize: '10px' }}>{r.clock_out_time.split(' ')[0]}</div>
+              {displayRecords.length > 0 ? (
+                displayRecords.map((r) => {
+                  const isMyRecord = r.staff_id === (user?.employee_code || currentStaffId);
+                  return (
+                    <tr key={r.id}>
+                      <td>
+                        <div className="d-flex align-items-center gap-1.5">
+                          <div className="fw-semibold text-dark">{r.staff_name}</div>
+                          {isMyRecord && (
+                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                              {t('attendance.me_badge', 'Tôi')}
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <span className="wd-badge-warning">{t('attendance.status_in_shift', 'Đang Trong Ca')}</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className="text-secondary" style={{ fontSize: '12px' }}>{getMethodLabel(r.clock_in_method)}</span>
-                    </td>
-                    <td>{getStatusBadge(r.attendance_status)}</td>
-                    <td>
-                      {r.overtime_minutes > 0 ? (
-                        <span className="wd-badge-blue">+{r.overtime_minutes}m</span>
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </td>
-                    <td>
-                      {r.handover_notes ? (
-                        <span className="text-dark small d-inline-block text-truncate" style={{ maxWidth: '240px' }}>
-                          {r.handover_notes}
-                        </span>
-                      ) : (
-                        <span className="text-muted small">{t('attendance.not_recorded', 'Chưa ghi nhận')}</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                        <div className="font-mono text-muted" style={{ fontSize: '11px' }}>
+                          {r.staff_id}
+                          {(r.specialty || r.staff_role) && (
+                            <span> &bull; {r.specialty || r.staff_role}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="text-dark fw-medium" style={{ fontSize: '12px' }}>
+                          {r.shift_label.split(' • ')[0] || r.shift_label}
+                        </div>
+                        {r.shift_label.includes(' • ') && (
+                          <div className="text-muted" style={{ fontSize: '11px' }}>
+                            {r.shift_label.split(' • ')[1]}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div className="fw-semibold font-mono text-dark">{r.clock_in_time.split(' ')[1] || r.clock_in_time}</div>
+                        <div className="text-muted" style={{ fontSize: '10px' }}>{r.clock_in_time.split(' ')[0]}</div>
+                      </td>
+                      <td>
+                        {r.clock_out_time ? (
+                          <div>
+                            <div className="fw-semibold font-mono text-dark">{r.clock_out_time.split(' ')[1] || r.clock_out_time}</div>
+                            <div className="text-muted" style={{ fontSize: '10px' }}>{r.clock_out_time.split(' ')[0]}</div>
+                          </div>
+                        ) : (
+                          <span className="wd-badge-warning">{t('attendance.status_in_shift', 'Đang Trong Ca')}</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="text-secondary" style={{ fontSize: '12px' }}>{getMethodLabel(r.clock_in_method)}</span>
+                      </td>
+                      <td>{getStatusBadge(r.attendance_status)}</td>
+                      <td>
+                        {r.overtime_minutes > 0 ? (
+                          <span className="wd-badge-blue">+{r.overtime_minutes}m</span>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {r.handover_notes ? (
+                          <span className="text-dark small d-inline-block text-truncate" style={{ maxWidth: '240px' }}>
+                            {r.handover_notes}
+                          </span>
+                        ) : (
+                          <span className="text-muted small">{t('attendance.not_recorded', 'Chưa ghi nhận')}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className="text-center py-5">
+                    <div className="d-flex flex-column align-items-center justify-content-center text-muted">
+                      <Filter size={28} className="text-secondary opacity-50 mb-2" />
+                      <div className="fw-semibold text-dark mb-1" style={{ fontSize: '13px' }}>
+                        Không có bản ghi điểm danh nào phù hợp
+                      </div>
+                      <div className="small mb-3" style={{ fontSize: '11px' }}>
+                        Thử tắt bộ lọc "Ẩn các ca cũ", "Ẩn đồng nghiệp" hoặc xóa từ khóa tìm kiếm.
+                      </div>
+                      <button
+                        type="button"
+                        className="wd-pill-btn wd-pill-btn-outline py-1 px-3"
+                        style={{ fontSize: '11px' }}
+                        onClick={() => {
+                          setHidePastShifts(false);
+                          setHideColleagues(false);
+                          setSearchQuery('');
+                        }}
+                      >
+                        Bỏ Lọc & Hiện Tất Cả ({records.length} ca)
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -79,12 +79,19 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
     }
   };
 
-  const displayName = employeeData
-    ? `${employeeData.first_name} ${employeeData.last_name}`.trim()
+  const lastName = employeeData?.last_name || user?.last_name || '';
+  const firstName = employeeData?.first_name || user?.first_name || '';
+
+  const displayName = (lastName || firstName)
+    ? (lang === 'vi'
+        ? `${lastName} ${firstName}`.trim()
+        : `${firstName} ${lastName}`.trim())
     : (user?.name || t('common.hospital_staff', 'Cán Bộ Bệnh Viện'));
 
   const cleanParts = displayName.trim().split(/\s+/).filter(Boolean);
-  const initials = cleanParts.length >= 2
+  const initials = lang === 'vi' && lastName && firstName
+    ? `${lastName[0] || ''}${firstName.trim().split(/\s+/).pop()?.[0] || ''}`.toUpperCase()
+    : cleanParts.length >= 2
     ? `${cleanParts[cleanParts.length - 2]?.[0] || ''}${cleanParts[cleanParts.length - 1]?.[0] || ''}`.toUpperCase()
     : (cleanParts[0]?.slice(0, 2) || 'CB').toUpperCase();
 

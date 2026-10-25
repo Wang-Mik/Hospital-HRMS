@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { shiftController } from '../controllers/shiftController.js';
+import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -64,8 +65,10 @@ const router = Router();
  *       200:
  *         description: Shift list retrieved successfully
  */
-router.post('/', shiftController.scheduleShift);
-router.get('/', shiftController.getAllShifts);
+router.post('/auto-rotate', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.autoRotateTeams);
+router.post('/batch', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.batchScheduleShifts);
+router.post('/', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.scheduleShift);
+router.get('/', verifyToken, shiftController.getAllShifts);
 
 /**
  * @swagger
@@ -86,6 +89,7 @@ router.get('/', shiftController.getAllShifts);
  *       404:
  *         description: Shift not found
  */
-router.get('/:id', shiftController.getShiftById);
+router.get('/:id', verifyToken, shiftController.getShiftById);
+router.delete('/:id', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.deleteShift);
 
 export default router;

@@ -50,30 +50,50 @@ export const attendanceService = {
       await connection.beginTransaction();
 
       let attendanceStatus = 'PRESENT';
+      let effectiveShiftId = shift_id || null;
+      let targetShift = null;
 
-      if (shift_id) {
+      if (effectiveShiftId) {
         const [shiftRows] = await connection.query(
           'SELECT * FROM Shifts WHERE id = ? LIMIT 1',
-          [shift_id]
+          [effectiveShiftId]
         );
 
         if (shiftRows.length === 0) {
           await connection.rollback();
-          const err = new Error(`Scheduled shift not found with ID: ${shift_id}`);
+          const err = new Error(`Scheduled shift not found with ID: ${effectiveShiftId}`);
           err.statusCode = 404;
           throw err;
         }
 
-        const shift = shiftRows[0];
+        targetShift = shiftRows[0];
 
-        if (shift.staff_id !== staff_id) {
+        if (targetShift.staff_id !== staff_id) {
           await connection.rollback();
-          const err = new Error(`Staff ID ${staff_id} is not assigned to shift ${shift_id} (assigned to ${shift.staff_id}).`);
+          const err = new Error(`Staff ID ${staff_id} is not assigned to shift ${effectiveShiftId} (assigned to ${targetShift.staff_id}).`);
           err.statusCode = 403;
           throw err;
         }
+      } else {
+        // Auto-match nearest scheduled shift around clockInTime (+/- 3 hours)
+        const [matchedShifts] = await connection.query(
+          `SELECT * FROM Shifts 
+           WHERE staff_id = ? 
+             AND status IN ('SCHEDULED', 'IN_PROGRESS')
+             AND start_time <= DATE_ADD(?, INTERVAL 3 HOUR)
+             AND end_time >= DATE_SUB(?, INTERVAL 3 HOUR)
+           ORDER BY ABS(TIMESTAMPDIFF(MINUTE, start_time, ?)) ASC
+           LIMIT 1`,
+          [staff_id, formattedClockIn, formattedClockIn, formattedClockIn]
+        );
+        if (matchedShifts.length > 0) {
+          targetShift = matchedShifts[0];
+          effectiveShiftId = targetShift.id;
+        }
+      }
 
-        const shiftStartTimestamp = parseTimestamp(shift.start_time);
+      if (targetShift) {
+        const shiftStartTimestamp = parseTimestamp(targetShift.start_time);
         const lateThresholdMs = 15 * 60 * 1000;
         if (clockInTimestamp > shiftStartTimestamp + lateThresholdMs) {
           attendanceStatus = 'LATE';
@@ -81,7 +101,7 @@ export const attendanceService = {
 
         await connection.execute(
           'UPDATE Shifts SET status = "IN_PROGRESS", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [shift_id]
+          [targetShift.id]
         );
       }
 
@@ -108,7 +128,7 @@ export const attendanceService = {
 
       await connection.execute(insertSql, [
         attendanceId,
-        shift_id,
+        effectiveShiftId,
         staff_id,
         formattedClockIn,
         clock_in_method,
@@ -119,7 +139,7 @@ export const attendanceService = {
 
       return {
         id: attendanceId,
-        shift_id,
+        shift_id: effectiveShiftId,
         staff_id,
         clock_in_time: formattedClockIn,
         clock_out_time: null,
@@ -243,7 +263,12 @@ export const attendanceService = {
         a.shift_id,
         a.staff_id,
         CONCAT(e.last_name, ' ', e.first_name) AS staff_name,
+        e.first_name,
+        e.last_name,
         e.role AS staff_role,
+        e.department_code,
+        e.specialty,
+        d.name AS department_name,
         a.clock_in_time,
         a.clock_out_time,
         a.clock_in_method,
@@ -253,10 +278,13 @@ export const attendanceService = {
         a.created_at,
         a.updated_at,
         s.shift_type,
+        s.on_call_tier,
+        s.team_code,
         s.start_time AS scheduled_start,
         s.end_time AS scheduled_end
       FROM Attendances a
       LEFT JOIN Employees e ON a.staff_id = e.employee_code
+      LEFT JOIN Departments d ON e.department_code = d.department_code
       LEFT JOIN Shifts s ON a.shift_id = s.id
       WHERE 1=1
     `;
@@ -292,13 +320,21 @@ export const attendanceService = {
       SELECT 
         a.*,
         CONCAT(e.last_name, ' ', e.first_name) AS staff_name,
+        e.first_name,
+        e.last_name,
         e.role AS staff_role,
+        e.department_code,
+        e.specialty,
+        d.name AS department_name,
         s.shift_type,
+        s.on_call_tier,
+        s.team_code,
         s.start_time AS scheduled_start,
         s.end_time AS scheduled_end,
         s.requires_handover
       FROM Attendances a
       LEFT JOIN Employees e ON a.staff_id = e.employee_code
+      LEFT JOIN Departments d ON e.department_code = d.department_code
       LEFT JOIN Shifts s ON a.shift_id = s.id
       WHERE a.id = ?
       LIMIT 1

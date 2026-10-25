@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -831,14 +831,13 @@ export const HRManagement: React.FC = () => {
                   {t('admin.shifts_schedule_desc', 'Lập lịch trực y bác sĩ, phân bổ kíp trực khoa Cấp cứu, Hồi sức và các khoa phòng.')}
                 </p>
               </div>
-              <button
-                type="button"
-                className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
-                onClick={() => setShowAddShiftModal(true)}
+              <Link
+                to="/shifts"
+                className="wd-pill-btn-primary d-flex align-items-center gap-1.5 text-decoration-none"
               >
-                <Plus size={15} />
-                <span>{t('admin.btn_assign_shift', 'Phân Ca Trực')}</span>
-              </button>
+                <Calendar size={15} />
+                <span>{t('admin.btn_assign_shift', 'Mở Lịch Phân Ca & Trực')} &rarr;</span>
+              </Link>
             </div>
 
             <div className="table-responsive">

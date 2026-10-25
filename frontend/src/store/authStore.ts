@@ -7,8 +7,11 @@ export interface AuthUser {
   role_name?: string;
   permissions?: string[];
   name: string;
+  first_name?: string;
+  last_name?: string;
   full_name?: string;
   department?: string;
+  department_code?: string;
   email?: string;
 }
 

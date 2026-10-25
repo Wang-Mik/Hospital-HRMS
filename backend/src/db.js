@@ -1,7 +1,11 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const dbHost = process.env.DB_HOST || 'localhost';
 const isCloudSsl =

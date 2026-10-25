@@ -96,7 +96,9 @@ describe('Backend Attendance Routes & Controller Tests', () => {
     });
 
     it('should clock in successfully without shift_id', async () => {
-      mockConnection.query.mockResolvedValueOnce([[]]); // No active open session
+      mockConnection.query
+        .mockResolvedValueOnce([[]]) // auto-match nearest shift query
+        .mockResolvedValueOnce([[]]); // No active open session
       mockConnection.execute.mockResolvedValueOnce([{ insertId: 1 }]);
 
       const res = await request(app)
@@ -108,6 +110,36 @@ describe('Backend Attendance Routes & Controller Tests', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
+      expect(res.body.data.attendance_status).toBe('PRESENT');
+    });
+
+    it('should auto-match scheduled shift when shift_id is omitted', async () => {
+      const scheduledShift = {
+        id: 'shift-matched-999',
+        staff_id: 'EMP-DOC-001',
+        start_time: '2026-08-20 07:00:00',
+        end_time: '2026-08-20 15:00:00'
+      };
+
+      mockConnection.query
+        .mockResolvedValueOnce([[scheduledShift]]) // auto-matches scheduledShift
+        .mockResolvedValueOnce([[]]); // No active open session
+
+      mockConnection.execute
+        .mockResolvedValueOnce([{ affectedRows: 1 }]) // UPDATE Shifts SET status = "IN_PROGRESS"
+        .mockResolvedValueOnce([{ insertId: 1 }]); // INSERT INTO Attendances
+
+      const res = await request(app)
+        .post('/api/attendance/clock-in')
+        .send({
+          staff_id: 'EMP-DOC-001',
+          clock_in_method: 'BIOMETRIC',
+          clock_in_time: '2026-08-20 06:55:00'
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.shift_id).toBe('shift-matched-999');
       expect(res.body.data.attendance_status).toBe('PRESENT');
     });
 

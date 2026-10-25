@@ -53,6 +53,8 @@ export const Login: React.FC = () => {
         setCredentials(authToken, {
           employee_code: employee.employee_code,
           role: employee.role,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
           name: `${employee.last_name} ${employee.first_name}`.trim()
         });
         navigate('/');
