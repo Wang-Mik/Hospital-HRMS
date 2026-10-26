@@ -2,12 +2,20 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
-export const ProtectedRoute: React.FC = () => {
+interface ProtectedRouteProps {
+  allowedRoles?: string[];
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
 
   if (!token || !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

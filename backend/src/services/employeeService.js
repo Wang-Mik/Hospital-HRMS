@@ -67,7 +67,8 @@ export const employeeService = {
     }
 
     const limitVal = Math.min(Math.max(Number(filters.limit) || 100, 1), 500);
-    sql += ` ORDER BY e.id ASC LIMIT ${limitVal}`;
+    sql += ` ORDER BY e.id ASC LIMIT ?`;
+    params.push(limitVal);
     const [rows] = await pool.query(sql, params);
     return rows;
   },

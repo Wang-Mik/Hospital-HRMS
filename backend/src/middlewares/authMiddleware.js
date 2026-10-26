@@ -5,20 +5,20 @@ import jwt from 'jsonwebtoken';
  * Protects clinical shift and schedule rostering endpoints
  */
 export function verifyToken(req, res, next) {
-  // Allow test environments to bypass if needed
-  if (process.env.NODE_ENV === 'test' && !req.headers.authorization) {
+  // Allow test environments to provide default admin context ONLY for functional unit tests
+  // When x-enforce-auth header is present or ENFORCE_AUTH is enabled, strictly require valid tokens
+  if (
+    process.env.NODE_ENV === 'test' &&
+    !req.headers.authorization &&
+    req.headers['x-enforce-auth'] !== 'true' &&
+    process.env.ENFORCE_AUTH !== 'true'
+  ) {
     req.user = { role: 'SUPER_ADMIN', username: 'test_admin', employee_code: 'EMP-ADM-001' };
     return next();
   }
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // In local development, if a valid session exists via x-staff-id header, permit for seamless DX
-    if (process.env.NODE_ENV === 'development' && req.headers['x-staff-id']) {
-      req.user = { role: 'STAFF', employee_code: req.headers['x-staff-id'] };
-      return next();
-    }
-
     return res.status(401).json({
       success: false,
       message: 'Yêu cầu đăng nhập: Không tìm thấy Access Token xác thực.'
@@ -26,7 +26,14 @@ export function verifyToken(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1];
-  const jwtSecret = process.env.JWT_SECRET || 'hospital-hrms-backend-secret-key-2026';
+  const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'test-jwt-secret-key-at-least-32-chars-long' : null);
+
+  if (!jwtSecret) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi cấu hình bảo mật máy chủ: JWT_SECRET chưa được thiết lập.'
+    });
+  }
 
   try {
     const decoded = jwt.verify(token, jwtSecret);

@@ -1,7 +1,20 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authController } from '../controllers/authController.js';
 
 const router = Router();
+
+// Security: Rate limiter on authentication to prevent brute-force attacks and DoS
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes window
+  max: process.env.NODE_ENV === 'test' && !process.env.ENFORCE_RATE_LIMIT ? 200 : 15, // 15 attempts in production/dev
+  message: {
+    success: false,
+    message: 'Quá nhiều lần thử đăng nhập không thành công từ địa chỉ IP này. Vui lòng thử lại sau 15 phút.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 /**
  * @swagger
@@ -116,6 +129,6 @@ router.post('/register', authController.register);
  *       500:
  *         description: Internal server error
  */
-router.post('/login', authController.login);
+router.post('/login', authLimiter, authController.login);
 
 export default router;

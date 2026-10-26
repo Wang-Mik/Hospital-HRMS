@@ -162,8 +162,14 @@ export const authService = {
 
     const resolvedRole = account.role_code || account.role || 'STAFF';
 
-    // 6. Generate signed JWT token (24-hour expiration)
-    const jwtSecret = process.env.JWT_SECRET || 'hospital-hrms-backend-secret-key-2026';
+    // 6. Generate signed JWT token (3-hour expiration per hospital security compliance)
+    const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'test-jwt-secret-key-at-least-32-chars-long' : null);
+    if (!jwtSecret) {
+      const err = new Error('Lỗi cấu hình bảo mật máy chủ: JWT_SECRET chưa được thiết lập.');
+      err.statusCode = 500;
+      throw err;
+    }
+
     const token = jwt.sign(
       {
         account_id: account.id,
@@ -175,7 +181,7 @@ export const authService = {
         permissions
       },
       jwtSecret,
-      { expiresIn: '24h' }
+      { expiresIn: '3h' }
     );
 
     return {

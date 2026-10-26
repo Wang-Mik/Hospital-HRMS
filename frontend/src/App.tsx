@@ -35,8 +35,6 @@ export const App: React.FC = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
-              <Route path="admin" element={<SystemManagement />} />
-              <Route path="hr" element={<HRManagement />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="profile" element={<PersonalInformation />} />
               <Route path="shifts" element={<ShiftRostering />} />
@@ -47,8 +45,17 @@ export const App: React.FC = () => {
               <Route path="leave" element={<TimeOffLeaves />} />
               <Route path="employees" element={<StaffDirectory defaultTab="staff" />} />
               <Route path="licenses" element={<StaffDirectory defaultTab="licenses" />} />
-              <Route path="payroll" element={<PayrollManagement />} />
               <Route path="settings" element={<Settings />} />
+
+              {/* Role-Restricted Clinical Administration & Payroll */}
+              <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
+                <Route path="admin" element={<SystemManagement />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HR_MANAGER']} />}>
+                <Route path="hr" element={<HRManagement />} />
+                <Route path="payroll" element={<PayrollManagement />} />
+              </Route>
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Route>
