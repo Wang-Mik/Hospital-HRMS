@@ -224,4 +224,35 @@ describe('Hospital HRMS Web Security & Hardening Test Suite', () => {
       ).toBe(true);
     });
   });
+
+  describe('6. Cross-Origin Resource Sharing (CORS) Security & Cloud Policy', () => {
+    it('should permit CORS requests from official production domain https://hospital-hrms.vercel.app', async () => {
+      const res = await request(app)
+        .options('/api/auth/login')
+        .set('Origin', 'https://hospital-hrms.vercel.app')
+        .set('Access-Control-Request-Method', 'POST');
+
+      expect(res.headers['access-control-allow-origin']).toBe('https://hospital-hrms.vercel.app');
+      expect(res.status).toBe(204);
+    });
+
+    it('should permit CORS requests from Vercel preview deployments', async () => {
+      const res = await request(app)
+        .options('/api/auth/login')
+        .set('Origin', 'https://hospital-hrms-preview-branch.vercel.app')
+        .set('Access-Control-Request-Method', 'POST');
+
+      expect(res.headers['access-control-allow-origin']).toBe('https://hospital-hrms-preview-branch.vercel.app');
+      expect(res.status).toBe(204);
+    });
+
+    it('should block CORS requests from unauthorized origin with 403 Forbidden', async () => {
+      const res = await request(app)
+        .get('/health')
+        .set('Origin', 'https://malicious-hospital-phishing.com');
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('CORS');
+    });
+  });
 });

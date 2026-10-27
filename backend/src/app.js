@@ -20,22 +20,40 @@ app.use(
   })
 );
 
-// Security: Strict CORS Configuration for Hospital Internal Services
-const allowedOrigins = [
+// Security: Dynamic & Strict CORS Configuration for Hospital Internal Services & Cloud Deployments
+const defaultOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:4000',
-  'http://127.0.0.1:4000'
+  'http://127.0.0.1:4000',
+  'https://hospital-hrms.vercel.app'
 ];
+
+const envOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : [];
+
+const allowedOrigins = [...defaultOrigins, ...envOrigins];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g., unit test runners, server-to-server, curl)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
         return callback(null, true);
       }
-      return callback(new Error('Yêu cầu bị chặn bởi chính sách CORS của Bệnh viện'));
+
+      // Allow exact match or official Vercel preview domains (*.vercel.app)
+      if (
+        allowedOrigins.includes(origin) ||
+        /^https:\/\/([a-z0-9-]+)\.vercel\.app$/i.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      const corsError = new Error('Yêu cầu bị chặn bởi chính sách CORS của Bệnh viện');
+      corsError.statusCode = 403;
+      return callback(corsError);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
