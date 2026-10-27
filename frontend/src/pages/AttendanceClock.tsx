@@ -29,6 +29,7 @@ import { shiftApi } from '../api/shiftApi';
 import { employeeApi } from '../api/employeeApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export interface AttendanceRecord {
   id: string;
@@ -117,7 +118,11 @@ export const AttendanceClock: React.FC = () => {
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   // TanStack Query: Fetch live attendance records from MySQL
-  const { data: serverRecords } = useQuery({
+  const {
+    data: serverRecords,
+    isLoading: isAttendanceLoading,
+    isFetching: isAttendanceFetching
+  } = useQuery({
     queryKey: ['attendance'],
     queryFn: () => shiftApi.getAttendance(),
     staleTime: 5000
@@ -725,7 +730,9 @@ export const AttendanceClock: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {displayRecords.length > 0 ? (
+              {isAttendanceLoading ? (
+                <TheoryOfNextLoader isTableBody columns={7} rows={5} />
+              ) : displayRecords.length > 0 ? (
                 displayRecords.map((r) => {
                   const isMyRecord = r.staff_id === (user?.employee_code || currentStaffId);
                   return (

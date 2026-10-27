@@ -27,6 +27,16 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+// In local development, simulate ~600ms database latency to mirror real-world 1-second cloud deployment
+if (env.DEV) {
+  axiosClient.interceptors.response.use(async (response) => {
+    if (response.config.method?.toLowerCase() === 'get') {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+    return response;
+  });
+}
+
 // Global response handler: Clear token on 401 Unauthorized
 axiosClient.interceptors.response.use(
   (response) => response,

@@ -36,6 +36,7 @@ import { employeeApi } from '../api/employeeApi';
 import { departmentApi, Department } from '../api/departmentApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 import './ShiftRostering.css';
 
 export interface ShiftItem {
@@ -426,7 +427,11 @@ export const ShiftRostering: React.FC = () => {
   }, []);
 
   // TanStack Query: Live shifts from MySQL
-  const { data: serverShifts } = useQuery({
+  const {
+    data: serverShifts,
+    isLoading: isShiftsLoading,
+    isFetching: isShiftsFetching
+  } = useQuery({
     queryKey: ['shifts'],
     queryFn: () => shiftApi.getAll(),
     staleTime: 10000
@@ -1370,7 +1375,10 @@ export const ShiftRostering: React.FC = () => {
         </aside>
 
         {/* RIGHT MAIN CALENDAR AREA */}
-        <main className="gcal-view-area">
+        <main className="gcal-view-area position-relative">
+          {(isShiftsLoading || isShiftsFetching) && (
+            <TheoryOfNextLoader variant="calendar" />
+          )}
           {/* ===================== 1. WEEK VIEW ===================== */}
           {viewMode === 'WEEK' && (
             <div className="d-flex flex-column flex-1 overflow-hidden h-100">

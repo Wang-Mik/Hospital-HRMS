@@ -28,6 +28,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeeApi } from '../api/employeeApi';
 import { departmentApi, Department } from '../api/departmentApi';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export interface EmployeeItem {
   id: number;
@@ -71,7 +72,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
   const [activeTab, setActiveTab] = useState<'staff' | 'licenses'>(defaultTab);
 
   // TanStack Query: Fetch employees live from MySQL hrm_db
-  const { data: serverEmployees } = useQuery({
+  const { data: serverEmployees, isLoading: isEmployeesLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: () => employeeApi.getAll(),
     staleTime: 10000
@@ -85,7 +86,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
   });
 
   // TanStack Query: Fetch licenses dynamically from MySQL hrm_db
-  const { data: serverLicenses } = useQuery<any[]>({
+  const { data: serverLicenses, isLoading: isLicensesLoading } = useQuery<any[]>({
     queryKey: ['licenses'],
     queryFn: () => employeeApi.getAllLicenses(),
     staleTime: 10000
@@ -416,8 +417,21 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         <>
           {viewFormat === 'grid' ? (
             <Row className="g-3">
-              {filteredEmployees.map((emp) => (
-                <Col xs={12} sm={6} lg={4} key={emp.id}>
+              {isEmployeesLoading ? (
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <Col xs={12} sm={6} lg={4} key={idx}>
+                    <TheoryOfNextLoader variant="card" />
+                  </Col>
+                ))
+              ) : filteredEmployees.length === 0 ? (
+                <Col xs={12}>
+                  <div className="wd-card text-center py-5 text-muted">
+                    {t('directory.no_records', 'Không tìm thấy cán bộ y tế nào phù hợp với bộ lọc.')}
+                  </div>
+                </Col>
+              ) : (
+                filteredEmployees.map((emp) => (
+                  <Col xs={12} sm={6} lg={4} key={emp.id}>
                   <div className="wd-card h-100 p-4 d-flex flex-column justify-content-between">
                     <div>
                       <div className="d-flex align-items-start justify-content-between mb-3">
@@ -476,8 +490,9 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                     </div>
                   </div>
                 </Col>
-              ))}
-            </Row>
+              ))
+            )}
+          </Row>
           ) : (
             <div className="wd-card">
               <div className="table-responsive">
@@ -494,7 +509,16 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredEmployees.map((e) => (
+                    {isEmployeesLoading ? (
+                      <TheoryOfNextLoader isTableBody columns={7} rows={5} />
+                    ) : filteredEmployees.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-5 text-muted">
+                          {t('directory.no_records', 'Không tìm thấy cán bộ y tế nào phù hợp với bộ lọc.')}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEmployees.map((e) => (
                       <tr key={e.id}>
                         <td>
                           <div className="d-flex align-items-center gap-2">
@@ -538,8 +562,9 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                           </button>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
+                    ))
+                  )}
+                </tbody>
                 </table>
               </div>
             </div>
@@ -625,7 +650,16 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLicenses.map((lic) => (
+                  {isLicensesLoading ? (
+                    <TheoryOfNextLoader isTableBody columns={7} rows={5} />
+                  ) : filteredLicenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-5 text-muted">
+                        {t('directory.no_licenses', 'Chưa có dữ liệu chứng chỉ hành nghề nào trong danh sách.')}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredLicenses.map((lic) => (
                     <tr key={lic.id}>
                       <td>
                         <div className="fw-semibold text-dark">{lic.staff_name}</div>
@@ -669,8 +703,9 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                         </span>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
+                  ))
+                )}
+              </tbody>
               </table>
             </div>
           </div>

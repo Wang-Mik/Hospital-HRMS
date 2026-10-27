@@ -20,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollApi } from '../api/payrollApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export interface PaySlipItem {
   id: string;
@@ -90,13 +91,13 @@ export const PayrollManagement: React.FC = () => {
   const [routing, setRouting] = useState('VCB-VN-001');
 
   // TanStack Queries: Fetch live records from MySQL hrm_db
-  const { data: serverRuns } = useQuery({
+  const { data: serverRuns, isLoading: isRunsLoading } = useQuery({
     queryKey: ['payrollRuns'],
     queryFn: () => payrollApi.getRuns(),
     staleTime: 15000
   });
 
-  const { data: serverSlips } = useQuery({
+  const { data: serverSlips, isLoading: isSlipsLoading } = useQuery({
     queryKey: ['payslips', currentStaffId],
     queryFn: () => payrollApi.getPaySlips(currentStaffId),
     staleTime: 15000
@@ -421,7 +422,9 @@ export const PayrollManagement: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {slips.length === 0 ? (
+                  {isSlipsLoading ? (
+                    <TheoryOfNextLoader isTableBody columns={9} rows={4} />
+                  ) : slips.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="text-center py-5 text-muted">
                         {t('payroll.no_slips', 'Chưa có dữ liệu phiếu lương nào cho nhân viên này trong hệ thống.')}
@@ -636,7 +639,9 @@ export const PayrollManagement: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {runs.length === 0 ? (
+                  {isRunsLoading ? (
+                    <TheoryOfNextLoader isTableBody columns={7} rows={4} />
+                  ) : runs.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-5 text-muted">
                         {t('payroll.no_runs', 'Chưa có đợt quyết toán lương nào được khởi tạo trong hệ thống.')}

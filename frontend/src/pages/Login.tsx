@@ -47,15 +47,20 @@ export const Login: React.FC = () => {
 
     try {
       const response = await axiosClient.post('/auth/login', { username: u, password: p });
-      const { token: authToken, employee } = response.data?.data || {};
+      const { token: authToken, employee, permissions, account } = response.data?.data || {};
 
       if (authToken && employee) {
         setCredentials(authToken, {
           employee_code: employee.employee_code,
           role: employee.role,
+          role_code: employee.role_code || account?.role_code || employee.role,
+          role_name: employee.role_name || account?.role_name,
+          permissions: permissions || account?.permissions || [],
           first_name: employee.first_name,
           last_name: employee.last_name,
-          name: `${employee.last_name} ${employee.first_name}`.trim()
+          name: `${employee.last_name} ${employee.first_name}`.trim(),
+          department_code: employee.department_code,
+          email: employee.email
         });
         navigate('/');
       } else {

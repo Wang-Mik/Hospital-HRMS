@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leaveApi } from '../api/leaveApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 interface LeaveBalanceItem {
   id: string;
@@ -76,7 +77,7 @@ export const TimeOffLeaves: React.FC = () => {
   });
 
   // TanStack Query: Fetch live leave requests from hrm_db
-  const { data: serverRequests } = useQuery({
+  const { data: serverRequests, isLoading: isRequestsLoading } = useQuery({
     queryKey: ['leaveRequests', currentStaffId],
     queryFn: () => leaveApi.getRequests(currentStaffId),
     staleTime: 10000
@@ -323,7 +324,9 @@ export const TimeOffLeaves: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayRequests.length === 0 ? (
+                  {isRequestsLoading ? (
+                    <TheoryOfNextLoader isTableBody columns={4} rows={3} />
+                  ) : displayRequests.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="text-center py-4 text-muted">
                         {t('timeoff.no_upcoming', 'Chưa có lịch nghỉ phép nào được lên kế hoạch.')}

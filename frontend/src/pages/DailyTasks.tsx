@@ -25,6 +25,7 @@ import { taskApi } from '../api/taskApi';
 import { employeeApi } from '../api/employeeApi';
 import { shiftApi } from '../api/shiftApi';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export interface ClinicalTask {
   id: string;
@@ -52,7 +53,7 @@ export const DailyTasks: React.FC = () => {
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // TanStack Query: Fetch tasks live from MySQL
-  const { data: serverTasks } = useQuery({
+  const { data: serverTasks, isLoading: isTasksLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => taskApi.getAll(),
     staleTime: 5000
@@ -340,6 +341,15 @@ export const DailyTasks: React.FC = () => {
 
       {/* Kanban View */}
       {viewMode === 'kanban' ? (
+        isTasksLoading ? (
+          <Row className="g-3">
+            {[1, 2, 3].map((idx) => (
+              <Col xs={12} lg={4} key={idx}>
+                <TheoryOfNextLoader variant="card" />
+              </Col>
+            ))}
+          </Row>
+        ) : (
         <Row className="g-3">
           {(['PENDING', 'IN_PROGRESS', 'COMPLETED'] as const).map((colStatus) => {
             const colTasks = filteredTasks.filter((tItem) => tItem.status === colStatus);
@@ -441,9 +451,9 @@ export const DailyTasks: React.FC = () => {
             );
           })}
         </Row>
-      ) : (
-        /* List View */
-        <div className="wd-card">
+      )
+    ) : (
+      <div className="wd-card">
           <div className="table-responsive">
             <table className="wd-table">
               <thead>
@@ -458,7 +468,16 @@ export const DailyTasks: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks.map((tItem) => (
+                {isTasksLoading ? (
+                  <TheoryOfNextLoader isTableBody columns={7} rows={4} />
+                ) : filteredTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-5 text-muted small">
+                      {t('tasks.no_tasks', 'Không có nhiệm vụ nào phù hợp với bộ lọc.')}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTasks.map((tItem) => (
                   <tr key={tItem.id}>
                     <td>
                       <div className="fw-semibold text-dark">{tItem.title}</div>
@@ -499,8 +518,9 @@ export const DailyTasks: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
+                ))
+              )}
+            </tbody>
             </table>
           </div>
         </div>

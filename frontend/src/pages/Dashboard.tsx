@@ -29,6 +29,7 @@ import { adminApi } from '../api/adminApi';
 import { departmentApi } from '../api/departmentApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export const Dashboard: React.FC = () => {
   const { t, lang } = useTranslation();
@@ -40,28 +41,28 @@ export const Dashboard: React.FC = () => {
   const currentStaffCode = user?.employee_code || (isHRorAdmin ? 'EMP-HR-001' : 'EMP-DOC-001');
 
   // Queries for all users
-  const { data: notifications = [] } = useQuery({
+  const { data: notifications = [], isLoading: isNotificationsLoading } = useQuery({
     queryKey: ['notifications', currentStaffCode],
     queryFn: () => notificationApi.getByStaffId(currentStaffCode),
     staleTime: 30000
   });
 
   // Queries for HR / Admin
-  const { data: adminOverview } = useQuery({
+  const { data: adminOverview, isLoading: isAdminOverviewLoading } = useQuery({
     queryKey: ['admin-overview'],
     queryFn: () => adminApi.getOverview(),
     enabled: isHRorAdmin,
     staleTime: 30000
   });
 
-  const { data: departments = [] } = useQuery({
+  const { data: departments = [], isLoading: isDepartmentsLoading } = useQuery({
     queryKey: ['departments'],
     queryFn: () => departmentApi.getAll(),
     enabled: isHRorAdmin,
     staleTime: 30000
   });
 
-  const { data: allLeaveRequests = [] } = useQuery({
+  const { data: allLeaveRequests = [], isLoading: isLeaveRequestsLoading } = useQuery({
     queryKey: ['leave-requests'],
     queryFn: () => leaveApi.getAllRequests(),
     enabled: isHRorAdmin,
@@ -69,27 +70,27 @@ export const Dashboard: React.FC = () => {
   });
 
   // Queries for Clinical Staff
-  const { data: shifts = [] } = useQuery({
+  const { data: shifts = [], isLoading: isShiftsLoading } = useQuery({
     queryKey: ['shifts'],
     queryFn: () => shiftApi.getAll(),
     staleTime: 30000
   });
 
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [], isLoading: isTasksLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => taskApi.getAll(),
     enabled: !isHRorAdmin,
     staleTime: 15000
   });
 
-  const { data: handovers = [] } = useQuery({
+  const { data: handovers = [], isLoading: isHandoversLoading } = useQuery({
     queryKey: ['handovers'],
     queryFn: () => handoverApi.getAll(),
     enabled: !isHRorAdmin,
     staleTime: 15000
   });
 
-  const { data: leaveBalances = [] } = useQuery({
+  const { data: leaveBalances = [], isLoading: isLeaveBalancesLoading } = useQuery({
     queryKey: ['leaveBalances', currentStaffCode],
     queryFn: () => leaveApi.getBalances(currentStaffCode, 2026),
     enabled: !isHRorAdmin,
@@ -202,8 +203,9 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <div className="d-flex flex-column gap-2.5">
-                {/* Pending Leaves Item */}
-                {pendingLeavesList.length > 0 ? (
+                {isLeaveRequestsLoading ? (
+                  <TheoryOfNextLoader variant="card" />
+                ) : pendingLeavesList.length > 0 ? (
                   pendingLeavesList.slice(0, 3).map((l: any) => (
                     <Card key={l.id} className="wd-card mb-0 border-start border-4 border-warning">
                       <Card.Body className="p-3.5 d-flex align-items-start justify-content-between gap-3">
@@ -301,7 +303,9 @@ export const Dashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {departments.map((d: any) => (
+                      {isDepartmentsLoading ? (
+                        <TheoryOfNextLoader isTableBody columns={5} rows={4} />
+                      ) : departments.map((d: any) => (
                         <tr key={d.department_code}>
                           <td className="font-monospace fw-semibold text-primary">{d.department_code}</td>
                           <td className="fw-medium text-dark">{d.name}</td>
@@ -334,7 +338,9 @@ export const Dashboard: React.FC = () => {
                 </Link>
               </Card.Header>
               <Card.Body className="p-3">
-                {notifications && notifications.length > 0 ? (
+                {isNotificationsLoading ? (
+                  <TheoryOfNextLoader variant="card" />
+                ) : notifications && notifications.length > 0 ? (
                   <div
                     className="rounded-2 p-3 text-white mb-3"
                     style={{
@@ -509,7 +515,9 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="d-flex flex-column gap-2.5">
-              {pendingHandovers.length === 0 && pendingTasks.length === 0 ? (
+              {isHandoversLoading || isTasksLoading ? (
+                <TheoryOfNextLoader variant="card" />
+              ) : pendingHandovers.length === 0 && pendingTasks.length === 0 ? (
                 <Card className="wd-card mb-0">
                   <Card.Body className="p-4 text-center text-muted">
                     <ShieldCheck size={28} className="text-success mb-2" />
@@ -594,29 +602,33 @@ export const Dashboard: React.FC = () => {
               {t('dashboard.timely_suggestions', 'Gợi ý kịp thời')}
             </h5>
             <Card className="wd-card">
-              <Card.Body className="p-3.5 d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center gap-3">
-                  <div
-                    className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 text-secondary"
-                    style={{ width: '40px', height: '40px', backgroundColor: '#f3f4f6' }}
-                  >
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
-                      {upcomingLeave
-                        ? `${t('dashboard.leave_schedule_prefix', 'Lịch nghỉ phép: từ')} ${upcomingLeave.start_date} ${t('dashboard.to_date', 'đến')} ${upcomingLeave.end_date}`
-                        : t('dashboard.annual_plan_2026', 'Kế hoạch nghỉ phép thường niên')}
+              {isLeaveBalancesLoading ? (
+                <TheoryOfNextLoader variant="card" />
+              ) : (
+                <Card.Body className="p-3.5 d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-3">
+                    <div
+                      className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 text-secondary"
+                      style={{ width: '40px', height: '40px', backgroundColor: '#f3f4f6' }}
+                    >
+                      <Calendar size={20} />
                     </div>
-                    <div className="text-muted small" style={{ fontSize: '12.5px' }}>
-                      {t('dashboard.leave_pool_desc1', 'Quỹ phép năm của bạn hiện còn')} {annualRemaining} {t('dashboard.leave_pool_desc2', 'ngày. Hãy đăng ký sớm để khoa xếp lịch trực.')}
+                    <div>
+                      <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
+                        {upcomingLeave
+                          ? `${t('dashboard.leave_schedule_prefix', 'Lịch nghỉ phép: từ')} ${upcomingLeave.start_date} ${t('dashboard.to_date', 'đến')} ${upcomingLeave.end_date}`
+                          : t('dashboard.annual_plan_2026', 'Kế hoạch nghỉ phép thường niên')}
+                      </div>
+                      <div className="text-muted small" style={{ fontSize: '12.5px' }}>
+                        {t('dashboard.leave_pool_desc1', 'Quỹ phép năm của bạn hiện còn')} {annualRemaining} {t('dashboard.leave_pool_desc2', 'ngày. Hãy đăng ký sớm để khoa xếp lịch trực.')}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <Link to="/leave" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1 flex-shrink-0">
-                  <span>{t('dashboard.view_leave_calendar', 'Xem Lịch Nghỉ')} &gt;</span>
-                </Link>
-              </Card.Body>
+                  <Link to="/leave" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1 flex-shrink-0">
+                    <span>{t('dashboard.view_leave_calendar', 'Xem Lịch Nghỉ')} &gt;</span>
+                  </Link>
+                </Card.Body>
+              )}
             </Card>
           </div>
 
@@ -644,26 +656,36 @@ export const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {shifts.slice(0, 4).map((s: any) => (
-                      <tr key={s.id}>
-                        <td>
-                          <div className="fw-semibold text-dark">{s.staff_name || s.staff_id}</div>
-                          <span className="text-muted font-mono" style={{ fontSize: '11px' }}>{s.staff_id}</span>
-                        </td>
-                        <td className="small text-secondary">{s.department_name || s.department_code}</td>
-                        <td>
-                          <Badge bg="info" className="fw-normal">{s.shift_type}</Badge>
-                        </td>
-                        <td className="small font-mono text-dark">
-                          {s.start_time?.slice(11, 16)} &ndash; {s.end_time?.slice(11, 16)}
-                        </td>
-                        <td>
-                          <Badge bg={s.status === 'IN_PROGRESS' ? 'success' : 'secondary'} className="fw-normal">
-                            {s.status === 'IN_PROGRESS' ? t('dashboard.shift_active', 'Đang trực') : t('dashboard.shift_scheduled', 'Đã xếp lịch')}
-                          </Badge>
+                    {isShiftsLoading ? (
+                      <TheoryOfNextLoader isTableBody columns={5} rows={4} />
+                    ) : shifts.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-4 text-muted small">
+                          {t('dashboard.no_active_shifts', 'Không có ca trực nào đang hoạt động.')}
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      shifts.slice(0, 4).map((s: any) => (
+                        <tr key={s.id}>
+                          <td>
+                            <div className="fw-semibold text-dark">{s.staff_name || s.staff_id}</div>
+                            <span className="text-muted font-mono" style={{ fontSize: '11px' }}>{s.staff_id}</span>
+                          </td>
+                          <td className="small text-secondary">{s.department_name || s.department_code}</td>
+                          <td>
+                            <Badge bg="info" className="fw-normal">{s.shift_type}</Badge>
+                          </td>
+                          <td className="small font-mono text-dark">
+                            {s.start_time?.slice(11, 16)} &ndash; {s.end_time?.slice(11, 16)}
+                          </td>
+                          <td>
+                            <Badge bg={s.status === 'IN_PROGRESS' ? 'success' : 'secondary'} className="fw-normal">
+                              {s.status === 'IN_PROGRESS' ? t('dashboard.shift_active', 'Đang trực') : t('dashboard.shift_scheduled', 'Đã xếp lịch')}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -682,7 +704,9 @@ export const Dashboard: React.FC = () => {
               </span>
             </Card.Header>
             <Card.Body className="p-3">
-              {notifications.length > 0 ? (
+              {isNotificationsLoading ? (
+                <TheoryOfNextLoader variant="card" />
+              ) : notifications.length > 0 ? (
                 <div
                   className="rounded-2 p-3 text-white mb-3"
                   style={{

@@ -30,6 +30,7 @@ import { shiftApi } from '../api/shiftApi';
 import { departmentApi } from '../api/departmentApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export const ShiftHandovers: React.FC = () => {
   const queryClient = useQueryClient();
@@ -339,11 +340,7 @@ export const ShiftHandovers: React.FC = () => {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-5 text-muted small">
-                    {t('handovers.loading', 'Đang tải danh sách biên bản bàn giao...')}
-                  </td>
-                </tr>
+                <TheoryOfNextLoader isTableBody columns={6} rows={4} />
               ) : filteredHandovers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5 text-muted small">

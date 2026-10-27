@@ -30,6 +30,7 @@ import { handoverApi, ShiftHandoverRecord, DocType, HandoverCategory } from '../
 import { departmentApi } from '../api/departmentApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
+import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export const DailyBriefings: React.FC = () => {
   const { t, lang } = useTranslation();
@@ -402,11 +403,7 @@ export const DailyBriefings: React.FC = () => {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-5 text-muted small">
-                    {t('briefings.loading', 'Đang tải danh sách biên bản sổ giao ban...')}
-                  </td>
-                </tr>
+                <TheoryOfNextLoader isTableBody columns={6} rows={4} />
               ) : filteredBriefings.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5 text-muted small">
