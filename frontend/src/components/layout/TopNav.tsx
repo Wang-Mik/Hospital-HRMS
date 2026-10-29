@@ -4,6 +4,7 @@ import { Search, Bell, CheckSquare, User, LogOut, CreditCard, Activity, Users, C
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
+import { authApi } from '../../api/authApi';
 import { employeeApi } from '../../api/employeeApi';
 import { taskApi } from '../../api/taskApi';
 import { handoverApi } from '../../api/handoverApi';
@@ -67,7 +68,12 @@ export const TopNav: React.FC<TopNavProps> = ({ onSearch }) => {
   const inboxCount = pendingTasksCount + pendingHandoversCount;
   const unreadNotificationsCount = notifications?.filter((n: any) => !n.is_read).length || 0;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Proceed with client cleanup even if network request fails
+    }
     logout();
     navigate('/login');
   };

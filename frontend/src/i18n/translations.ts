@@ -214,6 +214,7 @@ export const translations = {
     'auth.invalid_credentials': 'Tên đăng nhập hoặc mật khẩu không chính xác',
     'auth.security_notice': 'Bảo mật theo tiêu chuẩn y tế',
     'auth.reset_cache': 'Xóa phiên cũ & Làm mới',
+    'auth.session_expired': 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.',
 
     // Dashboard
     'dashboard.welcome': 'Xin chào',
@@ -2001,6 +2002,7 @@ export const translations = {
     'auth.invalid_credentials': 'Invalid username or password',
     'auth.security_notice': 'Secured according to healthcare compliance standards',
     'auth.reset_cache': 'Clear session cache and reload',
+    'auth.session_expired': 'Your session has expired. Please log in again to continue.',
 
     // Dashboard
     'dashboard.welcome': 'Welcome',

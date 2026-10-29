@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import routes from './routes/index.js';
 import setupSwagger from './swagger.js';
@@ -60,6 +61,9 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization', 'x-enforce-auth']
   })
 );
+
+// Security: Cookie Parser for HttpOnly Session Management
+app.use(cookieParser());
 
 // Security: Payload size limits to mitigate JSON DoS attacks
 app.use(express.json({ limit: '1mb' }));

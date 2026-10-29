@@ -5,11 +5,19 @@ import jwt from 'jsonwebtoken';
  * Protects clinical shift and schedule rostering endpoints
  */
 export function verifyToken(req, res, next) {
-  // Allow test environments to provide default admin context ONLY for functional unit tests
+  // 1. Extract token from HttpOnly cookie first, then fallback to Authorization header
+  let token = null;
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  // Allow test environments to provide default admin context ONLY for functional unit tests without auth
   // When x-enforce-auth header is present or ENFORCE_AUTH is enabled, strictly require valid tokens
   if (
     process.env.NODE_ENV === 'test' &&
-    !req.headers.authorization &&
+    !token &&
     req.headers['x-enforce-auth'] !== 'true' &&
     process.env.ENFORCE_AUTH !== 'true'
   ) {
@@ -17,15 +25,14 @@ export function verifyToken(req, res, next) {
     return next();
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({
       success: false,
+      code: 'UNAUTHORIZED',
       message: 'Yêu cầu đăng nhập: Không tìm thấy Access Token xác thực.'
     });
   }
 
-  const token = authHeader.split(' ')[1];
   const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'test-jwt-secret-key-at-least-32-chars-long' : null);
 
   if (!jwtSecret) {
@@ -40,9 +47,23 @@ export function verifyToken(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(403).json({
+    // Security: Clear invalid or expired cookie on client
+    if (res.clearCookie) {
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/'
+      });
+    }
+
+    const isExpired = err.name === 'TokenExpiredError';
+    return res.status(401).json({
       success: false,
-      message: 'Phiên làm việc đã hết hạn hoặc mã xác thực không hợp lệ. Vui lòng đăng nhập lại.'
+      code: isExpired ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN',
+      message: isExpired
+        ? 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.'
+        : 'Phiên làm việc đã hết hạn hoặc mã xác thực không hợp lệ. Vui lòng đăng nhập lại.'
     });
   }
 }

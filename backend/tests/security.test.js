@@ -134,7 +134,7 @@ describe('Hospital HRMS Web Security & Hardening Test Suite', () => {
   });
 
   describe('3. Cryptographic Token Verification & Integrity', () => {
-    it('should reject tampered or corrupted JWT tokens with 403 Forbidden', async () => {
+    it('should reject tampered or corrupted JWT tokens with 401 Unauthorized', async () => {
       const validToken = makeToken({ role: 'SUPER_ADMIN' });
       const tamperedToken = validToken.slice(0, -6) + 'xxxxxx';
 
@@ -142,20 +142,21 @@ describe('Hospital HRMS Web Security & Hardening Test Suite', () => {
         .get('/api/admin/accounts')
         .set('Authorization', `Bearer ${tamperedToken}`);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toMatch(/hết hạn hoặc mã xác thực không hợp lệ/);
     });
 
-    it('should reject expired JWT tokens with 403 Forbidden', async () => {
+    it('should reject expired JWT tokens with 401 Unauthorized and kick-out code', async () => {
       const expiredToken = makeToken({ role: 'SUPER_ADMIN' }, { expiresIn: '-1s' });
 
       const res = await request(app)
         .get('/api/admin/accounts')
         .set('Authorization', `Bearer ${expiredToken}`);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
+      expect(res.body.code).toBe('TOKEN_EXPIRED');
     });
 
     it('should verify issued tokens have exactly 3 hours lifetime per user directive', async () => {
@@ -253,6 +254,45 @@ describe('Hospital HRMS Web Security & Hardening Test Suite', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.message).toContain('CORS');
+    });
+  });
+
+  describe('6. HttpOnly Cookie & Session Lifecycle (OWASP Compliant)', () => {
+    it('should authenticate protected endpoints using HttpOnly Cookie', async () => {
+      const validToken = makeToken({ role: 'SUPER_ADMIN', username: 'cookie_admin', employee_code: 'EMP-ADM-001' });
+
+      pool.query.mockResolvedValueOnce([[]]); // mock for admin accounts lookup
+
+      const res = await request(app)
+        .get('/api/admin/accounts')
+        .set('Cookie', `token=${validToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('should reject expired cookie with 401 and set cleared Set-Cookie header', async () => {
+      const expiredToken = makeToken({ role: 'SUPER_ADMIN' }, { expiresIn: '-1s' });
+
+      const res = await request(app)
+        .get('/api/admin/accounts')
+        .set('Cookie', `token=${expiredToken}`);
+
+      expect(res.status).toBe(401);
+      expect(res.body.code).toBe('TOKEN_EXPIRED');
+      // Verify Set-Cookie header clears the cookie
+      expect(res.headers['set-cookie']).toBeDefined();
+      expect(res.headers['set-cookie'][0]).toContain('token=;');
+    });
+
+    it('should clear HttpOnly cookie on POST /api/auth/logout', async () => {
+      const res = await request(app)
+        .post('/api/auth/logout');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.headers['set-cookie']).toBeDefined();
+      expect(res.headers['set-cookie'][0]).toContain('token=;');
     });
   });
 });

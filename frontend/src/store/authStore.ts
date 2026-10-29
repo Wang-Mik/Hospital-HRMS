@@ -18,7 +18,8 @@ export interface AuthUser {
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
-  setCredentials: (token: string, user: AuthUser) => void;
+  isAuthenticated: boolean;
+  setCredentials: (userOrToken: AuthUser | string, user?: AuthUser) => void;
   logout: () => void;
 }
 
@@ -45,40 +46,43 @@ const getStoredUser = (): AuthUser | null => {
   }
 };
 
-const getStoredToken = (): string | null => {
+export const useAuthStore = create<AuthState>((set) => {
+  // Security Compliance: Purge legacy plain-text JWT token from localStorage
   try {
-    const token = localStorage.getItem('token');
-    if (!token || token === 'undefined' || token === 'null') {
-      return null;
-    }
-    return token;
+    localStorage.removeItem('token');
   } catch {
-    return null;
+    // ignore
   }
-};
 
-export const useAuthStore = create<AuthState>((set) => ({
-  token: getStoredToken(),
-  user: getStoredUser(),
-  setCredentials: (token, user) => {
-    try {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-    } catch (e) {
-      console.error('Failed to persist auth state to localStorage:', e);
+  const initialUser = getStoredUser();
+
+  return {
+    token: initialUser ? 'cookie-managed' : null,
+    user: initialUser,
+    isAuthenticated: !!initialUser,
+    setCredentials: (arg1: AuthUser | string, arg2?: AuthUser) => {
+      // Supports both setCredentials(user) and legacy setCredentials(token, user)
+      const user: AuthUser = arg2 ? arg2 : (arg1 as AuthUser);
+      try {
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.removeItem('token'); // Ensure raw JWT is never saved in localStorage
+      } catch (e) {
+        console.error('Failed to persist auth state to localStorage:', e);
+      }
+      set({ user, isAuthenticated: true, token: 'cookie-managed' });
+    },
+    logout: () => {
+      try {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        sessionStorage.clear();
+      } catch {
+        // ignore
+      }
+      set({ token: null, user: null, isAuthenticated: false });
     }
-    set({ token, user });
-  },
-  logout: () => {
-    try {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    } catch {
-      // ignore
-    }
-    set({ token: null, user: null });
-  }
-}));
+  };
+});
 
 export default useAuthStore;
 

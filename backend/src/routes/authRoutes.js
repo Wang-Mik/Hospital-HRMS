@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { authController } from '../controllers/authController.js';
+import { verifyToken } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -130,5 +131,33 @@ router.post('/register', authController.register);
  *         description: Internal server error
  */
 router.post('/login', authLimiter, authController.login);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Invalidate user session and clear HttpOnly cookie
+ *     tags:
+ *       - Authentication & Accounts
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ */
+router.post('/logout', authController.logout);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Retrieve verified claims of current logged-in user
+ *     tags:
+ *       - Authentication & Accounts
+ *     responses:
+ *       200:
+ *         description: Current user profile and claims
+ *       401:
+ *         description: Unauthorized / Expired token
+ */
+router.get('/me', verifyToken, authController.me);
 
 export default router;

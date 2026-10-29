@@ -176,6 +176,12 @@ describe('Backend Authentication & Account Management Tests', () => {
       expect(res.body.data.account.username).toBe('dr.wright');
       expect(res.body.data.employee.employee_code).toBe('EMP-DOC-001');
 
+      // Verify secure HttpOnly cookie is attached
+      expect(res.headers['set-cookie']).toBeDefined();
+      expect(res.headers['set-cookie'][0]).toContain('token=');
+      expect(res.headers['set-cookie'][0]).toContain('HttpOnly');
+      expect(res.headers['set-cookie'][0]).toContain('SameSite=Lax');
+
       // Verify JWT token validity and claims
       const secret = process.env.JWT_SECRET || 'hospital-hrms-backend-secret-key-2026';
       const decoded = jwt.verify(res.body.data.token, secret);

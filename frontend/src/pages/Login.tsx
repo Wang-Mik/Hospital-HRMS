@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { Form, Alert, Spinner } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { Activity, Globe } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Activity, Globe, AlertTriangle } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const setCredentials = useAuthStore((state) => state.setCredentials);
-  const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const { t, lang, setLanguage } = useTranslation();
+
+  const isExpired = searchParams.get('expired') === 'true';
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,10 +22,13 @@ export const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   React.useEffect(() => {
-    if (token && user) {
-      navigate('/', { replace: true });
+    if (user) {
+      const redirectTarget = searchParams.get('redirect')
+        ? decodeURIComponent(searchParams.get('redirect')!)
+        : '/';
+      navigate(redirectTarget, { replace: true });
     }
-  }, [token, user, navigate]);
+  }, [user, navigate, searchParams]);
 
   const handleResetSession = () => {
     logout();
@@ -47,10 +52,10 @@ export const Login: React.FC = () => {
 
     try {
       const response = await axiosClient.post('/auth/login', { username: u, password: p });
-      const { token: authToken, employee, permissions, account } = response.data?.data || {};
+      const { employee, permissions, account } = response.data?.data || {};
 
-      if (authToken && employee) {
-        setCredentials(authToken, {
+      if (employee) {
+        setCredentials({
           employee_code: employee.employee_code,
           role: employee.role,
           role_code: employee.role_code || account?.role_code || employee.role,
@@ -62,7 +67,11 @@ export const Login: React.FC = () => {
           department_code: employee.department_code,
           email: employee.email
         });
-        navigate('/');
+
+        const redirectTarget = searchParams.get('redirect')
+          ? decodeURIComponent(searchParams.get('redirect')!)
+          : '/';
+        navigate(redirectTarget, { replace: true });
       } else {
         setErrorMessage(t('common.error', 'Phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại.'));
       }
@@ -123,6 +132,17 @@ export const Login: React.FC = () => {
               {t('auth.subtitle', 'Đăng nhập vào hệ thống quản lý nhân lực và quy trình y khoa')}
             </p>
           </div>
+
+          {isExpired && !errorMessage && (
+            <Alert
+              variant="warning"
+              className="py-2 px-3 small border-0 mb-3 rounded-2 d-flex align-items-center justify-content-center gap-2"
+              style={{ backgroundColor: '#fff7ed', color: '#c2410c', fontSize: '0.8rem', borderLeft: '3px solid #f97316' }}
+            >
+              <AlertTriangle size={16} className="flex-shrink-0" />
+              <span>{t('auth.session_expired', 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.')}</span>
+            </Alert>
+          )}
 
           {errorMessage && (
             <Alert
