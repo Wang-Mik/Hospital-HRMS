@@ -71,8 +71,16 @@ export const PayrollManagement: React.FC = () => {
   const currentStaffId = user?.employee_code || 'EMP-DOC-001';
   const currentStaffName = user?.full_name || t('payroll.default_staff_name', 'BS.CKII Nguyễn Văn An');
   const currentDept = user?.department || t('payroll.default_dept', 'Khoa Cấp Cứu & Hồi Sức Tim Mạch');
+  const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN';
 
   const [activeTab, setActiveTab] = useState<'slips' | 'runs' | 'elections'>('slips');
+
+  // Prevent regular employees from landing on hospital-wide runs tab
+  React.useEffect(() => {
+    if (!isHR && activeTab === 'runs') {
+      setActiveTab('slips');
+    }
+  }, [isHR, activeTab]);
 
   // Modals
   const [selectedSlip, setSelectedSlip] = useState<PaySlipItem | null>(null);
@@ -260,7 +268,7 @@ export const PayrollManagement: React.FC = () => {
           </p>
         </div>
         <div className="d-flex gap-2">
-          {activeTab === 'runs' && (
+          {activeTab === 'runs' && isHR && (
             <button
               type="button"
               className="wd-pill-btn-primary"
@@ -330,13 +338,15 @@ export const PayrollManagement: React.FC = () => {
         >
           {t('payroll.tab_bank_elections', 'Tài Khoản Nhận Lương')} ({elections.length})
         </button>
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'runs' ? 'active' : ''}`}
-          onClick={() => setActiveTab('runs')}
-        >
-          {t('payroll.tab_hospital_runs', 'Chu Kỳ Quyết Toán Bệnh Viện')} ({runs.length})
-        </button>
+        {isHR && (
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'runs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('runs')}
+          >
+            {t('payroll.tab_hospital_runs', 'Chu Kỳ Quyết Toán Bệnh Viện')} ({runs.length})
+          </button>
+        )}
       </div>
 
       {/* Tab 1: My Pay Slips */}

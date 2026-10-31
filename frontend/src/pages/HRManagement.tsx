@@ -163,7 +163,20 @@ export const HRManagement: React.FC = () => {
   });
 
   // Filter states
-  const [leaveFilter, setLeaveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+  const initialLeaveStatus = searchParams.get('status') as any;
+  const [leaveFilter, setLeaveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>(
+    initialLeaveStatus && ['ALL', 'PENDING', 'APPROVED', 'REJECTED'].includes(initialLeaveStatus)
+      ? initialLeaveStatus
+      : 'ALL'
+  );
+
+  // Sync leave filter if query param changes
+  useEffect(() => {
+    const statusParam = searchParams.get('status') as any;
+    if (statusParam && ['ALL', 'PENDING', 'APPROVED', 'REJECTED'].includes(statusParam) && statusParam !== leaveFilter) {
+      setLeaveFilter(statusParam);
+    }
+  }, [searchParams]);
 
   // Modals state
   const [showPayRateModal, setShowPayRateModal] = useState(false);

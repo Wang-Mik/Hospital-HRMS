@@ -51,7 +51,8 @@ export const ShiftHandovers: React.FC = () => {
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Create Form State
-  const [departmentCode, setDepartmentCode] = useState('DEP-CC-HSTC');
+  const defaultDeptCode = user?.department_code || 'DEP-CC-HSTC';
+  const [departmentCode, setDepartmentCode] = useState(defaultDeptCode);
   const [outgoingShiftId, setOutgoingShiftId] = useState('');
   const [incomingShiftId, setIncomingShiftId] = useState('');
   const [docType, setDocType] = useState<DocType>('PHYSICAL_BOOK');
@@ -591,6 +592,31 @@ export const ShiftHandovers: React.FC = () => {
                   {selectedHandover.critical_notes || t('handovers.no_anomaly', 'Không ghi nhận biến động bất thường.')}
                 </div>
               </div>
+
+              {/* Equipment, Records & Patient Assets Verification Card */}
+              <div className="p-3 rounded-2 border mb-3" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                <div className="fw-semibold text-success small mb-1.5 d-flex align-items-center gap-1.5">
+                  <ShieldCheck size={16} className="text-success" />
+                  <span>{t('handovers.asset_section_title', 'Bàn Giao Trang Thiết Bị, Hồ Sơ & Tài Sản Người Bệnh')}</span>
+                </div>
+                <div className="small text-muted mb-2" style={{ fontSize: '11.5px' }}>
+                  {t('handovers.asset_responsible_note', 'Người nhận bàn giao chịu trách nhiệm: Điều dưỡng trưởng (thay mặt Trưởng khoa tiếp nhận kiểm đếm). Trưởng khoa nghe báo cáo tổng hợp để chỉ đạo xử lý khi có thiếu hụt.')}
+                </div>
+                <div className="d-flex flex-column gap-1.5 small text-dark">
+                  <div className="d-flex align-items-center gap-2">
+                    <CheckCircle2 size={14} className="text-success flex-shrink-0" />
+                    <span>{t('handovers.check_equipment', 'Trang thiết bị y sinh, máy thở, monitor & cơ sở vật chất: Đầy đủ, vận hành tốt')}</span>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <CheckCircle2 size={14} className="text-success flex-shrink-0" />
+                    <span>{t('handovers.check_records', 'Hồ sơ bệnh án nội trú, kết quả xét nghiệm & y lệnh điều trị: Khớp sổ trực')}</span>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <CheckCircle2 size={14} className="text-success flex-shrink-0" />
+                    <span>{t('handovers.check_patient_assets', 'Tài sản & tư trang người bệnh nội trú/cấp cứu: Đã kiểm kê và bàn giao')}</span>
+                  </div>
+                </div>
+              </div>
             </Modal.Body>
 
             <Modal.Footer className="border-top py-2.5" style={{ borderColor: 'var(--wd-border)' }}>
@@ -623,12 +649,15 @@ export const ShiftHandovers: React.FC = () => {
                   aria-label={t('nav.department', 'Khoa / Phòng Trực')}
                   value={departmentCode}
                   onChange={(e) => setDepartmentCode(e.target.value)}
+                  disabled={user?.role === 'DEPARTMENT_HEAD'}
                   className="wd-select w-100"
                 >
-                  {departments?.map((d) => (
-                    <option key={d.department_code} value={d.department_code}>
-                      {d.name}
-                    </option>
+                  {departments
+                    ?.filter((d) => user?.role !== 'DEPARTMENT_HEAD' || d.department_code === (user?.department_code || 'DEP-HSTC'))
+                    .map((d) => (
+                      <option key={d.department_code} value={d.department_code}>
+                        {d.name}
+                      </option>
                   ))}
                 </select>
               </Col>
@@ -818,6 +847,31 @@ export const ShiftHandovers: React.FC = () => {
                 className="wd-input w-100"
               />
             </Form.Group>
+
+            {/* Equipment, Records & Patient Assets Verification Card */}
+            <div className="p-3 rounded-2 border mb-3" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}>
+              <div className="fw-semibold text-success small mb-1.5 d-flex align-items-center gap-1.5">
+                <ShieldCheck size={16} className="text-success" />
+                <span>{t('handovers.asset_section_title', 'Bàn Giao Trang Thiết Bị, Hồ Sơ & Tài Sản Người Bệnh')}</span>
+              </div>
+              <div className="small text-muted mb-2" style={{ fontSize: '11.5px' }}>
+                {t('handovers.asset_responsible_note', 'Người nhận bàn giao chịu trách nhiệm: Điều dưỡng trưởng (thay mặt Trưởng khoa tiếp nhận kiểm đếm). Trưởng khoa nghe báo cáo tổng hợp để chỉ đạo xử lý khi có thiếu hụt.')}
+              </div>
+              <div className="d-flex flex-column gap-1.5 small text-dark">
+                <div className="d-flex align-items-center gap-2">
+                  <CheckCircle2 size={14} className="text-success flex-shrink-0" />
+                  <span>{t('handovers.check_equipment', 'Trang thiết bị y sinh, máy thở, monitor & cơ sở vật chất: Đầy đủ, vận hành tốt')}</span>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  <CheckCircle2 size={14} className="text-success flex-shrink-0" />
+                  <span>{t('handovers.check_records', 'Hồ sơ bệnh án nội trú, kết quả xét nghiệm & y lệnh điều trị: Khớp sổ trực')}</span>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  <CheckCircle2 size={14} className="text-success flex-shrink-0" />
+                  <span>{t('handovers.check_patient_assets', 'Tài sản & tư trang người bệnh nội trú/cấp cứu: Đã kiểm kê và bàn giao')}</span>
+                </div>
+              </div>
+            </div>
 
             <div className="p-3 rounded-2 small text-muted border bg-light">
               <div className="d-flex align-items-center gap-1.5 fw-medium text-dark mb-0.5">

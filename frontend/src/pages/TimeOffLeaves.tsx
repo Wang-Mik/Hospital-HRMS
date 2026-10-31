@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leaveApi } from '../api/leaveApi';
+import { employeeApi } from '../api/employeeApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
@@ -41,6 +43,7 @@ interface UpcomingLeave {
 export const TimeOffLeaves: React.FC = () => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
   const currentStaffId = user?.employee_code || 'EMP-DOC-001';
   const { t, lang } = useTranslation();
 
@@ -68,6 +71,22 @@ export const TimeOffLeaves: React.FC = () => {
   const [startDate, setStartDate] = useState('2026-10-05');
   const [endDate, setEndDate] = useState('2026-10-08');
   const [leaveReason, setLeaveReason] = useState('');
+
+  // Fetch current employee profile to check gender (e.g. exclude MATERNITY leave for MALE)
+  const { data: employeeProfile } = useQuery({
+    queryKey: ['employeeProfile', currentStaffId],
+    queryFn: () => employeeApi.getById(currentStaffId),
+    staleTime: 60000
+  });
+
+  const isMale = (employeeProfile?.gender || '').toUpperCase() === 'MALE';
+
+  // Ensure leaveType is never MATERNITY if user is male
+  React.useEffect(() => {
+    if (isMale && leaveType === 'MATERNITY') {
+      setLeaveType('ANNUAL');
+    }
+  }, [isMale, leaveType]);
 
   // TanStack Query: Fetch live balances from hrm_db
   const { data: serverBalances } = useQuery({
@@ -224,6 +243,28 @@ export const TimeOffLeaves: React.FC = () => {
         >
           {successMsg}
         </Alert>
+      )}
+
+      {/* Admin/HR Approval Portal Jump Banner */}
+      {isHRorAdmin && (
+        <div
+          className="py-2.5 px-3 mb-4 rounded-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 border"
+          style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534' }}
+        >
+          <div className="d-flex align-items-center gap-2 small">
+            <Info size={16} className="text-success flex-shrink-0" />
+            <span className="fw-medium">
+              {t('timeoff.viewing_personal_notice', 'Bạn đang xem lịch nghỉ cá nhân. Để xem và phê duyệt danh sách đơn xin nghỉ phép của cán bộ toàn viện:')}
+            </span>
+          </div>
+          <Link
+            to="/hr?tab=leaves"
+            className="btn btn-sm btn-success rounded-pill px-3 py-1 text-nowrap fw-semibold shadow-sm align-self-start align-self-sm-center"
+            style={{ fontSize: '12px' }}
+          >
+            {t('timeoff.go_to_hr_approval', 'Vào Cổng Phê Duyệt Viện')} &rarr;
+          </Link>
+        </div>
       )}
 
       {/* Support Banner (AskHR) */}
@@ -424,7 +465,9 @@ export const TimeOffLeaves: React.FC = () => {
               >
                 <option value="ANNUAL">{t('timeoff.annual_leave', 'Phép Thường Niên')}</option>
                 <option value="SICK">{t('timeoff.sick_leave', 'Nghỉ Ốm Hưởng BHXH')}</option>
-                <option value="MATERNITY">{t('timeoff.maternity_leave', 'Nghỉ Thai Sản')}</option>
+                {!isMale && (
+                  <option value="MATERNITY">{t('timeoff.maternity_leave', 'Nghỉ Thai Sản')}</option>
+                )}
                 <option value="COMPENSATORY">{t('timeoff.compensatory_leave', 'Nghỉ Bù Ca Trực')}</option>
                 <option value="UNPAID">{t('timeoff.unpaid_leave', 'Nghỉ Không Hưởng Lương')}</option>
               </select>

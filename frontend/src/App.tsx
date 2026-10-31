@@ -45,15 +45,15 @@ export const App: React.FC = () => {
               <Route path="leave" element={<TimeOffLeaves />} />
               <Route path="employees" element={<StaffDirectory defaultTab="staff" />} />
               <Route path="licenses" element={<StaffDirectory defaultTab="licenses" />} />
+              <Route path="payroll" element={<PayrollManagement />} />
               <Route path="settings" element={<Settings />} />
 
-              {/* Role-Restricted Clinical Administration & Payroll */}
+              {/* Role-Restricted Clinical Administration & System Management */}
               <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
                 <Route path="admin" element={<SystemManagement />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HR_MANAGER']} />}>
                 <Route path="hr" element={<HRManagement />} />
-                <Route path="payroll" element={<PayrollManagement />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

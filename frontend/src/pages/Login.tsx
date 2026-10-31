@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Activity, Globe, AlertTriangle } from 'lucide-react';
+import { Activity, Globe, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
@@ -18,6 +18,7 @@ export const Login: React.FC = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -171,17 +172,35 @@ export const Login: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-4" controlId="loginPassword">
-              <Form.Label htmlFor="loginPassword" className="wd-label">
-                {t('auth.password', 'Mật Khẩu')}
-              </Form.Label>
-              <Form.Control
-                type="password"
-                id="loginPassword"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="wd-input w-100"
-              />
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <Form.Label htmlFor="loginPassword" className="wd-label mb-0">
+                  {t('auth.password', 'Mật Khẩu')}
+                </Form.Label>
+              </div>
+              <div className="position-relative d-flex align-items-center">
+                <Form.Control
+                  type={showPassword ? 'text' : 'password'}
+                  id="loginPassword"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="wd-input w-100 pe-5"
+                  autoComplete="current-password"
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+                <button
+                  type="button"
+                  className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted p-2 me-1 d-flex align-items-center justify-content-center border-0 shadow-none"
+                  style={{ textDecoration: 'none' }}
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? t('common.hide_password', 'Ẩn mật khẩu') : t('common.show_password', 'Hiện mật khẩu')}
+                  aria-label={showPassword ? t('common.hide_password', 'Ẩn mật khẩu') : t('common.show_password', 'Hiện mật khẩu')}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </Form.Group>
 
             <button

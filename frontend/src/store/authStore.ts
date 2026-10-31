@@ -12,6 +12,8 @@ export interface AuthUser {
   full_name?: string;
   department?: string;
   department_code?: string;
+  specialty?: string;
+  gender?: string;
   email?: string;
 }
 

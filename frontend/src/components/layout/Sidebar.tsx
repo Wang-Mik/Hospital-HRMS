@@ -29,11 +29,27 @@ interface RailItem {
 export const Sidebar: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
-  const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
+  const role = user?.role;
 
-  const hrRailItems: RailItem[] = [
+  // 1. Quản Trị Hệ Thống (SUPER_ADMIN)
+  // Quy chuẩn: Quản trị hệ thống chỉ có quản trị hệ thống (/admin), KHÔNG có trang nhân sự (/hr)
+  const adminRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
     { label: t('nav.admin', 'Quản Trị'), to: '/admin', icon: ShieldCheck },
+    { label: t('nav.shifts', 'Lịch Làm Việc & Trực'), to: '/shifts', icon: CalendarDays },
+    { label: t('nav.briefings', 'Giao Ban'), to: '/briefings', icon: BookOpen },
+    { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
+    { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: Calendar },
+    { label: t('nav.payroll', 'Bảng Lương'), to: '/payroll', icon: CreditCard },
+    { label: t('personal.practicing_license', 'Chứng Chỉ'), to: '/licenses', icon: Award },
+    { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell },
+    { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
+  ];
+
+  // 2. Quản Trị Nhân Sự (HR_MANAGER)
+  // Quy chuẩn: Quản trị nhân sự chỉ có HR (/hr), KHÔNG có trang quản trị hệ thống (/admin)
+  const hrRailItems: RailItem[] = [
+    { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
     { label: t('nav.hr_management', 'Nhân Sự'), to: '/hr', icon: UserCheck },
     { label: t('nav.shifts', 'Lịch Làm Việc & Trực'), to: '/shifts', icon: CalendarDays },
     { label: t('nav.briefings', 'Giao Ban'), to: '/briefings', icon: BookOpen },
@@ -45,6 +61,7 @@ export const Sidebar: React.FC = () => {
     { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
   ];
 
+  // 3. Khối Lâm Sàng & Khám Chữa Bệnh (DOCTOR, NURSE, DEPARTMENT_HEAD...)
   const clinicalRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
     { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User },
@@ -59,7 +76,35 @@ export const Sidebar: React.FC = () => {
     { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell }
   ];
 
-  const activeRailItems = isHRorAdmin ? hrRailItems : clinicalRailItems;
+  // 4. Khối Kỹ Thuật Viên Cận Lâm Sàng & Dược (TECHNICIAN, PHARMACIST)
+  // Quy chuẩn bệnh viện: Kỹ thuật viên & Dược sĩ không tham gia giao ban viện (/briefings)
+  const technicalRailItems: RailItem[] = [
+    { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
+    { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User },
+    { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
+    { label: t('nav.shifts', 'Lịch Làm Việc & Trực'), to: '/shifts', icon: CalendarDays },
+    { label: t('nav.attendance', 'Chấm Công'), to: '/attendance', icon: Clock },
+    { label: t('nav.handovers', 'Giao Ca'), to: '/handovers', icon: ClipboardList },
+    { label: t('nav.tasks', 'Công Việc'), to: '/tasks', icon: CheckSquare },
+    { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: Calendar },
+    { label: t('nav.payroll', 'Bảng Lương'), to: '/payroll', icon: CreditCard },
+    { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell }
+  ];
+
+  const isTechnicianOrPharmacist =
+    role === 'TECHNICIAN' ||
+    user?.department_code === 'DEP-DUOC' ||
+    user?.department?.toLowerCase().includes('dược') ||
+    user?.specialty?.toLowerCase().includes('dược');
+
+  const activeRailItems =
+    role === 'SUPER_ADMIN'
+      ? adminRailItems
+      : role === 'HR_MANAGER'
+      ? hrRailItems
+      : isTechnicianOrPharmacist
+      ? technicalRailItems
+      : clinicalRailItems;
 
   return (
     <nav className="wd-nav-rail" aria-label={t('nav.navigation_rail', 'Thanh điều hướng bệnh viện')}>

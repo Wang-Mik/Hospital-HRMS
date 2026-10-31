@@ -27,7 +27,9 @@ import {
   Search,
   FileText,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, AdminAccount } from '../api/adminApi';
@@ -160,6 +162,7 @@ export const SystemManagement: React.FC = () => {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedAccountForPassword, setSelectedAccountForPassword] = useState<AdminAccount | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   // IAM Role Modal state
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -1233,7 +1236,16 @@ export const SystemManagement: React.FC = () => {
               <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="small fw-semibold">{t('admin.placeholder_initial_pwd', 'Mật Khẩu Khởi Tạo')}</Form.Label>
-                  <Form.Control name="password" aria-label={t('admin.placeholder_initial_pwd', 'Mật Khẩu Khởi Tạo')} defaultValue="bv123456" className="wd-input" />
+                  <Form.Control
+                    name="password"
+                    aria-label={t('admin.placeholder_initial_pwd', 'Mật Khẩu Khởi Tạo')}
+                    defaultValue="bv123456"
+                    className="wd-input"
+                    autoComplete="new-password"
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                  />
                 </Form.Group>
               </Col>
             </Row>
@@ -1285,7 +1297,7 @@ export const SystemManagement: React.FC = () => {
       {/* ========================================================================= */}
       {/* MODAL 3: RESET PASSWORD */}
       {/* ========================================================================= */}
-      <Modal show={showResetPasswordModal} onHide={() => setShowResetPasswordModal(false)} centered>
+      <Modal show={showResetPasswordModal} onHide={() => { setShowResetPasswordModal(false); setShowResetPassword(false); }} centered>
         <Modal.Header closeButton>
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <Key size={18} className="text-warning" />
@@ -1312,19 +1324,38 @@ export const SystemManagement: React.FC = () => {
 
             <Form.Group className="mb-3">
               <Form.Label className="small fw-semibold">{t('admin.field_new_pwd', 'Mật Khẩu Mới')}</Form.Label>
-              <Form.Control
-                type="password"
-                required
-                minLength={6}
-                value={newPasswordValue}
-                onChange={(e) => setNewPasswordValue(e.target.value)}
-                placeholder={t('admin.placeholder_new_pwd', 'Nhập mật khẩu mới...')}
-                className="wd-input"
-              />
+              <div className="position-relative d-flex align-items-center">
+                <Form.Control
+                  type={showResetPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  value={newPasswordValue}
+                  onChange={(e) => setNewPasswordValue(e.target.value)}
+                  placeholder={t('admin.placeholder_new_pwd', 'Nhập mật khẩu mới...')}
+                  className="wd-input pe-5"
+                  autoComplete="new-password"
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+                <button
+                  type="button"
+                  className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted p-2 me-1 d-flex align-items-center justify-content-center border-0 shadow-none"
+                  style={{ textDecoration: 'none' }}
+                  onClick={() => setShowResetPassword(!showResetPassword)}
+                  title={showResetPassword ? t('common.hide_password', 'Ẩn mật khẩu') : t('common.show_password', 'Hiện mật khẩu')}
+                  aria-label={showResetPassword ? t('common.hide_password', 'Ẩn mật khẩu') : t('common.show_password', 'Hiện mật khẩu')}
+                >
+                  {showResetPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <div className="form-text small text-muted mt-1">
+                {t('admin.pwd_ime_hint', 'Gợi ý: Nhấn biểu tượng mắt để hiện mật khẩu, giúp gõ dấu tiếng Việt (Unikey) không bị lỗi hoặc nhầm ký tự.')}
+              </div>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowResetPasswordModal(false)}>
+            <Button variant="secondary" onClick={() => { setShowResetPasswordModal(false); setShowResetPassword(false); }}>
               {t('admin.btn_cancel', 'Hủy')}
             </Button>
             <Button type="submit" variant="warning" disabled={resetPasswordMutation.isPending}>

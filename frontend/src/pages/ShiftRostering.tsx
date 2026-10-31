@@ -370,6 +370,7 @@ export const ShiftRostering: React.FC = () => {
 
   // Role Restriction: STRICTLY ONLY HR (HR_MANAGER) or Admin (SUPER_ADMIN) can manage shifts
   const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN';
+  const isDeptHead = user?.role === 'DEPARTMENT_HEAD';
 
   // 1. Staff selection: default to logged-in user or doctor EMP-DOC-001
   const defaultStaffId = user?.employee_code || 'EMP-DOC-001';
@@ -763,10 +764,15 @@ export const ShiftRostering: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Filtered employees for create modal dropdown
+  // Business Rule: Department Head (e.g. Nguyễn Văn B) strictly locked to their own department
   const modalEmployees = useMemo(() => {
+    if (isDeptHead) {
+      const headDept = user?.department_code || employees.find((e: any) => e.employee_code === user?.employee_code)?.department_code || 'DEP-HSTC';
+      return employees.filter((e: any) => e.department_code === headDept);
+    }
     if (modalDeptFilter === 'ALL') return employees;
     return employees.filter((e: any) => e.department_code === modalDeptFilter);
-  }, [employees, modalDeptFilter]);
+  }, [employees, modalDeptFilter, isDeptHead, user]);
 
   // Single shift form state
   const [createForm, setCreateForm] = useState({
@@ -2170,14 +2176,19 @@ export const ShiftRostering: React.FC = () => {
                         <Form.Select
                           value={modalDeptFilter}
                           onChange={(e) => setModalDeptFilter(e.target.value)}
+                          disabled={isDeptHead}
                           style={{ fontSize: '13px' }}
                         >
-                          <option value="ALL">-- {t('shifts.all_depts', 'Tất Cả Khoa Phòng')} --</option>
-                          {serverDepartments.map((dept) => (
-                            <option key={dept.department_code} value={dept.department_code}>
-                              {dept.name} ({dept.department_code})
-                            </option>
-                          ))}
+                          {!isDeptHead && (
+                            <option value="ALL">-- {t('shifts.all_depts', 'Tất Cả Khoa Phòng')} --</option>
+                          )}
+                          {serverDepartments
+                            .filter((dept) => !isDeptHead || dept.department_code === (user?.department_code || selectedStaff.department_code || 'DEP-HSTC'))
+                            .map((dept) => (
+                              <option key={dept.department_code} value={dept.department_code}>
+                                {dept.name} ({dept.department_code})
+                              </option>
+                            ))}
                         </Form.Select>
                       </Form.Group>
                     </div>
@@ -2315,14 +2326,19 @@ export const ShiftRostering: React.FC = () => {
                         <Form.Select
                           value={modalDeptFilter}
                           onChange={(e) => setModalDeptFilter(e.target.value)}
+                          disabled={isDeptHead}
                           style={{ fontSize: '13px' }}
                         >
-                          <option value="ALL">-- {t('shifts.all_depts', 'Tất Cả Khoa Phòng')} --</option>
-                          {serverDepartments.map((dept) => (
-                            <option key={dept.department_code} value={dept.department_code}>
-                              {dept.name} ({dept.department_code})
-                            </option>
-                          ))}
+                          {!isDeptHead && (
+                            <option value="ALL">-- {t('shifts.all_depts', 'Tất Cả Khoa Phòng')} --</option>
+                          )}
+                          {serverDepartments
+                            .filter((dept) => !isDeptHead || dept.department_code === (user?.department_code || selectedStaff.department_code || 'DEP-HSTC'))
+                            .map((dept) => (
+                              <option key={dept.department_code} value={dept.department_code}>
+                                {dept.name} ({dept.department_code})
+                              </option>
+                            ))}
                         </Form.Select>
                       </Form.Group>
                     </div>

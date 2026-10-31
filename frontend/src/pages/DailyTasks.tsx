@@ -25,6 +25,7 @@ import { taskApi } from '../api/taskApi';
 import { employeeApi } from '../api/employeeApi';
 import { shiftApi } from '../api/shiftApi';
 import { useTranslation } from '../i18n/useTranslation';
+import { useAuthStore } from '../store/authStore';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
 export interface ClinicalTask {
@@ -73,10 +74,41 @@ export const DailyTasks: React.FC = () => {
     staleTime: 30000
   });
 
+  const user = useAuthStore((s) => s.user);
+  const isDeptHead = user?.role === 'DEPARTMENT_HEAD';
+  const myDeptCode = user?.department_code;
+
+  // Business Rule: Department Head (e.g. Nguyễn Văn B) can only assign tasks to staff in their own department
+  const assignableEmployees = React.useMemo(() => {
+    if (!serverEmployees) return [];
+    if (isDeptHead && myDeptCode) {
+      return serverEmployees.filter((emp: any) => emp.department_code === myDeptCode);
+    }
+    return serverEmployees;
+  }, [serverEmployees, isDeptHead, myDeptCode]);
+
+  const assignableShifts = React.useMemo(() => {
+    if (!serverShifts) return [];
+    if (isDeptHead && myDeptCode) {
+      return serverShifts.filter((s: any) => s.department_code === myDeptCode);
+    }
+    return serverShifts;
+  }, [serverShifts, isDeptHead, myDeptCode]);
+
   // Form state
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newAssignedTo, setNewAssignedTo] = useState('EMP-DOC-002');
+
+  // Synchronize default assignee with first allowed staff
+  React.useEffect(() => {
+    if (assignableEmployees.length > 0) {
+      const exists = assignableEmployees.some((e: any) => e.employee_code === newAssignedTo);
+      if (!exists) {
+        setNewAssignedTo(assignableEmployees[0].employee_code);
+      }
+    }
+  }, [assignableEmployees]);
   const [newPriority, setNewPriority] = useState<'URGENT' | 'HIGH' | 'NORMAL' | 'ROUTINE'>('HIGH');
   const [newDueDate, setNewDueDate] = useState('2026-09-19 18:00:00');
   const [newShiftId, setNewShiftId] = useState('');
@@ -566,8 +598,8 @@ export const DailyTasks: React.FC = () => {
                   onChange={(e) => setNewAssignedTo(e.target.value)}
                   className="wd-select w-100"
                 >
-                  {serverEmployees && serverEmployees.length > 0 ? (
-                    serverEmployees.map((emp: any) => (
+                  {assignableEmployees && assignableEmployees.length > 0 ? (
+                    assignableEmployees.map((emp: any) => (
                       <option key={emp.id} value={emp.employee_code}>
                         {emp.last_name} {emp.first_name} ({emp.department_name || emp.department_code || emp.role})
                       </option>
@@ -602,8 +634,8 @@ export const DailyTasks: React.FC = () => {
                 className="wd-select w-100"
               >
                 <option value="">{t('tasks.modal_no_shift', '-- Không chỉ định / Chung trong ngày --')}</option>
-                {serverShifts && serverShifts.length > 0 ? (
-                  serverShifts.map((s: any) => (
+                {assignableShifts && assignableShifts.length > 0 ? (
+                  assignableShifts.map((s: any) => (
                     <option key={s.id} value={s.id}>
                       {s.department_name || s.department_code} — {t('shifts.morning', 'Ca')} {s.shift_type} ({s.start_time?.slice(11, 16)} - {s.end_time?.slice(11, 16)})
                     </option>

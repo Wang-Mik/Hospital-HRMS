@@ -16,7 +16,8 @@ import {
   Bell,
   CheckCircle2,
   AlertTriangle,
-  UserCheck
+  UserCheck,
+  FileText
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -36,6 +37,8 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
+  const isAdmin = user?.role === 'SUPER_ADMIN';
+  const isHR = user?.role === 'HR_MANAGER';
 
   const currentStaffName = user?.name || (isHRorAdmin ? t('dashboard.hr_admin_title', 'Cán Bộ Quản Trị Nhân Sự') : t('dashboard.doctor_default', 'BS. Nguyễn Văn A'));
   const currentStaffCode = user?.employee_code || (isHRorAdmin ? 'EMP-HR-001' : 'EMP-DOC-001');
@@ -122,68 +125,92 @@ export const Dashboard: React.FC = () => {
 
     return (
       <div>
-        {/* 1. HR Executive Promotional Banner */}
+        {/* 1. Executive Promotional Banner (Tailored strictly to Role: Admin vs HR) */}
         <div
           className="rounded-3 p-4 mb-4 text-white position-relative overflow-hidden shadow-sm"
           style={{
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #0369a1 100%)',
+            background: isAdmin
+              ? 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)'
+              : 'linear-gradient(135deg, #1e3a8a 0%, #0369a1 100%)',
             minHeight: '140px'
           }}
         >
           <div className="position-relative z-1 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div>
               <span className="badge rounded-pill bg-white text-primary fw-semibold px-2.5 py-1 mb-2 text-uppercase" style={{ fontSize: '11px' }}>
-                {t('dashboard.banner_hr_dept', 'KHỐI TỔ CHỨC CÁN BỘ • BAN GIÁM ĐỐC')}
+                {isAdmin
+                  ? t('dashboard.admin_banner_badge', 'BAN GIÁM ĐỐC • QUẢN TRỊ HỆ THỐNG TỐI CAO')
+                  : t('dashboard.banner_hr_dept', 'KHỐI TỔ CHỨC CÁN BỘ • PHÒNG NHÂN SỰ')}
               </span>
               <h1 className="fw-bold mb-1 text-white" style={{ letterSpacing: '-0.02em', fontSize: '1.4rem' }}>
-                {t('dashboard.banner_hr_title', 'Trung Tâm Chỉ Huy Quản Trị Nhân Sự Bệnh Viện')}
+                {isAdmin
+                  ? t('dashboard.admin_banner_title', 'Trung Tâm Chỉ Huy Quản Trị Hệ Thống & Bảo Mật')
+                  : t('dashboard.banner_hr_title', 'Trung Tâm Chỉ Huy Quản Trị Nhân Sự Bệnh Viện')}
               </h1>
               <p className="text-white text-opacity-85 mb-0 small" style={{ maxWidth: '640px', fontSize: '13px' }}>
-                {t('dashboard.banner_hr_desc', 'Điều hành hồ sơ cán bộ, quản trị tài khoản IAM, duyệt nghỉ phép, định mức chi trả lương VND và tuân thủ chứng chỉ hành nghề y tế.')}
+                {isAdmin
+                  ? t('dashboard.admin_banner_desc', 'Điều hành định danh IAM, phân quyền vai trò bảo mật, cơ cấu khoa phòng và phát lệnh thông báo toàn viện.')
+                  : t('dashboard.banner_hr_desc', 'Điều hành hồ sơ cán bộ, duyệt nghỉ phép viện, định mức chi trả lương VND và tuân thủ chứng chỉ hành nghề y tế.')}
               </p>
             </div>
             <div className="d-flex gap-2 flex-shrink-0">
-              <Link to="/hr" className="btn btn-sm btn-light fw-semibold text-primary px-3.5 py-2 rounded-pill shadow-sm">
-                {t('dashboard.banner_hr_portal_btn', 'Vào Cổng Quản Trị Nhân Sự')} &rarr;
-              </Link>
-              <Link to="/admin" className="btn btn-sm btn-outline-light fw-semibold px-3 py-2 rounded-pill">
-                {t('dashboard.banner_admin_btn', 'Quản Trị Hệ Thống')}
-              </Link>
+              {isAdmin ? (
+                <Link to="/admin" className="btn btn-sm btn-light fw-semibold text-primary px-3.5 py-2 rounded-pill shadow-sm">
+                  {t('dashboard.banner_admin_btn', 'Quản Trị Hệ Thống')} &rarr;
+                </Link>
+              ) : (
+                <Link to="/hr" className="btn btn-sm btn-light fw-semibold text-primary px-3.5 py-2 rounded-pill shadow-sm">
+                  {t('dashboard.banner_hr_portal_btn', 'Vào Cổng Quản Trị Nhân Sự')} &rarr;
+                </Link>
+              )}
             </div>
           </div>
         </div>
 
-        {/* 2. Welcome Title & HR Quick Action Pills */}
+        {/* 2. Welcome Title & Quick Action Pills (Distinct Admin vs HR) */}
         <div className="text-center my-4 py-1">
           <h2 className="fw-bold text-dark mb-1" style={{ letterSpacing: '-0.02em', fontSize: '24px' }}>
             {t('top_nav.welcome', 'Chào mừng')}, {currentStaffName}
           </h2>
           <p className="text-muted small mb-3">
-            {user?.role === 'SUPER_ADMIN' ? t('dashboard.role_super_admin', 'Ban Giám Đốc Bệnh Viện') : t('dashboard.role_hr_manager', 'Trưởng Phòng Tổ Chức Cán Bộ')}
+            {isAdmin ? t('dashboard.role_super_admin', 'Ban Giám Đốc Bệnh Viện') : t('dashboard.role_hr_manager', 'Trưởng Phòng Tổ Chức Cán Bộ')}
           </p>
 
           <div className="d-flex flex-wrap justify-content-center gap-2">
-            <Link to="/admin" className="wd-pill-btn text-primary fw-semibold">
-              <ShieldCheck size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_iam', 'Quản trị hệ thống & IAM')}
-            </Link>
-            <Link to="/hr" className="wd-pill-btn text-success fw-semibold">
-              <UserCheck size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_hr', 'Quản trị nhân sự')}
-            </Link>
-            <Link to="/hr?tab=leaves" className="wd-pill-btn">
-              <Calendar size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_leave_review', 'Duyệt phép')} ({kpis.pending_leaves} {t('dashboard.pending_approval_count', 'chờ duyệt')})
-            </Link>
-            <Link to="/hr?tab=compensation" className="wd-pill-btn">
-              <CreditCard size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_pay_vnd', 'Định mức lương VND')}
-            </Link>
-            <Link to="/employees" className="wd-pill-btn">
-              <Users size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_staff_records', 'Hồ sơ cán bộ')} ({kpis.total_employees})
-            </Link>
-            <Link to="/hr?tab=licensing" className="wd-pill-btn">
-              <Award size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_cchn', 'Giám sát CCHN y tế')}
-            </Link>
-            <Link to="/admin?tab=broadcast" className="wd-pill-btn">
-              <Bell size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_broadcast', 'Phát lệnh thông báo')}
-            </Link>
+            {isAdmin ? (
+              <>
+                <Link to="/admin" className="wd-pill-btn text-primary fw-semibold">
+                  <ShieldCheck size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_iam', 'Quản trị hệ thống & IAM')}
+                </Link>
+                <Link to="/admin?tab=departments" className="wd-pill-btn">
+                  <Building2 size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_departments', 'Khoa phòng & Cơ cấu')}
+                </Link>
+                <Link to="/admin?tab=broadcast" className="wd-pill-btn">
+                  <Bell size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_broadcast', 'Phát lệnh thông báo')}
+                </Link>
+                <Link to="/employees" className="wd-pill-btn">
+                  <Users size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_staff_records', 'Hồ sơ cán bộ')} ({kpis.total_employees})
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/hr" className="wd-pill-btn text-success fw-semibold">
+                  <UserCheck size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_hr', 'Quản trị nhân sự')}
+                </Link>
+                <Link to="/hr?tab=leaves" className="wd-pill-btn">
+                  <Calendar size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_leave_review', 'Duyệt phép')} ({kpis.pending_leaves} {t('dashboard.pending_approval_count', 'chờ duyệt')})
+                </Link>
+                <Link to="/hr?tab=compensation" className="wd-pill-btn">
+                  <CreditCard size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_pay_vnd', 'Định mức lương VND')}
+                </Link>
+                <Link to="/employees" className="wd-pill-btn">
+                  <Users size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_staff_records', 'Hồ sơ cán bộ')} ({kpis.total_employees})
+                </Link>
+                <Link to="/licenses" className="wd-pill-btn">
+                  <Award size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_cchn', 'Giám sát CCHN y tế')}
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -228,7 +255,7 @@ export const Dashboard: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        <Link to="/leave" className="wd-pill-btn-primary flex-shrink-0" style={{ fontSize: '12px', padding: '5px 14px' }}>
+                        <Link to="/hr?tab=leaves&status=PENDING" className="wd-pill-btn-primary flex-shrink-0" style={{ fontSize: '12px', padding: '5px 14px' }}>
                           {t('dashboard.review_btn', 'Xét duyệt')} &gt;
                         </Link>
                       </Card.Body>
@@ -271,7 +298,7 @@ export const Dashboard: React.FC = () => {
                 )}
 
                 <div className="text-start ps-1 pt-1">
-                  <Link to="/leave" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
+                  <Link to="/hr?tab=leaves" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
                     <span>{t('dashboard.view_all_leave_requests', 'Vào toàn bộ danh sách phê duyệt nghỉ phép viện')} &gt;</span>
                     <ChevronRight size={14} />
                   </Link>
@@ -395,29 +422,60 @@ export const Dashboard: React.FC = () => {
               </Card.Body>
             </Card>
 
-            {/* Card: Quick Admin Links */}
+            {/* Card: Quick Admin / HR Shortcuts (Distinct per role) */}
             <Card className="wd-card">
               <Card.Header className="wd-card-header">
-                <span className="wd-card-title">{t('dashboard.admin_shortcuts', 'Lối Tắt Quản Trị Hệ Thống')}</span>
+                <span className="wd-card-title">
+                  {isAdmin
+                    ? t('dashboard.admin_shortcuts', 'Lối Tắt Quản Trị Hệ Thống')
+                    : t('dashboard.hr_shortcuts', 'Lối Tắt Quản Trị Nhân Sự')}
+                </span>
               </Card.Header>
               <Card.Body className="p-3">
                 <div className="d-flex flex-column gap-2">
-                  <Link to="/admin" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_iam', 'Cổng Quản Trị Hệ Thống & IAM')}</span>
-                    <ChevronRight size={15} className="text-muted" />
-                  </Link>
-                  <Link to="/hr" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_hr', 'Cổng Quản Trị Nhân Sự')}</span>
-                    <ChevronRight size={15} className="text-muted" />
-                  </Link>
-                  <Link to="/employees" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_staff', 'Danh Bạ Cán Bộ & Bổ Nhiệm')}</span>
-                    <ChevronRight size={15} className="text-muted" />
-                  </Link>
-                  <Link to="/licenses" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
-                    <span className="small fw-semibold">{t('dashboard.shortcut_cchn', 'Giám Sát Chứng Chỉ Hành Nghề')}</span>
-                    <ChevronRight size={15} className="text-muted" />
-                  </Link>
+                  {isAdmin ? (
+                    <>
+                      <Link to="/admin" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.shortcut_iam', 'Cổng Quản Trị Hệ Thống & IAM')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                      <Link to="/admin?tab=departments" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.quick_departments', 'Khoa Phòng & Cơ Cấu Toàn Viện')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                      <Link to="/admin?tab=broadcast" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.quick_broadcast', 'Phát Lệnh Thông Báo Khẩn')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                      <Link to="/employees" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.shortcut_staff', 'Danh Bạ Cán Bộ & Bổ Nhiệm')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/hr" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.shortcut_hr', 'Cổng Quản Trị Nhân Sự')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                      <Link to="/hr?tab=leaves" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.shortcut_hr_leaves', 'Phê Duyệt Nghỉ Phép Viện')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                      <Link to="/hr?tab=compensation" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.shortcut_hr_compensation', 'Định Mức Lương & Chi Trả VND')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                      <Link to="/employees" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.shortcut_staff', 'Danh Bạ Cán Bộ & Bổ Nhiệm')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                      <Link to="/licenses" className="p-2.5 rounded-2 bg-light text-decoration-none text-dark d-flex align-items-center justify-content-between hover-bg-light">
+                        <span className="small fw-semibold">{t('dashboard.shortcut_cchn', 'Giám Sát Chứng Chỉ Hành Nghề')}</span>
+                        <ChevronRight size={15} className="text-muted" />
+                      </Link>
+                    </>
+                  )}
                 </div>
               </Card.Body>
             </Card>
@@ -490,8 +548,9 @@ export const Dashboard: React.FC = () => {
           <Link to="/tasks" className="wd-pill-btn">
             {t('dashboard.action_orders', 'Y lệnh & Nhiệm vụ')}
           </Link>
-          <Link to="/handovers" className="wd-pill-btn">
-            {t('dashboard.action_handovers', 'Biên bản bàn giao ca')}
+          <Link to="/handovers" className="wd-pill-btn d-inline-flex align-items-center gap-1.5">
+            <FileText size={13} className="text-secondary" />
+            <span>{t('dashboard.action_view_documents', 'Xem các loại biên bản')}</span>
           </Link>
           <Link to="/payroll" className="wd-pill-btn">
             {t('dashboard.action_my_payroll', 'Phiếu lương của tôi')}
@@ -733,6 +792,52 @@ export const Dashboard: React.FC = () => {
                 <Link to="/notifications" className="text-decoration-none fw-semibold text-primary small d-inline-flex align-items-center gap-1">
                   <span>{t('dashboard.view_all', 'Xem tất cả')} &gt;</span>
                 </Link>
+              </div>
+            </Card.Body>
+          </Card>
+
+          {/* Card: Clinical Documents & Important Handover Notes (Ô Document / Lưu ý quan trọng - không ưu tiên) */}
+          <Card className="wd-card mb-4">
+            <Card.Header className="wd-card-header d-flex justify-content-between align-items-center">
+              <span className="wd-card-title d-flex align-items-center gap-1.5">
+                <FileText size={15} className="text-secondary" />
+                <span>{t('dashboard.docs_notes_title', 'Hồ Sơ Biên Bản & Lưu Ý Lâm Sàng')}</span>
+              </span>
+              <Link to="/handovers" className="text-decoration-none fw-semibold text-primary small">
+                {t('dashboard.action_view_documents', 'Xem các loại biên bản')} &gt;
+              </Link>
+            </Card.Header>
+            <Card.Body className="p-3">
+              <div className="d-flex flex-column gap-2.5">
+                <div className="p-2.5 rounded-2 border bg-light">
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <span className="badge bg-secondary-subtle text-secondary border px-1.5 py-0.5" style={{ fontSize: '10px' }}>
+                      {t('dashboard.doc_type_handover', 'Biên Bản Giao Ca')}
+                    </span>
+                    <span className="text-muted" style={{ fontSize: '11px' }}>24/7 ICU & Cấp Cứu</span>
+                  </div>
+                  <div className="fw-semibold text-dark" style={{ fontSize: '12.5px' }}>
+                    {t('dashboard.doc_item_1_title', 'Bàn giao thiết bị y sinh & hồ sơ bệnh án')}
+                  </div>
+                  <div className="text-muted small mt-0.5" style={{ fontSize: '11.5px', lineHeight: 1.4 }}>
+                    {t('dashboard.doc_item_1_desc', 'Lưu ý: Điều dưỡng trưởng nhận bàn giao máy thở, monitor, hồ sơ và tài sản người bệnh thay mặt Trưởng khoa.')}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-2 border bg-light">
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5" style={{ fontSize: '10px' }}>
+                      {t('dashboard.doc_type_briefing', 'Giao Ban Viện')}
+                    </span>
+                    <span className="text-muted" style={{ fontSize: '11px' }}>07:30 Sáng</span>
+                  </div>
+                  <div className="fw-semibold text-dark" style={{ fontSize: '12.5px' }}>
+                    {t('dashboard.doc_item_2_title', 'Biên bản giao ban chuyên môn lâm sàng')}
+                  </div>
+                  <div className="text-muted small mt-0.5" style={{ fontSize: '11.5px', lineHeight: 1.4 }}>
+                    {t('dashboard.doc_item_2_desc', 'Tổng hợp số liệu cấp cứu 24h, ca bệnh nặng và kết luận chỉ đạo của Ban Giám đốc viện.')}
+                  </div>
+                </div>
               </div>
             </Card.Body>
           </Card>
