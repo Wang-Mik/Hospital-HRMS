@@ -6,7 +6,9 @@ import {
   Modal,
   Form,
   Alert,
-  ButtonGroup
+  ButtonGroup,
+  Badge,
+  Button
 } from 'react-bootstrap';
 import {
   Users,
@@ -22,11 +24,15 @@ import {
   Clock,
   LayoutGrid,
   List,
-  Info
+  Info,
+  RefreshCw,
+  Edit2
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeeApi } from '../api/employeeApi';
 import { departmentApi, Department } from '../api/departmentApi';
+import { kpiApi, MonthlyKpiRecord } from '../api/kpiApi';
+import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 
@@ -63,13 +69,19 @@ export interface LicenseItem {
 }
 
 export interface StaffDirectoryProps {
-  defaultTab?: 'staff' | 'licenses';
+  defaultTab?: 'staff' | 'licenses' | 'kpi';
 }
 
 export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'staff' }) => {
   const queryClient = useQueryClient();
   const { t, lang } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'staff' | 'licenses'>(defaultTab);
+  const user = useAuthStore((s) => s.user);
+  const isDeptLeader = ['DEPARTMENT_HEAD', 'CHIEF_NURSE'].includes(user?.role || '');
+  const isHrOrAdmin = ['SUPER_ADMIN', 'HR_MANAGER'].includes(user?.role || '');
+  const canEvaluateKpi = isDeptLeader || isHrOrAdmin;
+
+  const defaultKpiDept = isDeptLeader ? (user?.department_code || 'DEP-CC-HSTC') : 'ALL';
+  const [activeTab, setActiveTab] = useState<'staff' | 'licenses' | 'kpi'>(defaultTab);
 
   // TanStack Query: Fetch employees live from MySQL hrm_db
   const { data: serverEmployees, isLoading: isEmployeesLoading } = useQuery({
@@ -89,6 +101,29 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
   const { data: serverLicenses, isLoading: isLicensesLoading } = useQuery<any[]>({
     queryKey: ['licenses'],
     queryFn: () => employeeApi.getAllLicenses(),
+    staleTime: 10000
+  });
+
+  // Department KPI States
+  const [kpiMonthFilter, setKpiMonthFilter] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const [kpiDeptFilter, setKpiDeptFilter] = useState<string>(defaultKpiDept);
+  const [selectedKpiRecord, setSelectedKpiRecord] = useState<MonthlyKpiRecord | null>(null);
+  const [showKpiEvalModal, setShowKpiEvalModal] = useState<boolean>(false);
+  const [kpiEvalFormData, setKpiEvalFormData] = useState({
+    clinical_performance_score: 90,
+    patient_satisfaction_score: 95,
+    disciplinary_penalty_points: 0,
+    evaluation_notes: ''
+  });
+
+  // TanStack Query: Department KPI Records
+  const { data: deptMonthlyKpis = [], isLoading: isKpiLoading } = useQuery<MonthlyKpiRecord[]>({
+    queryKey: ['deptMonthlyKpis', kpiMonthFilter, kpiDeptFilter],
+    queryFn: () => kpiApi.getMonthlyKpis({
+      month: kpiMonthFilter,
+      department_code: kpiDeptFilter === 'ALL' ? undefined : kpiDeptFilter
+    }),
+    enabled: canEvaluateKpi,
     staleTime: 10000
   });
 
@@ -148,6 +183,34 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
     onError: (err: any) => {
       const msg = err.response?.data?.message || err.message || t('directory.create_license_error', 'Không thể đăng ký chứng chỉ hành nghề');
       setToastMessage(`${t('common.error', 'Lỗi')}: ${msg}`);
+    }
+  });
+
+  // Mutation: Auto-compute Department Monthly KPI
+  const autoComputeKpiMutation = useMutation({
+    mutationFn: ({ month, dept }: { month: string; dept: string }) =>
+      kpiApi.autoComputeMonthlyKpi(month, dept === 'ALL' ? undefined : dept),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['deptMonthlyKpis'] });
+      setToastMessage(data?.message || t('directory.kpi_auto_success', 'Đã tính toán tự động KPI tháng thành công!'));
+      setTimeout(() => setToastMessage(null), 5000);
+    },
+    onError: (err: any) => {
+      setToastMessage(`${t('common.error', 'Lỗi')}: ${err.response?.data?.message || err.message}`);
+    }
+  });
+
+  // Mutation: Save Department KPI Evaluation
+  const saveKpiEvaluationMutation = useMutation({
+    mutationFn: (payload: any) => kpiApi.saveKpiEvaluation(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deptMonthlyKpis'] });
+      setShowKpiEvalModal(false);
+      setToastMessage(t('directory.kpi_eval_success', 'Đã lưu đánh giá và xếp loại KPI cho cán bộ thành công!'));
+      setTimeout(() => setToastMessage(null), 5000);
+    },
+    onError: (err: any) => {
+      setToastMessage(`${t('common.error', 'Lỗi')}: ${err.response?.data?.message || err.message}`);
     }
   });
 
@@ -272,7 +335,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               <Plus size={15} />
               <span>{t('directory.btn_onboard', 'Tiếp Nhận Cán Bộ Y Tế')}</span>
             </button>
-          ) : (
+          ) : activeTab === 'licenses' ? (
             <button
               type="button"
               className="wd-pill-btn-primary"
@@ -280,6 +343,16 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             >
               <Award size={15} />
               <span>{t('directory.btn_register_license', 'Đăng Ký Chứng Chỉ Y Tế')}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="wd-pill-btn-primary"
+              disabled={autoComputeKpiMutation.isPending}
+              onClick={() => autoComputeKpiMutation.mutate({ month: kpiMonthFilter, dept: kpiDeptFilter })}
+            >
+              <RefreshCw size={14} className={autoComputeKpiMutation.isPending ? 'spin' : ''} />
+              <span>{autoComputeKpiMutation.isPending ? t('common.loading', 'Đang tính toán...') : t('directory.kpi_auto_btn', 'Tính Toán Tự Động KPI')}</span>
             </button>
           )}
         </div>
@@ -322,95 +395,106 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
           className={`wd-tab-btn ${activeTab === 'staff' ? 'active' : ''}`}
           onClick={() => setActiveTab('staff')}
         >
-          {t('directory.tab_colleagues', 'Danh Bạ Đồng Nghiệp')} ({employees.length})
+          <span>{t('directory.tab_colleagues', 'Danh Bạ Đồng Nghiệp')} ({employees.length})</span>
         </button>
         <button
           type="button"
           className={`wd-tab-btn ${activeTab === 'licenses' ? 'active' : ''}`}
           onClick={() => setActiveTab('licenses')}
         >
-          {t('directory.tab_compliance', 'Chứng Chỉ Hành Nghề & Giám Sát Tuân Thủ')} ({licenses.length})
+          <span>{t('directory.tab_compliance', 'Chứng Chỉ Hành Nghề & Giám Sát Tuân Thủ')} ({licenses.length})</span>
         </button>
+        {canEvaluateKpi && (
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'kpi' ? 'active' : ''}`}
+            onClick={() => setActiveTab('kpi')}
+          >
+            <span>{t('directory.tab_dept_kpi', 'Đánh Giá KPI Khoa')} ({deptMonthlyKpis.length})</span>
+          </button>
+        )}
       </div>
 
-      {/* Filter Row */}
-      <div className="wd-card mb-4 p-3.5">
-        <Row className="g-3 align-items-center">
-          <Col xs={12} md={activeTab === 'staff' ? 5 : 8}>
-            <div className="position-relative">
-              <Search size={15} aria-hidden="true" className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
-              <input
-                type="text"
-                placeholder={
-                  activeTab === 'staff'
-                    ? t('directory.search_staff_placeholder', 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...')
-                    : t('directory.search_license_placeholder', 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...')
-                }
-                aria-label={
-                  activeTab === 'staff'
-                    ? t('directory.search_staff_placeholder', 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...')
-                    : t('directory.search_license_placeholder', 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...')
-                }
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="wd-input w-100 ps-5"
-              />
-            </div>
-          </Col>
-          {activeTab === 'staff' && (
-            <>
-              <Col xs={6} md={3}>
-                <select
-                  aria-label={t('directory.all_departments', 'Tất Cả Khoa Phòng')}
-                  value={selectedDept}
-                  onChange={(e) => setSelectedDept(e.target.value)}
-                  className="wd-select w-100"
-                >
-                  <option value="ALL">{t('directory.all_departments', 'Tất Cả Khoa Phòng')}</option>
-                  {serverDepartments.map((dept) => (
-                    <option key={dept.department_code} value={dept.department_code}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              </Col>
-              <Col xs={6} md={2}>
-                <select
-                  aria-label={t('directory.all_roles', 'Tất Cả Chức Danh')}
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="wd-select w-100"
-                >
-                  <option value="ALL">{t('directory.all_roles', 'Tất Cả Chức Danh')}</option>
-                  <option value="DEPARTMENT_HEAD">{t('directory.role_dept_head', 'Trưởng Khoa')}</option>
-                  <option value="DOCTOR">{t('directory.doctor_attending', 'Bác Sĩ Điều Trị')}</option>
-                  <option value="NURSE">{t('directory.role_nurse', 'Điều Dưỡng')}</option>
-                </select>
-              </Col>
-              <Col xs={12} md={2} className="text-md-end">
-                <ButtonGroup size="sm">
-                  <button
-                    type="button"
-                    aria-label={t('directory.view_grid', 'Xem dạng lưới')}
-                    className={`btn btn-sm ${viewFormat === 'grid' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
-                    onClick={() => setViewFormat('grid')}
+      {/* Filter Row (For staff and licenses tabs) */}
+      {(activeTab === 'staff' || activeTab === 'licenses') && (
+        <div className="wd-card mb-4 p-3.5">
+          <Row className="g-3 align-items-center">
+            <Col xs={12} md={activeTab === 'staff' ? 5 : 8}>
+              <div className="position-relative">
+                <Search size={15} aria-hidden="true" className="position-absolute text-muted" style={{ left: '12px', top: '11px' }} />
+                <input
+                  type="text"
+                  placeholder={
+                    activeTab === 'staff'
+                      ? t('directory.search_staff_placeholder', 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...')
+                      : t('directory.search_license_placeholder', 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...')
+                  }
+                  aria-label={
+                    activeTab === 'staff'
+                      ? t('directory.search_staff_placeholder', 'Tìm kiếm họ tên bác sĩ, mã nhân viên, chuyên khoa lâm sàng...')
+                      : t('directory.search_license_placeholder', 'Tìm theo tên bác sĩ, loại chứng chỉ hành nghề, số hiệu CCHN...')
+                  }
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="wd-input w-100 ps-5"
+                />
+              </div>
+            </Col>
+            {activeTab === 'staff' && (
+              <>
+                <Col xs={6} md={3}>
+                  <select
+                    aria-label={t('directory.all_departments', 'Tất Cả Khoa Phòng')}
+                    value={selectedDept}
+                    onChange={(e) => setSelectedDept(e.target.value)}
+                    className="wd-select w-100"
                   >
-                    <LayoutGrid size={14} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={t('directory.view_table', 'Xem dạng bảng')}
-                    className={`btn btn-sm ${viewFormat === 'table' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
-                    onClick={() => setViewFormat('table')}
+                    <option value="ALL">{t('directory.all_departments', 'Tất Cả Khoa Phòng')}</option>
+                    {serverDepartments.map((dept) => (
+                      <option key={dept.department_code} value={dept.department_code}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                </Col>
+                <Col xs={6} md={2}>
+                  <select
+                    aria-label={t('directory.all_roles', 'Tất Cả Chức Danh')}
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="wd-select w-100"
                   >
-                    <List size={14} aria-hidden="true" />
-                  </button>
-                </ButtonGroup>
-              </Col>
-            </>
-          )}
-        </Row>
-      </div>
+                    <option value="ALL">{t('directory.all_roles', 'Tất Cả Chức Danh')}</option>
+                    <option value="DEPARTMENT_HEAD">{t('directory.role_dept_head', 'Trưởng Khoa')}</option>
+                    <option value="DOCTOR">{t('directory.doctor_attending', 'Bác Sĩ Điều Trị')}</option>
+                    <option value="NURSE">{t('directory.role_nurse', 'Điều Dưỡng')}</option>
+                  </select>
+                </Col>
+                <Col xs={12} md={2} className="text-md-end">
+                  <ButtonGroup size="sm">
+                    <button
+                      type="button"
+                      aria-label={t('directory.view_grid', 'Xem dạng lưới')}
+                      className={`btn btn-sm ${viewFormat === 'grid' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setViewFormat('grid')}
+                    >
+                      <LayoutGrid size={14} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t('directory.view_table', 'Xem dạng bảng')}
+                      className={`btn btn-sm ${viewFormat === 'table' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setViewFormat('table')}
+                    >
+                      <List size={14} aria-hidden="true" />
+                    </button>
+                  </ButtonGroup>
+                </Col>
+              </>
+            )}
+          </Row>
+        </div>
+      )}
 
       {/* Tab 1: Staff Directory View */}
       {activeTab === 'staff' && (
@@ -712,6 +796,164 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         </div>
       )}
 
+      {/* Tab 3: Department KPI Evaluation */}
+      {activeTab === 'kpi' && canEvaluateKpi && (
+        <div className="wd-card p-3.5 mb-4">
+          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+            <div>
+              <h2 className="h5 fw-bold mb-1 text-dark">{t('directory.tab_dept_kpi', 'Đánh Giá & Xếp Loại KPI Khoa Hàng Tháng')}</h2>
+              <p className="text-muted small mb-0">
+                Đánh giá toàn diện: Chuyên cần & đi ca đúng giờ (20%), Tuân thủ bàn giao ca (20%), Năng lực chuyên môn lâm sàng (30%), Sự hài lòng người bệnh (30%).
+              </p>
+            </div>
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <input
+                type="month"
+                className="form-control form-control-sm font-mono"
+                style={{ width: '160px' }}
+                value={kpiMonthFilter}
+                onChange={(e) => setKpiMonthFilter(e.target.value)}
+              />
+              {isDeptLeader ? (
+                <span className="badge bg-primary-subtle text-primary border border-primary px-2.5 py-1.5 fw-medium small">
+                  Khoa: {serverDepartments.find(d => d.department_code === kpiDeptFilter)?.name || kpiDeptFilter}
+                </span>
+              ) : (
+                <select
+                  aria-label="Lọc theo khoa phòng"
+                  className="form-select form-select-sm"
+                  style={{ width: '180px' }}
+                  value={kpiDeptFilter}
+                  onChange={(e) => setKpiDeptFilter(e.target.value)}
+                >
+                  <option value="ALL">Tất Cả Khoa Phòng</option>
+                  {serverDepartments.map((d) => (
+                    <option key={d.department_code} value={d.department_code}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5"
+                disabled={autoComputeKpiMutation.isPending}
+                onClick={() => autoComputeKpiMutation.mutate({ month: kpiMonthFilter, dept: kpiDeptFilter })}
+              >
+                <RefreshCw size={13} className={autoComputeKpiMutation.isPending ? 'spin' : ''} />
+                <span>{autoComputeKpiMutation.isPending ? t('common.loading', 'Đang tính toán...') : t('directory.kpi_auto_btn', 'Tính Toán Tự Động KPI')}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="table-responsive">
+            <table className="wd-table w-100">
+              <thead>
+                <tr>
+                  <th>{t('directory.th_staff', 'CÁN BỘ Y TẾ')}</th>
+                  <th>KHỐI LƯỢNG TRỰC</th>
+                  <th>KỶ LUẬT CA TRỰC</th>
+                  <th>BÀN GIAO CA</th>
+                  <th>ĐIỂM LÂM SÀNG & HÀI LÒNG</th>
+                  <th>{t('directory.kpi_grade_col', 'TỔNG ĐIỂM & XẾP LOẠI')}</th>
+                  <th className="text-end">{t('common.actions', 'THAO TÁC')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isKpiLoading ? (
+                  <TheoryOfNextLoader isTableBody columns={7} rows={4} />
+                ) : deptMonthlyKpis.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-4 text-muted">
+                      Chưa có dữ liệu KPI cho tháng {kpiMonthFilter}. Hãy bấm &quot;Tính Toán Tự Động KPI&quot; để tổng hợp dữ liệu ca trực và chấm công!
+                    </td>
+                  </tr>
+                ) : (
+                  deptMonthlyKpis.map((kpi) => {
+                    const shiftsCount = Number(kpi.actual_shifts ?? kpi.total_shifts ?? 0);
+                    const hoursCount = Number(kpi.actual_hours ?? kpi.total_hours ?? 0);
+                    const onTimeRate = Number(kpi.on_time_attendance_rate ?? 100);
+                    const handoverRate = Number(kpi.handover_compliance_rate ?? 100);
+                    const finalScore = Number(kpi.total_kpi_score ?? kpi.final_score ?? 0);
+                    const cleanGrade = (kpi.kpi_grade || 'GRADE_B').replace('GRADE_', '');
+                    const displayName = kpi.staff_name || (kpi.last_name ? `${kpi.last_name} ${kpi.first_name}` : kpi.staff_id);
+
+                    const getGradeBadge = (g: string) => {
+                      switch (g) {
+                        case 'A':
+                          return <Badge bg="success" className="px-2 py-1">Hạng A - Xuất Sắc</Badge>;
+                        case 'B':
+                          return <Badge bg="primary" className="px-2 py-1">Hạng B - Tốt</Badge>;
+                        case 'C':
+                          return <Badge bg="warning" text="dark" className="px-2 py-1">Hạng C - Đạt</Badge>;
+                        case 'D':
+                          return <Badge bg="danger" className="px-2 py-1">Hạng D - Kém</Badge>;
+                        default:
+                          return <Badge bg="secondary">{g}</Badge>;
+                      }
+                    };
+
+                    return (
+                      <tr key={kpi.id}>
+                        <td>
+                          <div className="fw-semibold text-dark">{displayName}</div>
+                          <div className="text-muted small">{kpi.staff_id} &bull; {kpi.department_name}</div>
+                        </td>
+                        <td>
+                          <div className="fw-bold font-mono text-dark">{shiftsCount} ca trực</div>
+                          <div className="text-muted small">{hoursCount} giờ làm việc</div>
+                        </td>
+                        <td>
+                          <div className="font-mono">{onTimeRate}% đúng giờ</div>
+                          {onTimeRate < 90 && (
+                            <div className="text-warning small">Có phát sinh trễ ca</div>
+                          )}
+                        </td>
+                        <td>
+                          <div className="fw-medium text-dark">{handoverRate}% hoàn thành</div>
+                          <div className="text-muted small">Biên bản an toàn BN</div>
+                        </td>
+                        <td>
+                          <div className="small font-mono">
+                            Chuyên môn: <strong className="text-dark">{kpi.clinical_performance_score}/100</strong>
+                          </div>
+                          <div className="small font-mono text-muted">
+                            Hài lòng: {kpi.patient_satisfaction_score} &bull; Trừ: -{kpi.disciplinary_penalty_points}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="h6 fw-bold font-mono mb-1 text-dark">{finalScore} / 100</div>
+                          {getGradeBadge(cleanGrade)}
+                        </td>
+                        <td className="text-end">
+                          <button
+                            type="button"
+                            className="wd-action-btn wd-action-btn-edit"
+                            onClick={() => {
+                              setSelectedKpiRecord(kpi);
+                              setKpiEvalFormData({
+                                clinical_performance_score: Number(kpi.clinical_performance_score) || 90,
+                                patient_satisfaction_score: Number(kpi.patient_satisfaction_score) || 95,
+                                disciplinary_penalty_points: Number(kpi.disciplinary_penalty_points) || 0,
+                                evaluation_notes: kpi.evaluation_notes || ''
+                              });
+                              setShowKpiEvalModal(true);
+                            }}
+                          >
+                            <Edit2 size={13} />
+                            <span>{t('directory.kpi_score_action', 'Chấm Điểm')}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Staff Profile Modal */}
       {selectedProfile && (
         <Modal show={true} onHide={() => setSelectedProfile(null)} size="lg" centered>
@@ -968,6 +1210,105 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
             >
               {t('directory.btn_register_lic', 'Đăng Ký Chứng Chỉ')}
             </button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* KPI Evaluation Modal */}
+      <Modal show={showKpiEvalModal} onHide={() => setShowKpiEvalModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="fs-6 fw-bold text-dark">
+            {t('directory.kpi_modal_title', 'Chấm Điểm & Đánh Giá KPI Cán Bộ Y Tế')}
+          </Modal.Title>
+        </Modal.Header>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (selectedKpiRecord) {
+              saveKpiEvaluationMutation.mutate({
+                kpi_id: selectedKpiRecord.id,
+                staff_id: selectedKpiRecord.staff_id,
+                kpi_month: selectedKpiRecord.kpi_month || selectedKpiRecord.month || kpiMonthFilter,
+                ...kpiEvalFormData
+              });
+            }
+          }}
+        >
+          <Modal.Body>
+            <div className="mb-3 p-2.5 bg-light rounded-2 border">
+              <div className="fw-semibold text-dark">
+                {selectedKpiRecord?.staff_name || (selectedKpiRecord?.last_name ? `${selectedKpiRecord.last_name} ${selectedKpiRecord.first_name}` : selectedKpiRecord?.staff_id)}
+              </div>
+              <div className="text-muted small">{selectedKpiRecord?.staff_id} &bull; Tháng {selectedKpiRecord?.kpi_month || selectedKpiRecord?.month || kpiMonthFilter}</div>
+              <div className="text-muted small mt-1 font-mono">
+                Số ca: {selectedKpiRecord?.actual_shifts ?? selectedKpiRecord?.total_shifts ?? 0} | Giờ trực: {selectedKpiRecord?.actual_hours ?? selectedKpiRecord?.total_hours ?? 0}h | Đúng giờ: {selectedKpiRecord?.on_time_attendance_rate ?? 100}% | Giao ca: {selectedKpiRecord?.handover_compliance_rate ?? 100}%
+              </div>
+            </div>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">
+                Điểm Đánh Giá Năng Lực Lâm Sàng (30% trọng số, thang 0-100)
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={100}
+                required
+                value={kpiEvalFormData.clinical_performance_score}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, clinical_performance_score: Number(e.target.value) })}
+                className="wd-input font-monospace"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">
+                Điểm Hài Lòng Người Bệnh & Thân Nhân (30% trọng số, thang 0-100)
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={100}
+                required
+                value={kpiEvalFormData.patient_satisfaction_score}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, patient_satisfaction_score: Number(e.target.value) })}
+                className="wd-input font-monospace"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">
+                Điểm Trừ Vi Phạm Quy Chế / Khiếu Nại (Trừ thẳng vào tổng điểm)
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={50}
+                required
+                value={kpiEvalFormData.disciplinary_penalty_points}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, disciplinary_penalty_points: Number(e.target.value) })}
+                className="wd-input font-monospace"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="small fw-semibold">Nhận Xét & Đề Xuất Cải Tiến Của Trưởng Khoa</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={kpiEvalFormData.evaluation_notes}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, evaluation_notes: e.target.value })}
+                placeholder="Khen ngợi tinh thần cấp cứu hoặc nhắc nhở tuân thủ quy trình..."
+                className="wd-input"
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowKpiEvalModal(false)}>
+              {t('common.cancel', 'Hủy')}
+            </Button>
+            <Button type="submit" variant="primary" disabled={saveKpiEvaluationMutation.isPending}>
+              {saveKpiEvaluationMutation.isPending ? t('common.saving', 'Đang lưu...') : 'Lưu Kết Quả KPI'}
+            </Button>
           </Modal.Footer>
         </Form>
       </Modal>

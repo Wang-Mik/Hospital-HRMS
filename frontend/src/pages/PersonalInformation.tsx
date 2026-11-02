@@ -444,7 +444,6 @@ export const PersonalInformation: React.FC = () => {
           className={`wd-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
           onClick={() => setActiveTab('profile')}
         >
-          <User size={15} />
           <span>{t('personal.title', 'Lý Lịch & Liên Hệ')}</span>
         </button>
         <button
@@ -452,7 +451,6 @@ export const PersonalInformation: React.FC = () => {
           className={`wd-tab-btn ${activeTab === 'degrees' ? 'active' : ''}`}
           onClick={() => setActiveTab('degrees')}
         >
-          <GraduationCap size={15} />
           <span>{t('dossier.academic_degrees', 'Văn Bằng & Học Vị')} ({academicDegrees.length})</span>
         </button>
         <button
@@ -460,7 +458,6 @@ export const PersonalInformation: React.FC = () => {
           className={`wd-tab-btn ${activeTab === 'licenses' ? 'active' : ''}`}
           onClick={() => setActiveTab('licenses')}
         >
-          <Award size={15} />
           <span>{t('dossier.medical_licenses', 'Chứng Chỉ Hành Nghề (CCHN)')} ({medicalLicenses.length})</span>
         </button>
         <button
@@ -468,7 +465,6 @@ export const PersonalInformation: React.FC = () => {
           className={`wd-tab-btn ${activeTab === 'certs' ? 'active' : ''}`}
           onClick={() => setActiveTab('certs')}
         >
-          <FileText size={15} />
           <span>{t('dossier.specialized_certifications', 'Chứng Chỉ Chuyên Môn & CME')} ({specializedCerts.length})</span>
         </button>
         <button
@@ -476,7 +472,6 @@ export const PersonalInformation: React.FC = () => {
           className={`wd-tab-btn ${activeTab === 'contracts_salary' ? 'active' : ''}`}
           onClick={() => setActiveTab('contracts_salary')}
         >
-          <Briefcase size={15} />
           <span>{t('dossier.employment_contracts', 'Hợp Đồng & Nâng Lương')}</span>
         </button>
         <button
@@ -484,7 +479,6 @@ export const PersonalInformation: React.FC = () => {
           className={`wd-tab-btn ${activeTab === 'insurances' ? 'active' : ''}`}
           onClick={() => setActiveTab('insurances')}
         >
-          <ShieldCheck size={15} />
           <span>{t('dossier.social_insurances', 'Bảo Hiểm Xã Hội & Y Tế')}</span>
         </button>
         <button
@@ -492,7 +486,6 @@ export const PersonalInformation: React.FC = () => {
           className={`wd-tab-btn ${activeTab === 'kpi_rewards' ? 'active' : ''}`}
           onClick={() => setActiveTab('kpi_rewards')}
         >
-          <Star size={15} />
           <span>{t('dossier.monthly_kpi', 'KPI Tháng & Khen Thưởng')}</span>
         </button>
       </div>
