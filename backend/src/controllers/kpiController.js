@@ -32,7 +32,16 @@ export const kpiController = {
    */
   async getMyKpiHistory(req, res) {
     try {
-      const staffId = req.query.staff_id || req.user?.employee_code || 'EMP-DOC-001';
+      const requestedStaffId = req.query.staff_id;
+      // If caller is not HR or Admin, they can ONLY view their own KPI history
+      let staffId = req.user?.employee_code || 'EMP-DOC-001';
+      if (
+        requestedStaffId &&
+        req.user &&
+        (req.user.role === 'HR_MANAGER' || req.user.role === 'SUPER_ADMIN')
+      ) {
+        staffId = requestedStaffId;
+      }
       const history = await kpiService.getStaffKpiHistory(staffId);
       return res.status(200).json({
         success: true,

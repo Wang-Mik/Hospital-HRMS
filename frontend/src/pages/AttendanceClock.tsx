@@ -112,7 +112,7 @@ export const AttendanceClock: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
-  const isManager = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER' || user?.role === 'ADMIN';
+  const isManager = ['SUPER_ADMIN', 'HR_MANAGER', 'ADMIN', 'DEPARTMENT_HEAD', 'CHIEF_NURSE'].includes(user?.role || '');
 
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [actionNotice, setActionNotice] = useState<string | null>(null);

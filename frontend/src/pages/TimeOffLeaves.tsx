@@ -350,7 +350,7 @@ export const TimeOffLeaves: React.FC = () => {
                       </td>
                       <td className="small text-nowrap">
                         {lr.start_date?.slice(0, 10)}
-                        {lr.end_date && lr.end_date !== lr.start_date && ` → ${lr.end_date?.slice(0, 10)}`}
+                        {lr.end_date && lr.end_date !== lr.start_date && ` - ${lr.end_date?.slice(0, 10)}`}
                       </td>
                       <td>
                         <strong>{lr.days_requested || (lr.day_part !== 'FULL' ? '0.5' : '1.0')} ngày</strong>

@@ -50,6 +50,8 @@ export const PersonalInformation: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const currentStaffId = user?.employee_code || 'EMP-DOC-001';
   const { t, lang } = useTranslation();
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+  const isHR = user?.role === 'HR_MANAGER' || user?.role === 'HEAD_OF_HR';
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<DossierTab>('profile');
@@ -1042,18 +1044,25 @@ export const PersonalInformation: React.FC = () => {
               </div>
             </div>
 
-            {/* Privacy Toggle Action */}
-            <div className="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                className="wd-pill-btn-outline"
-                onClick={() => toggleSalaryPrivacyMutation.mutate(!isSalaryHidden)}
-                title="Ẩn hoặc hiển thị thông tin ngày tăng lương trên hồ sơ"
-              >
-                {isSalaryHidden ? <Eye size={14} /> : <EyeOff size={14} />}
-                <span>{isSalaryHidden ? 'Hiện Ngày Tăng Lương' : 'Ẩn Ngày Tăng Lương'}</span>
-              </button>
-            </div>
+            {/* Privacy Toggle Action (HR / Admin only) */}
+            {(isHR || isAdmin) ? (
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="wd-pill-btn-outline"
+                  onClick={() => toggleSalaryPrivacyMutation.mutate(!isSalaryHidden)}
+                  title="Ẩn hoặc hiển thị thông tin ngày tăng lương trên hồ sơ"
+                >
+                  {isSalaryHidden ? <Eye size={14} /> : <EyeOff size={14} />}
+                  <span>{isSalaryHidden ? 'Hiện Ngày Tăng Lương' : 'Ẩn Ngày Tăng Lương'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="d-flex align-items-center gap-1.5 text-muted small bg-light px-3 py-1.5 rounded-pill border">
+                <ShieldCheck size={14} className="text-secondary" />
+                <span>{t('dossier.hr_privacy_managed', 'Chế độ hiển thị do Phòng Tổ chức Cán bộ quản lý')}</span>
+              </div>
+            )}
           </div>
 
           {/* Contracts Table */}

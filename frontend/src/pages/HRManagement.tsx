@@ -867,7 +867,7 @@ export const HRManagement: React.FC = () => {
                     </td>
                     <td>
                       {lr.start_date?.slice(0, 10)}
-                      {lr.end_date && lr.end_date !== lr.start_date && ` → ${lr.end_date?.slice(0, 10)}`}
+                      {lr.end_date && lr.end_date !== lr.start_date && ` - ${lr.end_date?.slice(0, 10)}`}
                     </td>
                     <td>
                       <strong className="text-dark">
@@ -1079,7 +1079,7 @@ export const HRManagement: React.FC = () => {
                     <tr key={run.id}>
                       <td className="fw-bold font-mono">#{run.id}</td>
                       <td>
-                        {run.start_date?.slice(0, 10)} → {run.end_date?.slice(0, 10)}
+                        {run.start_date?.slice(0, 10)} - {run.end_date?.slice(0, 10)}
                       </td>
                       <td className="fw-bold text-success font-mono">
                         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(run.total_gross || 0))}
@@ -1472,7 +1472,7 @@ export const HRManagement: React.FC = () => {
                         <td>{getContractTypeBadge(c.contract_type)}</td>
                         <td>
                           <div className="small font-mono">
-                            {c.start_date?.slice(0, 10)} → {c.end_date ? c.end_date.slice(0, 10) : 'Vô thời hạn'}
+                            {c.start_date?.slice(0, 10)} - {c.end_date ? c.end_date.slice(0, 10) : 'Vô thời hạn'}
                           </div>
                           {isExpired ? (
                             <span className="badge bg-danger bg-opacity-10 text-danger mt-1 small">

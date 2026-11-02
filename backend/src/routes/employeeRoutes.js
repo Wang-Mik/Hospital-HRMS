@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { employeeController } from '../controllers/employeeController.js';
+import { requireRole } from '../middlewares/authMiddleware.js';
 
 const router = Router();
+const hrOnly = requireRole('HR_MANAGER', 'SUPER_ADMIN');
 
 /**
  * @swagger
@@ -191,12 +193,12 @@ router.get('/:staff_id/documents', employeeController.getDocumentsByStaffId);
  */
 router.get('/', employeeController.getAllEmployees);
 router.get('/licenses', employeeController.getAllLicenses);
-router.post('/licenses', employeeController.createLicense);
-router.patch('/licenses/:id/status', employeeController.updateLicenseStatus);
+router.post('/licenses', hrOnly, employeeController.createLicense);
+router.patch('/licenses/:id/status', hrOnly, employeeController.updateLicenseStatus);
 router.get('/:id/dossier', employeeController.getEmployeeFullDossier);
 router.get('/:id', employeeController.getEmployeeWithActiveLicenses);
-router.post('/', employeeController.createEmployee);
-router.patch('/:id/admin-update', employeeController.adminUpdateEmployee);
+router.post('/', hrOnly, employeeController.createEmployee);
+router.patch('/:id/admin-update', hrOnly, employeeController.adminUpdateEmployee);
 router.patch('/:staff_id/profile', employeeController.updateProfile);
 router.post('/:staff_id/avatar', employeeController.updateAvatar);
 router.delete('/:staff_id/emergency-contacts/:contact_id', employeeController.deleteEmergencyContact);

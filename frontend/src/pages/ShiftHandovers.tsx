@@ -22,10 +22,11 @@ import {
   Calendar,
   Search,
   Info,
-  CheckCircle2
+  CheckCircle2,
+  PenTool
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { handoverApi, ShiftHandoverRecord, DocType } from '../api/handoverApi';
+import { handoverApi, ShiftHandoverRecord, DocType, HandoverStatus } from '../api/handoverApi';
 import { shiftApi } from '../api/shiftApi';
 import { departmentApi } from '../api/departmentApi';
 import { useAuthStore } from '../store/authStore';
@@ -62,6 +63,7 @@ export const ShiftHandovers: React.FC = () => {
   const [fileUrl, setFileUrl] = useState('');
   const [externalLink, setExternalLink] = useState('');
   const [criticalNotes, setCriticalNotes] = useState('');
+  const [formStatus, setFormStatus] = useState<HandoverStatus>('PENDING_SIGNATURE');
 
   // 1. Fetch Shift Handovers (category = SHIFT_HANDOVER)
   const { data: serverHandovers, isLoading } = useQuery({
@@ -99,6 +101,20 @@ export const ShiftHandovers: React.FC = () => {
     }
   });
 
+  // Sign Handover Mutation
+  const signHandoverMutation = useMutation({
+    mutationFn: (handoverId: string) => handoverApi.sign(handoverId, currentStaffId),
+    onSuccess: (updatedHandover) => {
+      queryClient.invalidateQueries({ queryKey: ['shift_handovers'] });
+      setSelectedHandover(updatedHandover);
+      setSuccessToast(t('handovers.sign_success', 'Đã ký xác nhận bàn giao ca trực thành công!'));
+      setTimeout(() => setSuccessToast(null), 5000);
+    },
+    onError: (err: any) => {
+      setSuccessToast(`${t('common.error', 'Lỗi')}: ${err.response?.data?.message || err.message}`);
+    }
+  });
+
   const resetForm = () => {
     setOutgoingShiftId('');
     setIncomingShiftId('');
@@ -109,6 +125,7 @@ export const ShiftHandovers: React.FC = () => {
     setFileUrl('');
     setExternalLink('');
     setCriticalNotes('');
+    setFormStatus('PENDING_SIGNATURE');
   };
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -127,7 +144,7 @@ export const ShiftHandovers: React.FC = () => {
       external_link: docType === 'DOCUMENT_LINK' ? externalLink : null,
       critical_notes: criticalNotes,
       logged_by: currentStaffId,
-      status: 'COMPLETED'
+      status: formStatus
     });
   };
 
@@ -197,6 +214,32 @@ export const ShiftHandovers: React.FC = () => {
           <span className="badge rounded-pill bg-light text-secondary border d-inline-flex align-items-center gap-1.5 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
             <FileText size={12} />
             <span>{t('handovers.source_text', 'Ghi Chú Text')}</span>
+          </span>
+        );
+    }
+  };
+
+  const renderStatusBadge = (status: HandoverStatus) => {
+    switch (status) {
+      case 'PENDING_SIGNATURE':
+        return (
+          <span className="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
+            <Clock size={11} />
+            <span>{t('handovers.status_pending', 'Chờ Ký Nhận')}</span>
+          </span>
+        );
+      case 'COMPLETED':
+        return (
+          <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
+            <CheckCircle2 size={11} />
+            <span>{t('handovers.status_completed', 'Đã Hoàn Tất')}</span>
+          </span>
+        );
+      case 'DRAFT':
+      default:
+        return (
+          <span className="badge rounded-pill bg-light text-secondary border d-inline-flex align-items-center gap-1 px-2.5 py-1 fw-medium" style={{ fontSize: '11px' }}>
+            <span>{t('handovers.status_draft', 'Bản Nháp')}</span>
           </span>
         );
     }
@@ -336,15 +379,16 @@ export const ShiftHandovers: React.FC = () => {
                 <th>{t('handovers.th_storage_type', 'HÌNH THỨC LƯU TRỮ')}</th>
                 <th>{t('handovers.th_storage_info', 'THÔNG TIN LƯU TRỮ SỔ')}</th>
                 <th>{t('handovers.th_staff', 'CÁN BỘ BÀN GIAO')}</th>
+                <th>{t('handovers.th_status', 'TRẠNG THÁI')}</th>
                 <th className="text-end">{t('common.actions', 'THAO TÁC')}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <TheoryOfNextLoader isTableBody columns={6} rows={4} />
+                <TheoryOfNextLoader isTableBody columns={7} rows={4} />
               ) : filteredHandovers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-5 text-muted small">
+                  <td colSpan={7} className="text-center py-5 text-muted small">
                     {t('handovers.empty', 'Chưa có biên bản bàn giao nào phù hợp với bộ lọc hiện tại.')}
                   </td>
                 </tr>
@@ -436,6 +480,9 @@ export const ShiftHandovers: React.FC = () => {
                         {item.logged_by_role || t('handovers.default_role', 'Cán bộ trực giao ca')}
                       </div>
                     </td>
+                    <td>
+                      {renderStatusBadge(item.status)}
+                    </td>
                     <td className="text-end">
                       <div className="d-flex align-items-center justify-content-end gap-1.5">
                         {item.file_url && (
@@ -480,7 +527,10 @@ export const ShiftHandovers: React.FC = () => {
                 <Modal.Title className="fs-6 fw-bold text-dark mb-0">
                   {t('handovers.detail_title', 'Biên Bản Bàn Giao Ca')} #{selectedHandover.id.slice(0, 8)}
                 </Modal.Title>
-                <div className="ms-2">{renderDocTypeBadge(selectedHandover.doc_type)}</div>
+                <div className="ms-2 d-flex align-items-center gap-1.5">
+                  {renderDocTypeBadge(selectedHandover.doc_type)}
+                  {renderStatusBadge(selectedHandover.status)}
+                </div>
               </div>
             </Modal.Header>
 
@@ -512,6 +562,48 @@ export const ShiftHandovers: React.FC = () => {
                     </div>
                     <div className="text-secondary small mt-0.5">
                       {selectedHandover.logged_by_role || t('handovers.default_role', 'Bác sĩ / Điều dưỡng trưởng ca')}
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* Handover Signature & Acknowledgment Status */}
+              <div
+                className="p-3 rounded-2 border mb-3"
+                style={{
+                  backgroundColor: selectedHandover.status === 'COMPLETED' ? '#f0fdf4' : '#fffbeb',
+                  borderColor: selectedHandover.status === 'COMPLETED' ? '#bbf7d0' : '#fef3c7'
+                }}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="fw-semibold small d-flex align-items-center gap-1.5" style={{ color: selectedHandover.status === 'COMPLETED' ? '#15803d' : '#b45309' }}>
+                    {selectedHandover.status === 'COMPLETED' ? (
+                      <CheckCircle2 size={16} />
+                    ) : (
+                      <Clock size={16} />
+                    )}
+                    <span>{t('handovers.acknowledged_by_title', 'Cán Bộ Nhận Ca & Ký Xác Nhận')}</span>
+                  </div>
+                  {renderStatusBadge(selectedHandover.status)}
+                </div>
+                <Row className="g-2 small">
+                  <Col md={6}>
+                    <div className="text-muted" style={{ fontSize: '11px' }}>{t('handovers.incoming', 'Cán Bộ Nhận Ca')}</div>
+                    <div className="fw-semibold text-dark mt-0.5">
+                      {selectedHandover.acknowledged_by_name || selectedHandover.acknowledged_by || t('handovers.acknowledged_none', 'Chưa ký nhận')}
+                    </div>
+                    {selectedHandover.acknowledged_by_role && (
+                      <div className="text-muted" style={{ fontSize: '11px' }}>{selectedHandover.acknowledged_by_role}</div>
+                    )}
+                  </Col>
+                  <Col md={6}>
+                    <div className="text-muted" style={{ fontSize: '11px' }}>{t('common.status', 'Trạng Thái Xác Nhận')}</div>
+                    <div className="mt-0.5">
+                      {selectedHandover.status === 'COMPLETED' ? (
+                        <span className="text-success fw-medium">Đã đối chiếu lâm sàng và ký nhận an toàn</span>
+                      ) : (
+                        <span className="text-warning-emphasis fw-medium">Đang chờ cán bộ ca sau đối chiếu và ký nhận</span>
+                      )}
                     </div>
                   </Col>
                 </Row>
@@ -619,7 +711,24 @@ export const ShiftHandovers: React.FC = () => {
               </div>
             </Modal.Body>
 
-            <Modal.Footer className="border-top py-2.5" style={{ borderColor: 'var(--wd-border)' }}>
+            <Modal.Footer className="border-top py-2.5 d-flex justify-content-between" style={{ borderColor: 'var(--wd-border)' }}>
+              <div>
+                {selectedHandover.status === 'PENDING_SIGNATURE' && (
+                  <button
+                    type="button"
+                    className="wd-pill-btn-primary d-inline-flex align-items-center gap-1.5"
+                    disabled={signHandoverMutation.isPending}
+                    onClick={() => signHandoverMutation.mutate(selectedHandover.id)}
+                  >
+                    <PenTool size={14} />
+                    <span>
+                      {signHandoverMutation.isPending
+                        ? t('handovers.signing', 'Đang Ký Nhận...')
+                        : t('handovers.sign_action_btn', 'Ký Nhận Bàn Giao Ca')}
+                    </span>
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 className="wd-pill-btn-outline"
@@ -642,7 +751,7 @@ export const ShiftHandovers: React.FC = () => {
           </Modal.Header>
           <Modal.Body className="p-4">
             <Row className="g-3 mb-3">
-              <Col md={6}>
+              <Col md={4}>
                 <label className="wd-label">{t('nav.department', 'Khoa / Phòng Trực')} *</label>
                 <select
                   required
@@ -662,7 +771,7 @@ export const ShiftHandovers: React.FC = () => {
                 </select>
               </Col>
 
-              <Col md={6}>
+              <Col md={4}>
                 <label className="wd-label">{t('shifts.assign_shift', 'Ca Trực Bàn Giao')}</label>
                 <select
                   aria-label={t('shifts.assign_shift', 'Ca Trực Bàn Giao')}
@@ -670,12 +779,25 @@ export const ShiftHandovers: React.FC = () => {
                   onChange={(e) => setOutgoingShiftId(e.target.value)}
                   className="wd-select w-100"
                 >
-                  <option value="">{t('handovers.select_shift_placeholder', '-- Chọn ca trực nếu có trên lịch --')}</option>
+                  <option value="">{t('handovers.select_shift_placeholder', '-- Chọn ca trực bàn giao --')}</option>
                   {serverShifts?.map((s: any) => (
                     <option key={s.id} value={s.id}>
                       {s.department_name || s.department_code} — {t('handovers.shift_prefix', 'Ca')} {s.shift_type} : {s.start_time?.slice(11, 16)} - {s.end_time?.slice(11, 16)}
                     </option>
                   ))}
+                </select>
+              </Col>
+
+              <Col md={4}>
+                <label className="wd-label">{t('common.status', 'Trạng Thái')} *</label>
+                <select
+                  aria-label={t('common.status', 'Trạng Thái')}
+                  value={formStatus}
+                  onChange={(e) => setFormStatus(e.target.value as HandoverStatus)}
+                  className="wd-select w-100"
+                >
+                  <option value="PENDING_SIGNATURE">{t('handovers.status_pending', 'Chờ Ký Nhận')} (Mặc định)</option>
+                  <option value="COMPLETED">{t('handovers.status_completed', 'Đã Hoàn Tất')} (Đã ký sổ giấy)</option>
                 </select>
               </Col>
             </Row>
@@ -836,12 +958,29 @@ export const ShiftHandovers: React.FC = () => {
             )}
 
             <Form.Group className="mb-3">
-              <label className="wd-label">
-                {t('handovers.section_notes', 'Tóm Tắt Tình Hình Bệnh Nhân Nặng & Y Lệnh Bàn Giao')}
-              </label>
+              <div className="d-flex align-items-center justify-content-between mb-1.5">
+                <label className="wd-label mb-0">
+                  {t('handovers.section_notes', 'Tóm Tắt Tình Hình Bệnh Nhân Nặng & Y Lệnh Bàn Giao')}
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link text-primary p-0 text-decoration-none small fw-medium"
+                  style={{ fontSize: '12px' }}
+                  onClick={() => {
+                    const sbarTemplate =
+`[S - Tình Hình Hiện Tại]: Buồng bệnh ổn định, có ... bệnh nhân nặng đang thở máy.
+[B - Tiền Sử & Diễn Biến Ca]: Không có tai biến bất thường trong ca trực vừa qua.
+[A - Đánh Giá & Cảnh Báo]: Monitor phòng cấp cứu cần theo dõi sát huyết áp BN #...
+[R - Y Lệnh & Bàn Giao]: Ca sau tiếp tục truyền dịch và kiểm tra khí máu lúc 06:00.`;
+                    setCriticalNotes(prev => prev ? `${prev}\n\n${sbarTemplate}` : sbarTemplate);
+                  }}
+                >
+                  + Chèn Mẫu Chuẩn SBAR (BYT)
+                </button>
+              </div>
               <textarea
-                rows={4}
-                placeholder={t('handovers.notes_placeholder', 'Ghi nhận số lượng bệnh nhân nặng thở máy, các ca phẫu thuật cấp cứu cần theo dõi, thuốc đặc trị...')}
+                rows={5}
+                placeholder={t('handovers.notes_placeholder', 'Ghi nhận số lượng bệnh nhân nặng thở máy, các ca phẫu thuật cấp cứu cần theo dõi, thuốc đặc trị... Hoặc nhấn "+ Chèn Mẫu Chuẩn SBAR (BYT)"')}
                 value={criticalNotes}
                 onChange={(e) => setCriticalNotes(e.target.value)}
                 className="wd-input w-100"

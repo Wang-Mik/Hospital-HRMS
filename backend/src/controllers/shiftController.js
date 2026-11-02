@@ -45,7 +45,7 @@ export const shiftController = {
       ].includes(req.user.role);
 
       const resolvedDept = department_code || department_id;
-      const isHeadOfDept = req.user.role === 'DEPARTMENT_HEAD' && req.user.department_code && (req.user.department_code === resolvedDept || resolvedDept === 'DEP-HSTC');
+      const isHeadOfDept = req.user.role === 'DEPARTMENT_HEAD' && req.user.department_code && req.user.department_code === resolvedDept;
 
       // Check if user is delegated secretary for this department
       let isDelegatedSecretary = false;
@@ -344,21 +344,27 @@ export const shiftController = {
     try {
       const { id } = req.params;
 
-      // RBAC Scope Check: Only HR_MANAGER or SUPER_ADMIN can delete shifts
-      if (req.user && req.user.role !== 'HR_MANAGER' && req.user.role !== 'SUPER_ADMIN') {
-        return res.status(403).json({
-          success: false,
-          message: 'Quyền truy cập bị từ chối: Chỉ nhân sự (HR) hoặc Quản trị viên mới có quyền hủy ca trực.'
-        });
+      // Scoped authorization: DEPARTMENT_HEAD can only cancel shifts in their own department.
+      // HR_MANAGER and SUPER_ADMIN have hospital-wide authority.
+      if (req.user && req.user.role === 'DEPARTMENT_HEAD') {
+        const shift = await shiftService.getShiftById(id);
+        if (!shift) {
+          return res.status(404).json({
+            success: false,
+            message: 'Ca trực không tồn tại hoặc đã được xóa trước đó.'
+          });
+        }
+
+        const isDeptHeadOfShift = req.user.department_code && (req.user.department_code === shift.department_code || req.user.department_code === shift.department_id);
+        if (!isDeptHeadOfShift) {
+          return res.status(403).json({
+            success: false,
+            message: 'Quyền truy cập bị từ chối: Trưởng khoa chỉ có quyền hủy ca trực thuộc khoa phụ trách của mình.'
+          });
+        }
       }
 
       const success = await shiftService.deleteShift(id);
-      if (!success) {
-        return res.status(404).json({
-          success: false,
-          message: 'Ca trực không tồn tại hoặc đã được xóa trước đó.'
-        });
-      }
       return res.status(200).json({
         success: true,
         message: 'Đã hủy bỏ ca trực thành công.'

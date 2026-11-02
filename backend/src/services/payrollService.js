@@ -201,10 +201,37 @@ export const payrollService = {
 
     for (const emp of employees) {
       const baseHourly = Number(emp.base_rate);
-      const basePay = Math.round(baseHourly * 176);
-      const nightDiff = Math.round(baseHourly * 16 * 0.3);
-      const overtime = 0;
-      const netPay = basePay + nightDiff + overtime;
+
+      // Query actual attendance records during this payroll period
+      const [attStats] = await pool.query(`
+        SELECT 
+          COALESCE(SUM(work_duration_hours), 0) AS total_hours,
+          COALESCE(SUM(CASE WHEN attendance_status = 'OVERTIME' THEN 2.0 ELSE 0 END), 0) AS ot_hours,
+          COALESCE(SUM(CASE WHEN s.shift_type = 'NIGHT' THEN 8.0 ELSE 0 END), 0) AS night_hours
+        FROM Attendances a
+        LEFT JOIN Shifts s ON a.shift_id = s.id
+        WHERE a.staff_id = ?
+          AND a.clock_in_time >= ?
+          AND a.clock_in_time <= ?
+      `, [emp.employee_code, `${startDate} 00:00:00`, `${endDate} 23:59:59`]);
+
+      const loggedHours = Number(attStats[0]?.total_hours) || 0;
+      // If attendance records exist in this period, use actual hours; otherwise fallback to hospital standard cycle (176h)
+      const actualHours = loggedHours > 0 ? loggedHours : 176;
+      const nightHours = loggedHours > 0 ? Number(attStats[0]?.night_hours) || 0 : 16;
+      const otHours = loggedHours > 0 ? Number(attStats[0]?.ot_hours) || 0 : 0;
+
+      const basePay = Math.round(baseHourly * actualHours);
+      const nightDiff = Math.round(baseHourly * nightHours * 0.3);
+      const overtime = Math.round(baseHourly * otHours * 1.5);
+      const grossPay = basePay + nightDiff + overtime;
+
+      // Bảo hiểm bắt buộc theo luật lao động VN (10.5%: 8% BHXH, 1.5% BHYT, 1% BHTN)
+      const socialInsurance = Math.round(basePay * 0.105);
+      // Thuế TNCN tạm tính theo biểu lũy tiến từng phần (giảm trừ bản thân 11.000.000 đ)
+      const taxable = Math.max(0, grossPay - socialInsurance - 11000000);
+      const tax = Math.round(taxable * 0.10);
+      const netPay = Math.max(0, grossPay - socialInsurance - tax);
 
       await this.createPaySlip({
         run_id: run.id,

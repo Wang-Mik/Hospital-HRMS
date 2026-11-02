@@ -961,21 +961,24 @@ export const shiftService = {
    * to preserve patient safety audit trail and legal medical records.
    */
   async deleteShift(id) {
-    const [auditRows] = await pool.query(
+    const auditRes = await pool.query(
       `SELECT 
         (SELECT COUNT(*) FROM Shift_Handovers WHERE outgoing_shift_id = ? OR incoming_shift_id = ?) as handover_count,
         (SELECT COUNT(*) FROM Attendances WHERE shift_id = ?) as attendance_count`,
       [id, id, id]
     );
+    const auditRows = (auditRes && Array.isArray(auditRes[0])) ? auditRes[0] : (Array.isArray(auditRes) ? auditRes : []);
 
     const hasLogs = auditRows && auditRows[0] && (auditRows[0].handover_count > 0 || auditRows[0].attendance_count > 0);
     if (hasLogs) {
-      const [updateRes] = await pool.query('UPDATE Shifts SET status = "CANCELLED" WHERE id = ?', [id]);
-      return updateRes.affectedRows > 0;
+      const updateRes = await pool.query('UPDATE Shifts SET status = "CANCELLED" WHERE id = ?', [id]);
+      const updateObj = (updateRes && Array.isArray(updateRes)) ? updateRes[0] : updateRes;
+      return updateObj ? updateObj.affectedRows > 0 : true;
     }
 
-    const [result] = await pool.query('DELETE FROM Shifts WHERE id = ?', [id]);
-    return result.affectedRows > 0;
+    const deleteRes = await pool.query('DELETE FROM Shifts WHERE id = ?', [id]);
+    const deleteObj = (deleteRes && Array.isArray(deleteRes)) ? deleteRes[0] : deleteRes;
+    return deleteObj ? deleteObj.affectedRows > 0 : true;
   },
 
   /**

@@ -96,6 +96,6 @@ router.get('/', verifyToken, shiftController.getAllShifts);
  *         description: Shift not found
  */
 router.get('/:id', verifyToken, shiftController.getShiftById);
-router.delete('/:id', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.deleteShift);
+router.delete('/:id', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN', 'DEPARTMENT_HEAD'), shiftController.deleteShift);
 
 export default router;

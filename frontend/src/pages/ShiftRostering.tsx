@@ -1826,7 +1826,10 @@ export const ShiftRostering: React.FC = () => {
                                 title={`${segment.displayTitle} (${shift.start_time.slice(11, 16)} – ${shift.end_time.slice(11, 16)})`}
                               >
                                 {segment.isContinuationFromYesterday ? (
-                                  <span>➔ {shift.end_time.slice(11, 16)}</span>
+                                  <span className="d-inline-flex align-items-center gap-0.5">
+                                    <ArrowRight size={10} />
+                                    <span>{shift.end_time.slice(11, 16)}</span>
+                                  </span>
                                 ) : (
                                   <span>{shift.start_time.slice(11, 16)}</span>
                                 )}
@@ -1903,9 +1906,13 @@ export const ShiftRostering: React.FC = () => {
                               <div>
                                 <div className="fw-bold text-dark fs-6 d-flex align-items-center gap-2">
                                   <span>{getRoleAwareShiftLabel(cat, shift.role || selectedStaff.role, shift.department_code || selectedStaff.department_code)}</span>
-                                  <span className="badge bg-light text-dark border font-mono" style={{ fontSize: '11px' }}>
-                                    {shift.start_time.slice(11, 16)} – {shift.end_time.slice(11, 16)}
-                                    {isOvernight && ' (➜ Hôm sau)'}
+                                  <span className="badge bg-light text-dark border font-mono d-inline-flex align-items-center gap-1" style={{ fontSize: '11px' }}>
+                                    <span>{shift.start_time.slice(11, 16)} – {shift.end_time.slice(11, 16)}</span>
+                                    {isOvernight && (
+                                      <span className="d-inline-flex align-items-center gap-0.5 text-muted">
+                                        (<ArrowRight size={10} /> Hôm sau)
+                                      </span>
+                                    )}
                                   </span>
                                 </div>
                                 <div className="text-muted small mt-0.5">
@@ -1916,8 +1923,9 @@ export const ShiftRostering: React.FC = () => {
 
                             <div className="d-flex align-items-center gap-2">
                               {shift.requires_handover && (
-                                <span className="badge bg-success-subtle text-success border border-success-subtle small">
-                                  ✓ Sổ giao ca
+                                <span className="badge bg-success-subtle text-success border border-success-subtle small d-inline-flex align-items-center gap-1">
+                                  <Check size={11} />
+                                  <span>Sổ giao ca</span>
                                 </span>
                               )}
                               <button
@@ -1988,9 +1996,14 @@ export const ShiftRostering: React.FC = () => {
                   <div className="d-flex align-items-start gap-3">
                     <Clock size={18} className="text-secondary mt-0.5" />
                     <div>
-                      <div className="fw-semibold text-dark">
-                        {selectedShiftDetail.start_time.slice(0, 10)}
-                        {isOvernight && ` ➔ ${selectedShiftDetail.end_time.slice(0, 10)} (Qua đêm)`}
+                      <div className="fw-semibold text-dark d-flex align-items-center gap-1.5">
+                        <span>{selectedShiftDetail.start_time.slice(0, 10)}</span>
+                        {isOvernight && (
+                          <span className="d-inline-flex align-items-center gap-1 text-muted">
+                            <ArrowRight size={13} />
+                            <span>{selectedShiftDetail.end_time.slice(0, 10)} (Qua đêm)</span>
+                          </span>
+                        )}
                       </div>
                       <div className="text-muted font-mono" style={{ fontSize: '13px' }}>
                         {selectedShiftDetail.start_time.slice(11, 16)} – {selectedShiftDetail.end_time.slice(11, 16)}

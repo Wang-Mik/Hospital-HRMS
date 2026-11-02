@@ -630,7 +630,7 @@ export const employeeService = {
   /**
    * Get complete clinical personnel dossier (Bằng cấp, CCHN, CME, Hợp đồng, Bảo hiểm, Khen thưởng/Kỷ luật, KPI, Lương)
    */
-  async getEmployeeFullDossier(idOrCode) {
+  async getEmployeeFullDossier(idOrCode, requester = null) {
     const employee = await this.getEmployeeById(idOrCode);
     if (!employee) return null;
 
@@ -685,6 +685,17 @@ export const employeeService = {
       [staffCode]
     );
 
+    let payRateData = payRates[0] || null;
+    if (payRateData && payRateData.is_salary_increment_hidden) {
+      const isManager = requester && (requester.role === 'SUPER_ADMIN' || requester.role === 'HR_MANAGER');
+      if (!isManager) {
+        payRateData = {
+          ...payRateData,
+          last_salary_increment_date: null
+        };
+      }
+    }
+
     return {
       ...employee,
       academic_degrees: degrees || [],
@@ -694,7 +705,7 @@ export const employeeService = {
       social_insurances: insurances[0] || null,
       commendations_disciplines: records || [],
       monthly_kpis: kpis || [],
-      pay_rate: payRates[0] || null
+      pay_rate: payRateData
     };
   },
 

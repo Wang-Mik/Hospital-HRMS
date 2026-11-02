@@ -69,6 +69,19 @@ export const payrollController = {
       });
     }
 
+    // Ownership check: regular staff can only inspect their own pay slips
+    if (
+      req.user &&
+      req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'HR_MANAGER' &&
+      req.user.employee_code !== staff_id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Quyền truy cập bị từ chối: Bạn chỉ có thể xem phiếu lương của chính mình.'
+      });
+    }
+
     try {
       const rows = await payrollService.getPaySlipsByStaffId(staff_id);
       return res.status(200).json({
@@ -269,6 +282,19 @@ export const payrollController = {
       return res.status(400).json({
         success: false,
         message: 'staff_id parameter is required.'
+      });
+    }
+
+    // Ownership check: regular staff can only inspect their own payment elections
+    if (
+      req.user &&
+      req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'HR_MANAGER' &&
+      req.user.employee_code !== staff_id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Quyền truy cập bị từ chối: Bạn chỉ có thể xem tài khoản nhận lương của chính mình.'
       });
     }
 

@@ -247,6 +247,17 @@ export const employeeController = {
    */
   async updateProfile(req, res) {
     const staff_id = req.params.staff_id || req.params.id;
+    if (
+      req.user &&
+      req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'HR_MANAGER' &&
+      req.user.employee_code !== staff_id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Quyền truy cập bị từ chối: Bạn chỉ có thể cập nhật hồ sơ của chính mình.'
+      });
+    }
     try {
       const updated = await employeeService.updateProfile(staff_id, req.body);
       return res.status(200).json({
@@ -269,6 +280,17 @@ export const employeeController = {
    */
   async updateAvatar(req, res) {
     const staff_id = req.params.staff_id || req.params.id;
+    if (
+      req.user &&
+      req.user.role !== 'SUPER_ADMIN' &&
+      req.user.role !== 'HR_MANAGER' &&
+      req.user.employee_code !== staff_id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Quyền truy cập bị từ chối: Bạn chỉ có thể cập nhật ảnh đại diện của chính mình.'
+      });
+    }
     const { avatar_url } = req.body;
     if (!avatar_url) {
       return res.status(400).json({
@@ -421,7 +443,7 @@ export const employeeController = {
   async getEmployeeFullDossier(req, res) {
     const { id } = req.params;
     try {
-      const dossier = await employeeService.getEmployeeFullDossier(id);
+      const dossier = await employeeService.getEmployeeFullDossier(id, req.user);
       if (!dossier) {
         return res.status(404).json({
           success: false,

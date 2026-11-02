@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import payrollController from '../controllers/payrollController.js';
+import { requireRole } from '../middlewares/authMiddleware.js';
 
 const router = Router();
+
+const hrOnly = requireRole('HR_MANAGER', 'SUPER_ADMIN');
 
 /**
  * @swagger
@@ -32,11 +35,11 @@ const router = Router();
  *       200:
  *         description: Payroll run list retrieved successfully
  */
-router.post('/runs', payrollController.createPayrollRun);
-router.post('/run', payrollController.createPayrollRun);
+router.post('/runs', hrOnly, payrollController.createPayrollRun);
+router.post('/run', hrOnly, payrollController.createPayrollRun);
 router.get('/runs', payrollController.getAllPayrollRuns);
-router.patch('/runs/:id/status', payrollController.updatePayrollRunStatus);
-router.post('/runs/generate', payrollController.generatePayrollRun);
+router.patch('/runs/:id/status', hrOnly, payrollController.updatePayrollRunStatus);
+router.post('/runs/generate', hrOnly, payrollController.generatePayrollRun);
 
 /**
  * @swagger
@@ -78,9 +81,9 @@ router.get('/runs/:id', payrollController.getPayrollRunById);
  */
 router.get('/payslips/:staff_id', payrollController.getPaySlipsByStaffId);
 router.get('/staff/:staff_id/payslips', payrollController.getPaySlipsByStaffId);
-router.get('/rates', payrollController.getAllPayRates);
+router.get('/rates', hrOnly, payrollController.getAllPayRates);
 router.get('/rates/:staff_id', payrollController.getPayRateByStaffId);
-router.put('/rates/:staff_id', payrollController.updatePayRate);
+router.put('/rates/:staff_id', hrOnly, payrollController.updatePayRate);
 
 /**
  * @swagger
@@ -104,7 +107,7 @@ router.put('/rates/:staff_id', payrollController.updatePayRate);
  *       400:
  *         description: Missing run_id or staff_id
  */
-router.post('/payslips', payrollController.createPaySlip);
+router.post('/payslips', hrOnly, payrollController.createPaySlip);
 
 /**
  * @swagger
