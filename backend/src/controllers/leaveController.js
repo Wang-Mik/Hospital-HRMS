@@ -124,8 +124,8 @@ export const leaveController = {
    */
   async getAllLeaveRequests(req, res) {
     try {
-      const { status, leave_type } = req.query;
-      const rows = await leaveService.getAllLeaveRequests({ status, leave_type });
+      const { status, leave_type, staff_id, department_code } = req.query;
+      const rows = await leaveService.getAllLeaveRequests({ status, leave_type, staff_id, department_code });
 
       return res.status(200).json({
         success: true,
@@ -260,7 +260,8 @@ export const leaveController = {
     }
 
     try {
-      const updated = await leaveService.updateLeaveRequestStatus(id, { status });
+      const actor = { ...(req.user || {}), ip: req.ip };
+      const updated = await leaveService.updateLeaveRequestStatus(id, { status }, actor);
       return res.status(200).json({
         success: true,
         message: `Leave request status updated to ${status} successfully.`,

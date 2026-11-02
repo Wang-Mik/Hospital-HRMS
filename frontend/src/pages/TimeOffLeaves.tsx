@@ -44,6 +44,7 @@ export const TimeOffLeaves: React.FC = () => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
+  const isDeptHead = user?.role === 'DEPARTMENT_HEAD';
   const currentStaffId = user?.employee_code || 'EMP-DOC-001';
   const { t, lang } = useTranslation();
 
@@ -74,12 +75,13 @@ export const TimeOffLeaves: React.FC = () => {
 
   // Fetch current employee profile to check gender (e.g. exclude MATERNITY leave for MALE)
   const { data: employeeProfile } = useQuery({
-    queryKey: ['employeeProfile', currentStaffId],
+    queryKey: ['employeeDetail', currentStaffId],
     queryFn: () => employeeApi.getById(currentStaffId),
     staleTime: 60000
   });
 
-  const isMale = (employeeProfile?.gender || '').toUpperCase() === 'MALE';
+  const rawGender = user?.gender || employeeProfile?.gender || '';
+  const isMale = rawGender.toUpperCase() === 'MALE';
 
   // Ensure leaveType is never MATERNITY if user is male
   React.useEffect(() => {
@@ -100,6 +102,31 @@ export const TimeOffLeaves: React.FC = () => {
     queryKey: ['leaveRequests', currentStaffId],
     queryFn: () => leaveApi.getRequests(currentStaffId),
     staleTime: 10000
+  });
+
+  // Department Head: Fetch department leave requests
+  const { data: deptLeaves = [], isLoading: isDeptLeavesLoading } = useQuery<any[]>({
+    queryKey: ['deptLeaves', user?.department_code],
+    queryFn: () => leaveApi.getAllRequests({ department_code: user?.department_code }),
+    enabled: isDeptHead
+  });
+
+  const deptLeaveActionMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'DEPT_APPROVED' | 'REJECTED' }) =>
+      leaveApi.updateRequestStatus(id, status),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['deptLeaves'] });
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      setSuccessMsg(
+        vars.status === 'DEPT_APPROVED'
+          ? t('admin.dept_approved_toast', 'Trưởng khoa đã phê duyệt đơn nghỉ phép thành công. Đang chuyển Phòng Nhân Sự xác nhận.')
+          : t('admin.toast_leave_status_rejected', 'Từ Chối')
+      );
+      setTimeout(() => setSuccessMsg(null), 4000);
+    },
+    onError: (err: any) => {
+      setSuccessMsg(`Lỗi: ${err.response?.data?.message || err.message}`);
+    }
   });
 
   // Helper for displaying day numbers
@@ -171,9 +198,11 @@ export const TimeOffLeaves: React.FC = () => {
     }
   };
 
-  // Map server balances directly from database
+  // Map server balances directly from database (exclude MATERNITY for male employees)
   const displayBalances: LeaveBalanceItem[] = (serverBalances && serverBalances.length > 0)
-    ? serverBalances.map((b: any) => {
+    ? serverBalances
+        .filter((b: any) => !isMale || b.leave_type !== 'MATERNITY')
+        .map((b: any) => {
         const remaining = b.remaining_days !== undefined ? Number(b.remaining_days) : (Number(b.total_days) - Number(b.used_days));
         return {
           id: b.leave_type.toLowerCase(),
@@ -219,7 +248,9 @@ export const TimeOffLeaves: React.FC = () => {
         <div>
           <h1 className="wd-page-title">{t('timeoff.title', 'Quản Lý Nghỉ Phép')}</h1>
           <p className="wd-page-subtitle">
-            {t('timeoff.subtitle', 'Quản lý phép năm, nghỉ ốm bảo hiểm, nghỉ thai sản và bù trực')}
+            {isMale
+              ? t('timeoff.subtitle_male', 'Quản lý phép năm, nghỉ ốm bảo hiểm và bù trực')
+              : t('timeoff.subtitle', 'Quản lý phép năm, nghỉ ốm bảo hiểm, nghỉ thai sản và bù trực')}
           </p>
         </div>
         <div>
@@ -267,6 +298,115 @@ export const TimeOffLeaves: React.FC = () => {
         </div>
       )}
 
+      {/* DEPARTMENT HEAD APPROVAL PORTAL CARD */}
+      {isDeptHead && (
+        <div className="wd-card p-4 mb-4 border-start border-4 border-primary">
+          <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3 pb-3 border-bottom">
+            <div>
+              <h2 className="h6 fw-bold text-dark d-flex align-items-center gap-2 mb-1">
+                <Calendar size={18} className="text-primary" />
+                <span>{t('admin.dept_leave_approval_title', 'Xét Duyệt Đơn Nghỉ Phép Khoa')} ({user?.department_code || 'Khoa Lâm Sàng'})</span>
+              </h2>
+              <p className="text-muted small mb-0">
+                {t('admin.dept_leave_approval_subtitle', 'Trưởng khoa xét duyệt đơn nghỉ phép của nhân sự thuộc khoa phòng mình quản lý.')}
+              </p>
+            </div>
+            <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary py-1.5 px-3 font-monospace">
+              {deptLeaves.filter((r: any) => r.status === 'PENDING').length} đơn chờ duyệt
+            </span>
+          </div>
+
+          <div className="table-responsive">
+            <table className="wd-table w-100">
+              <thead>
+                <tr>
+                  <th>Cán Bộ</th>
+                  <th>Loại Phép</th>
+                  <th>Thời Gian Nghỉ</th>
+                  <th>Số Ngày</th>
+                  <th>Lý Do</th>
+                  <th>Trạng Thái</th>
+                  <th className="text-end">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isDeptLeavesLoading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-3 text-muted">Đang tải danh sách đơn nghỉ của khoa...</td>
+                  </tr>
+                ) : deptLeaves.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-3 text-muted">Khoa chưa có đơn xin nghỉ phép nào.</td>
+                  </tr>
+                ) : (
+                  deptLeaves.map((lr: any) => (
+                    <tr key={lr.id}>
+                      <td>
+                        <div className="fw-semibold text-dark">{lr.staff_name || lr.staff_id}</div>
+                        <div className="text-muted small font-monospace">{lr.staff_id} • {lr.role}</div>
+                      </td>
+                      <td>
+                        <span className="badge bg-light text-dark border">{lr.leave_type}</span>
+                      </td>
+                      <td className="small text-nowrap">
+                        {lr.start_date?.slice(0, 10)}
+                        {lr.end_date && lr.end_date !== lr.start_date && ` → ${lr.end_date?.slice(0, 10)}`}
+                      </td>
+                      <td>
+                        <strong>{lr.days_requested || (lr.day_part !== 'FULL' ? '0.5' : '1.0')} ngày</strong>
+                      </td>
+                      <td style={{ maxWidth: '180px' }} className="text-truncate small" title={lr.reason}>
+                        {lr.reason || '-'}
+                      </td>
+                      <td>
+                        {(() => {
+                          switch (lr.status) {
+                            case 'PENDING':
+                              return <span className="badge bg-warning text-dark">Đã nộp (Chờ duyệt)</span>;
+                            case 'DEPT_APPROVED':
+                              return <span className="badge bg-info text-white">Đã duyệt (Chờ HR)</span>;
+                            case 'APPROVED':
+                              return <span className="badge bg-success text-white">Đã hoàn tất</span>;
+                            case 'REJECTED':
+                              return <span className="badge bg-danger text-white">Từ chối</span>;
+                            default:
+                              return <span className="badge bg-secondary">{lr.status}</span>;
+                          }
+                        })()}
+                      </td>
+                      <td className="text-end">
+                        {lr.status === 'PENDING' ? (
+                          <div className="d-flex align-items-center justify-content-end gap-1.5">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-primary py-1 px-2.5 fw-semibold"
+                              disabled={deptLeaveActionMutation.isPending}
+                              onClick={() => deptLeaveActionMutation.mutate({ id: lr.id, status: 'DEPT_APPROVED' })}
+                            >
+                              Duyệt Đơn
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger py-1 px-2"
+                              disabled={deptLeaveActionMutation.isPending}
+                              onClick={() => deptLeaveActionMutation.mutate({ id: lr.id, status: 'REJECTED' })}
+                            >
+                              Từ Chối
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-muted small">Đã xử lý</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Support Banner (AskHR) */}
       <div className="wd-support-banner">
         <div className="wd-support-icon">
@@ -277,7 +417,9 @@ export const TimeOffLeaves: React.FC = () => {
             {t('timeoff.askhr_title', 'Hỗ Trợ Nhân Sự AskHR')}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            {t('timeoff.askhr_desc', 'Cần giải đáp về hạn mức phép năm, chế độ thai sản hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')}
+            {isMale
+              ? t('timeoff.askhr_desc_male', 'Cần giải đáp về hạn mức phép năm hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')
+              : t('timeoff.askhr_desc', 'Cần giải đáp về hạn mức phép năm, chế độ thai sản hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')}
           </div>
         </div>
         <button

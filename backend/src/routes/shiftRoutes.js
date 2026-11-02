@@ -67,6 +67,9 @@ const router = Router();
  */
 router.post('/auto-rotate', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.autoRotateTeams);
 router.post('/batch', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.batchScheduleShifts);
+router.get('/fill-gap/candidates', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.getFillGapCandidates);
+router.post('/fill-gap/dispatch', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.dispatchSurgeCover);
+router.post('/:id/overrun', verifyToken, requireRole('DOCTOR', 'NURSE', 'DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.recordShiftOverrun);
 router.post('/', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.scheduleShift);
 router.get('/', verifyToken, shiftController.getAllShifts);
 

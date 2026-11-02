@@ -292,6 +292,7 @@ CREATE TABLE IF NOT EXISTS `Leave_Requests` (
   ) NOT NULL DEFAULT 'ANNUAL',
   `status` ENUM(
     'PENDING',
+    'DEPT_APPROVED',
     'APPROVED',
     'REJECTED'
   ) NOT NULL DEFAULT 'PENDING',
@@ -899,4 +900,24 @@ CREATE TABLE IF NOT EXISTS `Accounts` (
     FOREIGN KEY (`role_code`)
     REFERENCES `Roles` (`role_code`)
     ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
+-- 23. Table: Audit_Logs
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `Audit_Logs` (
+  `id` VARCHAR(36) NOT NULL,
+  `actor_id` VARCHAR(50) NOT NULL,
+  `actor_name` VARCHAR(150) NULL,
+  `action` VARCHAR(50) NOT NULL,
+  `resource_type` VARCHAR(50) NOT NULL,
+  `resource_id` VARCHAR(100) NULL,
+  `old_values` JSON NULL,
+  `new_values` JSON NULL,
+  `ip_address` VARCHAR(50) NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_actor` (`actor_id`),
+  KEY `idx_audit_resource` (`resource_type`, `resource_id`),
+  KEY `idx_audit_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

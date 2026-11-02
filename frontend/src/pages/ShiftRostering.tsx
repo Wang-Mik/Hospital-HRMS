@@ -843,6 +843,98 @@ export const ShiftRostering: React.FC = () => {
 
   // State to hold insufficient rest confirmation requirement
   const [restConfirmationNeeded, setRestConfirmationNeeded] = useState<boolean>(false);
+  // State to hold unverified CCHN confirmation requirement
+  const [licenseConfirmationNeeded, setLicenseConfirmationNeeded] = useState<boolean>(false);
+
+  // Emergency Surge & Fill-Gap State
+  const [isFillGapModalOpen, setIsFillGapModalOpen] = useState<boolean>(false);
+  const [fillGapDept, setFillGapDept] = useState<string>(selectedStaff.department_code || 'DEP-HSTC');
+  const [fillGapShiftType, setFillGapShiftType] = useState<string>('CA1');
+  const [fillGapRole, setFillGapRole] = useState<string>('ALL');
+  const [fillGapDate, setFillGapDate] = useState<string>(todayStr);
+  const [fillGapReason, setFillGapReason] = useState<string>('Quá tải cấp cứu đột xuất lúc giao ca');
+  const [isDispatching, setIsDispatching] = useState<boolean>(false);
+  const [dispatchSuccessMsg, setDispatchSuccessMsg] = useState<string | null>(null);
+  const [dispatchErrorMsg, setDispatchErrorMsg] = useState<string | null>(null);
+
+  // Shift Overrun State (inside shift detail modal)
+  const [isOverrunExpanded, setIsOverrunExpanded] = useState<boolean>(false);
+  const [overrunMinutes, setOverrunMinutes] = useState<number>(60);
+  const [overrunReason, setOverrunReason] = useState<string>('Cấp cứu người bệnh nặng kéo dài sau giờ trực');
+  const [isSubmittingOverrun, setIsSubmittingOverrun] = useState<boolean>(false);
+  const [overrunSuccessMsg, setOverrunSuccessMsg] = useState<string | null>(null);
+  const [overrunErrorMsg, setOverrunErrorMsg] = useState<string | null>(null);
+
+  // Sync default fillGapDept when selected staff changes
+  useEffect(() => {
+    if (selectedStaff?.department_code) {
+      setFillGapDept(selectedStaff.department_code);
+    }
+  }, [selectedStaff?.department_code]);
+
+  // Query Fill-Gap Candidates with workload fairness and rest hours
+  const {
+    data: fillGapCandidatesData,
+    isLoading: isCandidatesLoading,
+    refetch: refetchCandidates
+  } = useQuery({
+    queryKey: ['fillGapCandidates', fillGapDept, fillGapDate, fillGapShiftType, fillGapRole],
+    queryFn: () =>
+      shiftApi.getFillGapCandidates({
+        department_code: fillGapDept,
+        shift_date: fillGapDate,
+        shift_type: fillGapShiftType,
+        required_role: fillGapRole === 'ALL' ? undefined : fillGapRole
+      }),
+    enabled: isFillGapModalOpen
+  });
+
+  // Handler for dispatching emergency substitute
+  const handleDispatchCandidate = async (substituteCode: string) => {
+    setIsDispatching(true);
+    setDispatchErrorMsg(null);
+    setDispatchSuccessMsg(null);
+    try {
+      const res = await shiftApi.dispatchSurgeCover({
+        staff_id: substituteCode,
+        substitute_staff_id: substituteCode,
+        department_code: fillGapDept,
+        shift_date: fillGapDate,
+        shift_type: fillGapShiftType,
+        reason: fillGapReason
+      });
+      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      await refetchCandidates();
+      setDispatchSuccessMsg(res.message || `Đã điều động khẩn cấp thành công cán bộ ${substituteCode}!`);
+    } catch (err: any) {
+      setDispatchErrorMsg(err.response?.data?.message || err.message || 'Không thể điều động nhân sự bù ca');
+    } finally {
+      setIsDispatching(false);
+    }
+  };
+
+  // Handler for recording shift overrun
+  const handleRecordOverrun = async () => {
+    if (!selectedShiftDetail) return;
+    setIsSubmittingOverrun(true);
+    setOverrunErrorMsg(null);
+    setOverrunSuccessMsg(null);
+    try {
+      const res = await shiftApi.recordShiftOverrun(selectedShiftDetail.id, {
+        overrun_minutes: overrunMinutes,
+        reason: overrunReason
+      });
+      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      setOverrunSuccessMsg(res.message || `Đã ghi nhận kéo dài ca thêm ${overrunMinutes} phút!`);
+      if (res.data?.end_time) {
+        setSelectedShiftDetail((prev) => (prev ? { ...prev, end_time: res.data.end_time } : null));
+      }
+    } catch (err: any) {
+      setOverrunErrorMsg(err.response?.data?.message || err.message || 'Không thể ghi nhận kéo dài ca');
+    } finally {
+      setIsSubmittingOverrun(false);
+    }
+  };
 
   // Dynamic preview count of shifts in batch range
   const batchPreviewCount = useMemo(() => {
@@ -861,6 +953,7 @@ export const ShiftRostering: React.FC = () => {
       setFormError(null);
       setFormSuccess(null);
       setRestConfirmationNeeded(false);
+      setLicenseConfirmationNeeded(false);
       setIsSubmitting(false);
       if (user?.role === 'DEPARTMENT_HEAD') {
         const headEmp = employees.find((e: any) => e.employee_code === user?.employee_code);
@@ -903,12 +996,17 @@ export const ShiftRostering: React.FC = () => {
     setBatchForm((prev) => ({ ...prev, days_of_week: [] }));
   };
 
-  // 1. Submit Single Shift (with support for insufficient rest confirmation override)
-  const handleCreateSubmit = async (e?: React.FormEvent, overrideRest: boolean = false) => {
+  // 1. Submit Single Shift (with support for insufficient rest confirmation override & CCHN license override)
+  const handleCreateSubmit = async (
+    e?: React.FormEvent,
+    overrideRest: boolean = false,
+    overrideLicense: boolean = false
+  ) => {
     if (e) e.preventDefault();
     setFormError(null);
     setFormSuccess(null);
     if (!overrideRest) setRestConfirmationNeeded(false);
+    if (!overrideLicense) setLicenseConfirmationNeeded(false);
 
     const meta = SHIFT_CATEGORIES[createForm.category];
     const fullStart = `${createForm.date} ${createForm.start_time}:00`;
@@ -926,7 +1024,7 @@ export const ShiftRostering: React.FC = () => {
     }
     const fullEnd = `${endDateStr} ${createForm.end_time}:00`;
 
-    // FIX BUG: Look up actual department of the selected staff member in the form!
+    // Look up actual department of the selected staff member in the form!
     const assignedEmp = employees.find((e: any) => e.employee_code === createForm.staff_id);
     const actualDeptCode = assignedEmp?.department_code || selectedStaff.department_code || 'DEP-HSTC';
 
@@ -940,12 +1038,20 @@ export const ShiftRostering: React.FC = () => {
         shift_type: meta.shiftType,
         on_call_tier: (meta.onCallTier as any) || undefined,
         requires_handover: createForm.requires_handover,
-        allow_insufficient_rest: overrideRest
+        allow_insufficient_rest: overrideRest,
+        allow_unverified_license: overrideLicense
       });
 
       await queryClient.invalidateQueries({ queryKey: ['shifts'] });
       setRestConfirmationNeeded(false);
-      setFormSuccess(overrideRest ? 'Đã xác nhận phân công trực tăng cường / đổi ca khẩn cấp!' : 'Tạo ca công tác thành công!');
+      setLicenseConfirmationNeeded(false);
+      setFormSuccess(
+        overrideLicense
+          ? 'Đã xác nhận phân công ca (cho phép bảo lưu CCHN tạm thời)!'
+          : overrideRest
+          ? 'Đã xác nhận phân công trực tăng cường / đổi ca khẩn cấp!'
+          : 'Tạo ca công tác thành công!'
+      );
       setTimeout(() => {
         setIsCreateModalOpen(false);
         setFormSuccess(null);
@@ -954,6 +1060,9 @@ export const ShiftRostering: React.FC = () => {
       const errData = err.response?.data;
       if (errData?.requires_confirmation || errData?.code === 'INSUFFICIENT_REST_INTERVAL') {
         setRestConfirmationNeeded(true);
+      }
+      if (errData?.requires_license_confirmation || errData?.code === 'INVALID_MEDICAL_LICENSE') {
+        setLicenseConfirmationNeeded(true);
       }
       setFormError(errData?.message || err.message || 'Không thể tạo ca công tác');
     } finally {
@@ -1195,6 +1304,20 @@ export const ShiftRostering: React.FC = () => {
             </button>
           </div>
 
+          {/* Emergency Fill-Gap quick button */}
+          {(isHR || isDeptHead) && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1.5 rounded-pill px-3 py-1.5"
+              style={{ fontSize: '13px', fontWeight: 600 }}
+              onClick={() => setIsFillGapModalOpen(true)}
+              title="Tìm nhân sự bù ca & điều động giải tỏa quá tải lâm sàng"
+            >
+              <Activity size={14} />
+              <span>Điều Động Khẩn Cấp</span>
+            </button>
+          )}
+
           {/* Attendance quick button */}
           <Link
             to="/attendance"
@@ -1212,22 +1335,34 @@ export const ShiftRostering: React.FC = () => {
       <div className="gcal-body">
         {/* LEFT SIDEBAR (256px) */}
         <aside className={`gcal-sidebar ${isSidebarOpen ? '' : 'collapsed'}`}>
-          {/* "+ Tạo Ca" Material FAB - ONLY FOR HR/ADMIN */}
-          {isHR && (
-            <div>
+          {/* Action Buttons - ONLY FOR HR/ADMIN OR DEPARTMENT HEAD */}
+          {(isHR || isDeptHead) && (
+            <div className="d-flex flex-column gap-2 mb-2">
+              {isHR && (
+                <button
+                  type="button"
+                  className="gcal-fab"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  title="Thêm ca làm việc hoặc trực"
+                >
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center text-white"
+                    style={{ width: '28px', height: '28px', backgroundColor: '#1a73e8' }}
+                  >
+                    <Plus size={18} strokeWidth={2.8} />
+                  </div>
+                  <span>Tạo Ca</span>
+                </button>
+              )}
               <button
                 type="button"
-                className="gcal-fab"
-                onClick={() => setIsCreateModalOpen(true)}
-                title="Thêm ca làm việc hoặc trực"
+                className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-pill shadow-xs"
+                onClick={() => setIsFillGapModalOpen(true)}
+                style={{ fontSize: '12.5px', fontWeight: 600 }}
+                title="Tìm nhân sự bù ca khẩn cấp & điều động giải tỏa quá tải lâm sàng"
               >
-                <div
-                  className="rounded-circle d-flex align-items-center justify-content-center text-white"
-                  style={{ width: '28px', height: '28px', backgroundColor: '#1a73e8' }}
-                >
-                  <Plus size={18} strokeWidth={2.8} />
-                </div>
-                <span>Tạo Ca</span>
+                <Activity size={15} />
+                <span>Điều Động Khẩn Cấp</span>
               </button>
             </div>
           )}
@@ -1674,7 +1809,16 @@ export const ShiftRostering: React.FC = () => {
       </div>
 
       {/* ===================== SHIFT DETAIL MODAL (Google Style Popover) ===================== */}
-      <Modal show={!!selectedShiftDetail} onHide={() => setSelectedShiftDetail(null)} centered>
+      <Modal
+        show={!!selectedShiftDetail}
+        onHide={() => {
+          setSelectedShiftDetail(null);
+          setIsOverrunExpanded(false);
+          setOverrunErrorMsg(null);
+          setOverrunSuccessMsg(null);
+        }}
+        centered
+      >
         {selectedShiftDetail && (() => {
           const cat = classifyShift(selectedShiftDetail);
           const meta = SHIFT_CATEGORIES[cat];
@@ -1855,6 +1999,97 @@ export const ShiftRostering: React.FC = () => {
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SHIFT OVERRUN (Kéo Dài Ca / Tăng Giờ Đột Xuất) */}
+                  <div className="border rounded-2 p-2.5 bg-light-subtle mt-3">
+                    <div className="d-flex align-items-center justify-content-between">
+                      <div className="d-flex align-items-center gap-2">
+                        <Clock size={16} className="text-warning" />
+                        <span className="fw-semibold text-dark" style={{ fontSize: '13px' }}>
+                          {t('shifts.overrun_title', 'Kéo Dài Ca / Quá Tải Cấp Cứu (Overrun)')}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-warning py-0.5 px-2 fw-medium text-dark"
+                        style={{ fontSize: '11px', borderRadius: '12px' }}
+                        onClick={() => setIsOverrunExpanded((prev) => !prev)}
+                      >
+                        {isOverrunExpanded ? 'Thu gọn' : '+ Kéo dài ca'}
+                      </button>
+                    </div>
+
+                    {isOverrunExpanded && (
+                      <div className="mt-2 pt-2 border-top">
+                        {overrunErrorMsg && (
+                          <Alert variant="danger" className="py-1.5 px-2.5 small mb-2">
+                            {overrunErrorMsg}
+                          </Alert>
+                        )}
+                        {overrunSuccessMsg && (
+                          <Alert variant="success" className="py-1.5 px-2.5 small mb-2 d-flex align-items-center gap-1">
+                            <Check size={14} />
+                            <span>{overrunSuccessMsg}</span>
+                          </Alert>
+                        )}
+
+                        <div className="mb-2">
+                          <label className="form-label text-muted small mb-1">
+                            {t('shifts.overrun_minutes', 'Thời gian kéo dài thêm')}:
+                          </label>
+                          <div className="d-flex gap-1 mb-1.5">
+                            {[30, 60, 90, 120].map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                className={`btn btn-sm ${overrunMinutes === m ? 'btn-primary' : 'btn-outline-secondary'} py-0.5 px-2`}
+                                style={{ fontSize: '11px' }}
+                                onClick={() => setOverrunMinutes(m)}
+                              >
+                                +{m} phút
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            type="number"
+                            min="5"
+                            max="720"
+                            step="5"
+                            className="form-control form-control-sm"
+                            value={overrunMinutes}
+                            onChange={(e) => setOverrunMinutes(Number(e.target.value))}
+                            style={{ fontSize: '12px' }}
+                          />
+                        </div>
+
+                        <div className="mb-2">
+                          <label className="form-label text-muted small mb-1">
+                            {t('shifts.overrun_reason', 'Lý do kéo dài ca')}:
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            value={overrunReason}
+                            onChange={(e) => setOverrunReason(e.target.value)}
+                            placeholder="Cấp cứu người bệnh nặng kéo dài sau giờ trực"
+                            style={{ fontSize: '12px' }}
+                          />
+                        </div>
+
+                        <div className="d-flex justify-content-end">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-warning text-dark fw-semibold d-inline-flex align-items-center gap-1 px-3 py-1"
+                            style={{ fontSize: '12px' }}
+                            disabled={isSubmittingOverrun}
+                            onClick={handleRecordOverrun}
+                          >
+                            {isSubmittingOverrun ? 'Đang lưu...' : 'Xác Nhận Kéo Dài Ca'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2119,18 +2354,18 @@ export const ShiftRostering: React.FC = () => {
             {/* Alert Notifications */}
             {formError && (
               <Alert
-                variant={restConfirmationNeeded ? 'warning' : 'danger'}
+                variant={restConfirmationNeeded || licenseConfirmationNeeded ? 'warning' : 'danger'}
                 className="py-2.5 px-3 small mb-3 border"
                 style={{
-                  backgroundColor: restConfirmationNeeded ? '#fffbeb' : undefined,
-                  borderColor: restConfirmationNeeded ? '#f59e0b' : undefined,
-                  color: restConfirmationNeeded ? '#92400e' : undefined
+                  backgroundColor: restConfirmationNeeded || licenseConfirmationNeeded ? '#fffbeb' : undefined,
+                  borderColor: restConfirmationNeeded || licenseConfirmationNeeded ? '#f59e0b' : undefined,
+                  color: restConfirmationNeeded || licenseConfirmationNeeded ? '#92400e' : undefined
                 }}
               >
                 <div className="d-flex align-items-start gap-2">
                   <AlertTriangle
                     size={17}
-                    className={`flex-shrink-0 mt-0.5 ${restConfirmationNeeded ? 'text-warning' : 'text-danger'}`}
+                    className={`flex-shrink-0 mt-0.5 ${restConfirmationNeeded || licenseConfirmationNeeded ? 'text-warning' : 'text-danger'}`}
                   />
                   <div className="flex-grow-1">
                     <div className="fw-semibold mb-1">{formError}</div>
@@ -2143,10 +2378,26 @@ export const ShiftRostering: React.FC = () => {
                           type="button"
                           className="btn btn-sm btn-warning text-dark fw-semibold px-2.5 py-1"
                           style={{ fontSize: '12px' }}
-                          onClick={() => handleCreateSubmit(undefined, true)}
+                          onClick={() => handleCreateSubmit(undefined, true, licenseConfirmationNeeded)}
                           disabled={isSubmitting}
                         >
                           {isSubmitting ? 'Đang xử lý...' : 'Xác Nhận Trực Tăng Cường'}
+                        </button>
+                      </div>
+                    )}
+                    {licenseConfirmationNeeded && (
+                      <div className="mt-2 pt-2 border-top border-warning-subtle d-flex align-items-center justify-content-between">
+                        <span style={{ fontSize: '12px' }}>
+                          Xác nhận phân công hỗ trợ lâm sàng đặc biệt (Bỏ qua ràng buộc CCHN)?
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-warning text-dark fw-semibold px-2.5 py-1"
+                          style={{ fontSize: '12px' }}
+                          onClick={() => handleCreateSubmit(undefined, restConfirmationNeeded, true)}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? 'Đang xử lý...' : 'Bỏ Qua Cảnh Báo CCHN & Lưu'}
                         </button>
                       </div>
                     )}
@@ -2952,6 +3203,267 @@ export const ShiftRostering: React.FC = () => {
           </Modal.Body>
         </Modal>
       )}
+
+      {/* ===================== EMERGENCY FILL-GAP & SURGE MODAL ===================== */}
+      <Modal
+        show={isFillGapModalOpen}
+        onHide={() => {
+          setIsFillGapModalOpen(false);
+          setDispatchSuccessMsg(null);
+          setDispatchErrorMsg(null);
+        }}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton className="border-bottom py-2.5 bg-danger-subtle">
+          <Modal.Title className="fw-bold fs-6 text-danger d-flex align-items-center gap-2">
+            <Activity size={18} />
+            <span>{t('shifts.fillgap_title', 'Điều Động Khẩn Cấp & Bù Ca Quá Tải (Surge Cover & Fill-Gap)')}</span>
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body className="p-3">
+          {/* Clinical Context Description */}
+          <div className="p-2.5 rounded-2 bg-light border mb-3 text-secondary" style={{ fontSize: '12.5px' }}>
+            Hệ thống hỗ trợ Trưởng khoa & Ban Giám đốc phát hiện và điều động nhân sự dự bị tức thời khi khoa lâm sàng rơi vào tình trạng quá tải bệnh nhân khẩn cấp hoặc thiếu vắng ca đột xuất.
+          </div>
+
+          {/* Filter controls */}
+          <div className="row g-2 mb-3 p-2.5 border rounded-2 bg-white">
+            <div className="col-md-3">
+              <label className="form-label text-muted small mb-1 fw-semibold">{t('shifts.dept_filter', 'Khoa phòng')}</label>
+              <select
+                className="form-select form-select-sm"
+                value={fillGapDept}
+                onChange={(e) => setFillGapDept(e.target.value)}
+                style={{ fontSize: '12px' }}
+              >
+                {serverDepartments.map((dept) => (
+                  <option key={dept.department_code} value={dept.department_code}>
+                    {dept.name} ({dept.department_code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-md-3">
+              <label className="form-label text-muted small mb-1 fw-semibold">{t('shifts.modal_date', 'Ngày điều động')}</label>
+              <input
+                type="date"
+                className="form-control form-control-sm"
+                value={fillGapDate}
+                onChange={(e) => setFillGapDate(e.target.value)}
+                style={{ fontSize: '12px' }}
+              />
+            </div>
+
+            <div className="col-md-3">
+              <label className="form-label text-muted small mb-1 fw-semibold">{t('shifts.modal_type_label', 'Ca cần bù')}</label>
+              <select
+                className="form-select form-select-sm"
+                value={fillGapShiftType}
+                onChange={(e) => setFillGapShiftType(e.target.value)}
+                style={{ fontSize: '12px' }}
+              >
+                <option value="CA1">Ca 1: Sáng (07:00 – 14:00)</option>
+                <option value="CA2">Ca 2: Chiều (14:00 – 21:00)</option>
+                <option value="CA3">Ca 3: Trực Đêm (21:00 – 07:00)</option>
+                <option value="OFFICE">Hành Chính (07:30 – 16:30)</option>
+              </select>
+            </div>
+
+            <div className="col-md-3">
+              <label className="form-label text-muted small mb-1 fw-semibold">Chức danh yêu cầu</label>
+              <select
+                className="form-select form-select-sm"
+                value={fillGapRole}
+                onChange={(e) => setFillGapRole(e.target.value)}
+                style={{ fontSize: '12px' }}
+              >
+                <option value="ALL">Tất cả chức danh</option>
+                <option value="DOCTOR">Bác sĩ (Doctor)</option>
+                <option value="NURSE">Điều dưỡng (Nurse)</option>
+                <option value="TECHNICIAN">Kỹ thuật viên (Technician)</option>
+              </select>
+            </div>
+
+            <div className="col-12 mt-2">
+              <label className="form-label text-muted small mb-1 fw-semibold">Lý do điều động / Tình trạng quá tải</label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                value={fillGapReason}
+                onChange={(e) => setFillGapReason(e.target.value)}
+                placeholder="Quá tải cấp cứu đột xuất lúc giao ca / Cần tăng cường nhân lực khẩn cấp"
+                style={{ fontSize: '12px' }}
+              />
+            </div>
+          </div>
+
+          {/* Alerts */}
+          {dispatchErrorMsg && (
+            <Alert variant="danger" className="py-2 px-3 small mb-3">
+              {dispatchErrorMsg}
+            </Alert>
+          )}
+          {dispatchSuccessMsg && (
+            <Alert variant="success" className="py-2 px-3 small mb-3 d-flex align-items-center gap-2">
+              <Check size={16} />
+              <span>{dispatchSuccessMsg}</span>
+            </Alert>
+          )}
+
+          {/* Candidates Ranking List */}
+          <div className="d-flex align-items-center justify-content-between mb-2">
+            <span className="fw-semibold text-dark" style={{ fontSize: '13px' }}>
+              Danh Sách Nhân Sự Khả Dụng (Xếp Hạng Phù Hợp & Cân Bằng Tải)
+            </span>
+            {isCandidatesLoading && (
+              <span className="text-muted small fst-italic">Đang phân tích dữ liệu...</span>
+            )}
+          </div>
+
+          {fillGapCandidatesData?.candidates?.length === 0 ? (
+            <div className="p-4 text-center border rounded-2 bg-light text-muted" style={{ fontSize: '13px' }}>
+              Không tìm thấy nhân sự khả dụng cho tiêu chí đã chọn hoặc tất cả nhân sự đang có ca trùng / nghỉ phép.
+            </div>
+          ) : (
+            <div className="d-flex flex-column gap-2" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+              {fillGapCandidatesData?.candidates?.map((candidate) => {
+                const isDoc = candidate.role === 'DOCTOR' || candidate.role === 'DEPARTMENT_HEAD';
+                const isNur = candidate.role === 'NURSE';
+                const pfx = isDoc ? 'BS. ' : isNur ? 'ĐD. ' : '';
+                const initials = `${(candidate.last_name || '').slice(0, 1)}${(candidate.first_name || '').slice(0, 1)}`.toUpperCase() || 'CB';
+
+                const isPrimaryTier = candidate.suitability_tier === 'ON_CALL_PRIMARY';
+                const isWarningTier = candidate.suitability_tier === 'REST_WARNING';
+
+                return (
+                  <div
+                    key={candidate.employee_code}
+                    className={`p-2.5 rounded-2 border d-flex align-items-center justify-content-between gap-3 ${
+                      isPrimaryTier
+                        ? 'bg-success-subtle border-success'
+                        : isWarningTier
+                        ? 'bg-warning-subtle border-warning'
+                        : 'bg-white'
+                    }`}
+                  >
+                    <div className="d-flex align-items-center gap-3 overflow-hidden">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          fontSize: '13px',
+                          backgroundColor: isDoc ? '#1a73e8' : isNur ? '#137333' : '#7c3aed'
+                        }}
+                      >
+                        {initials}
+                      </div>
+
+                      <div className="overflow-hidden">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="fw-semibold text-dark text-truncate" style={{ fontSize: '13.5px' }}>
+                            {pfx}{candidate.last_name} {candidate.first_name}
+                          </span>
+                          <span className="badge bg-light text-secondary border font-mono" style={{ fontSize: '11px' }}>
+                            {candidate.employee_code}
+                          </span>
+                          {/* Suitability Tier Badge */}
+                          {isPrimaryTier && (
+                            <span className="badge bg-success text-white" style={{ fontSize: '10.5px' }}>
+                              Trực Dự Bị (Ưu Tiên Số 1)
+                            </span>
+                          )}
+                          {candidate.suitability_tier === 'BACKUP_AVAILABLE' && (
+                            <span className="badge bg-primary text-white" style={{ fontSize: '10.5px' }}>
+                              Sẵn Sàng Hỗ Trợ
+                            </span>
+                          )}
+                          {isWarningTier && (
+                            <span className="badge bg-warning text-dark border border-warning" style={{ fontSize: '10.5px' }}>
+                              Cảnh Báo Nghỉ &lt; 12h
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Metrics Row: Role, CCHN, Rest Hours, Monthly Hours */}
+                        <div className="d-flex flex-wrap align-items-center gap-2 mt-1" style={{ fontSize: '11.5px' }}>
+                          <span className="text-secondary fw-medium">
+                            {candidate.role === 'DEPARTMENT_HEAD'
+                              ? 'Trưởng Khoa'
+                              : candidate.role === 'DOCTOR'
+                              ? 'Bác Sĩ'
+                              : candidate.role === 'NURSE'
+                              ? 'Điều Dưỡng'
+                              : candidate.role}
+                          </span>
+                          &bull;
+                          {/* CCHN Badge */}
+                          {candidate.license_status === 'VERIFIED' ? (
+                            <span className="text-success d-inline-flex align-items-center gap-0.5">
+                              <ShieldCheck size={12} />
+                              CCHN Hợp Lệ
+                            </span>
+                          ) : (
+                            <span className="text-warning d-inline-flex align-items-center gap-0.5">
+                              <AlertTriangle size={12} />
+                              CCHN Chưa Xác Thực
+                            </span>
+                          )}
+                          &bull;
+                          <span className="text-muted">
+                            Nghỉ từ ca trước: <strong className="text-dark font-mono">{candidate.rest_hours_before ? `${candidate.rest_hours_before}h` : 'Nghỉ đủ'}</strong>
+                          </span>
+                          &bull;
+                          <span className="text-muted">
+                            Đã trực tháng này: <strong className="text-dark font-mono">{candidate.monthly_duty_hours}h</strong>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dispatch Action Button */}
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${isPrimaryTier ? 'btn-success' : 'btn-primary'} px-3 py-1.5 text-nowrap d-inline-flex align-items-center gap-1.5 fw-semibold shadow-xs`}
+                      style={{ fontSize: '12px' }}
+                      disabled={isDispatching}
+                      onClick={() => handleDispatchCandidate(candidate.employee_code)}
+                    >
+                      <Activity size={13} />
+                      <span>{isDispatching ? 'Đang điều động...' : 'Điều Động Ngay'}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer className="border-top py-2 d-flex justify-content-between">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary px-3"
+            onClick={() => refetchCandidates()}
+            disabled={isCandidatesLoading}
+          >
+            Làm Mới Danh Sách
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary px-3"
+            onClick={() => {
+              setIsFillGapModalOpen(false);
+              setDispatchSuccessMsg(null);
+              setDispatchErrorMsg(null);
+            }}
+          >
+            Đóng
+          </button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

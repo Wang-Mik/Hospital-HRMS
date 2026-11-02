@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import pool from '../db.js';
+import auditService from './auditService.js';
 
 export const adminService = {
   /**
@@ -122,8 +123,17 @@ export const adminService = {
 
   /**
    * Update account IAM Role
+   * Admin can ONLY promote to SUPER_ADMIN or demote to STAFF.
+   * Admin CANNOT change their own role.
    */
-  async updateAccountRole(accountIdOrEmpId, roleCode) {
+  async updateAccountRole(accountIdOrEmpId, roleCode, actor = {}) {
+    // 1. Only allow SUPER_ADMIN or STAFF
+    if (roleCode !== 'SUPER_ADMIN' && roleCode !== 'STAFF') {
+      const err = new Error('Quản trị viên chỉ có thể phân quyền giữa Quản trị viên (SUPER_ADMIN) và Người dùng thường (STAFF). Chức danh chuyên môn y tế do Phòng Tổ Chức Cán Bộ (HR) bổ nhiệm.');
+      err.statusCode = 400;
+      throw err;
+    }
+
     const [roles] = await pool.query('SELECT * FROM Roles WHERE role_code = ? LIMIT 1', [roleCode]);
     if (roles.length === 0) {
       const err = new Error(`Vai trò "${roleCode}" không tồn tại trong hệ thống.`);
@@ -132,10 +142,42 @@ export const adminService = {
     }
 
     const isNumeric = /^\d+$/.test(String(accountIdOrEmpId));
-    const whereClause = isNumeric ? 'employee_id = ?' : 'id = ?';
+    const whereClause = isNumeric ? 'a.employee_id = ?' : 'a.id = ?';
 
+    // 2. Fetch target account before mutation
+    const [existing] = await pool.query(`
+      SELECT a.id, a.username, a.role_code, a.employee_id, e.employee_code, CONCAT(e.last_name, ' ', e.first_name) AS staff_name
+      FROM Accounts a
+      LEFT JOIN Employees e ON a.employee_id = e.id
+      WHERE ${whereClause}
+    `, [accountIdOrEmpId]);
+
+    if (existing.length === 0) {
+      const err = new Error('Không tìm thấy tài khoản để cập nhật vai trò.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const target = existing[0];
+
+    // 3. Prevent self-role modification
+    if (actor && actor.employee_code && target.employee_code && actor.employee_code === target.employee_code) {
+      const err = new Error('Không được phép tự thay đổi quyền hạn của chính tài khoản đang đăng nhập.');
+      err.statusCode = 403;
+      throw err;
+    }
+    if (actor && actor.id && target.id && actor.id === target.id) {
+      const err = new Error('Không được phép tự thay đổi quyền hạn của chính tài khoản đang đăng nhập.');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const prevRole = target.role_code;
+
+    // 4. Update role
+    const accountWhere = isNumeric ? 'employee_id = ?' : 'id = ?';
     await pool.query(
-      `UPDATE Accounts SET role_code = ?, updated_at = CURRENT_TIMESTAMP WHERE ${whereClause}`,
+      `UPDATE Accounts SET role_code = ?, updated_at = CURRENT_TIMESTAMP WHERE ${accountWhere}`,
       [roleCode, accountIdOrEmpId]
     );
 
@@ -146,12 +188,24 @@ export const adminService = {
       await pool.query('UPDATE Employees e JOIN Accounts a ON e.id = a.employee_id SET e.role = ? WHERE a.id = ?', [roleCode, accountIdOrEmpId]);
     }
 
+    // 5. Audit Logging
+    await auditService.logAudit({
+      actor_id: actor.employee_code || actor.username || 'ADMIN',
+      actor_name: actor.staff_name || actor.name || actor.username || 'Quản Trị Viên Hệ Thống',
+      action: 'UPDATE_IAM_ROLE',
+      resource_type: 'IAM_ACCOUNT',
+      resource_id: target.employee_code || target.username || String(accountIdOrEmpId),
+      old_values: { role_code: prevRole },
+      new_values: { role_code: roleCode },
+      ip_address: actor.ip || null
+    });
+
     const [rows] = await pool.query(`
       SELECT a.id AS account_id, a.username, a.role_code, r.name AS role_name, a.employee_id, e.employee_code, CONCAT(e.last_name, ' ', e.first_name) AS staff_name
       FROM Accounts a
       JOIN Roles r ON a.role_code = r.role_code
       LEFT JOIN Employees e ON a.employee_id = e.id
-      WHERE a.${whereClause}
+      WHERE a.${accountWhere}
     `, [accountIdOrEmpId]);
 
     return rows[0] || null;
@@ -187,20 +241,62 @@ export const adminService = {
   /**
    * Lock or unlock an IAM account
    */
-  async toggleAccountLock(accountIdOrEmpId, isLocked) {
+  async toggleAccountLock(accountIdOrEmpId, isLocked, actor = {}) {
     const isNumeric = /^\d+$/.test(String(accountIdOrEmpId));
-    const whereClause = isNumeric ? 'employee_id = ?' : 'id = ?';
+    const whereClause = isNumeric ? 'a.employee_id = ?' : 'a.id = ?';
 
+    const [existing] = await pool.query(`
+      SELECT a.id, a.username, a.is_locked, e.employee_code, CONCAT(e.last_name, ' ', e.first_name) AS staff_name
+      FROM Accounts a
+      LEFT JOIN Employees e ON a.employee_id = e.id
+      WHERE ${whereClause}
+    `, [accountIdOrEmpId]);
+
+    if (existing.length === 0) {
+      const err = new Error('Tài khoản không tồn tại.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const target = existing[0];
+
+    // Prevent self-lockout
+    if (Boolean(isLocked)) {
+      if (actor && actor.employee_code && target.employee_code && actor.employee_code === target.employee_code) {
+        const err = new Error('Không được phép tự khóa tài khoản của chính mình.');
+        err.statusCode = 403;
+        throw err;
+      }
+      if (actor && actor.id && target.id && actor.id === target.id) {
+        const err = new Error('Không được phép tự khóa tài khoản của chính mình.');
+        err.statusCode = 403;
+        throw err;
+      }
+    }
+
+    const accountWhere = isNumeric ? 'employee_id = ?' : 'id = ?';
     await pool.query(
-      `UPDATE Accounts SET is_locked = ?, updated_at = CURRENT_TIMESTAMP WHERE ${whereClause}`,
+      `UPDATE Accounts SET is_locked = ?, updated_at = CURRENT_TIMESTAMP WHERE ${accountWhere}`,
       [Boolean(isLocked), accountIdOrEmpId]
     );
+
+    // Audit Logging
+    await auditService.logAudit({
+      actor_id: actor.employee_code || actor.username || 'ADMIN',
+      actor_name: actor.staff_name || actor.name || actor.username || 'Quản Trị Viên Hệ Thống',
+      action: Boolean(isLocked) ? 'LOCK_ACCOUNT' : 'UNLOCK_ACCOUNT',
+      resource_type: 'IAM_ACCOUNT',
+      resource_id: target.employee_code || target.username || String(accountIdOrEmpId),
+      old_values: { is_locked: Boolean(target.is_locked) },
+      new_values: { is_locked: Boolean(isLocked) },
+      ip_address: actor.ip || null
+    });
 
     const [rows] = await pool.query(
       `SELECT a.*, e.employee_code, CONCAT(e.last_name, ' ', e.first_name) as staff_name 
        FROM Accounts a 
        JOIN Employees e ON a.employee_id = e.id 
-       WHERE a.${whereClause}`,
+       WHERE a.${accountWhere}`,
       [accountIdOrEmpId]
     );
 
@@ -210,21 +306,46 @@ export const adminService = {
   /**
    * Reset account password
    */
-  async resetPassword(accountIdOrEmpId, newPassword) {
+  async resetPassword(accountIdOrEmpId, newPassword, actor = {}) {
     if (!newPassword || newPassword.length < 6) {
       const err = new Error('Mật khẩu mới phải có ít nhất 6 ký tự.');
       err.statusCode = 400;
       throw err;
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
     const isNumeric = /^\d+$/.test(String(accountIdOrEmpId));
-    const whereClause = isNumeric ? 'employee_id = ?' : 'id = ?';
+    const whereClause = isNumeric ? 'a.employee_id = ?' : 'a.id = ?';
+
+    const [existing] = await pool.query(`
+      SELECT a.id, a.username, e.employee_code, CONCAT(e.last_name, ' ', e.first_name) AS staff_name
+      FROM Accounts a
+      LEFT JOIN Employees e ON a.employee_id = e.id
+      WHERE ${whereClause}
+    `, [accountIdOrEmpId]);
+
+    const target = existing[0] || null;
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const accountWhere = isNumeric ? 'employee_id = ?' : 'id = ?';
 
     await pool.query(
-      `UPDATE Accounts SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE ${whereClause}`,
+      `UPDATE Accounts SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE ${accountWhere}`,
       [passwordHash, accountIdOrEmpId]
     );
+
+    // Audit Logging
+    if (target) {
+      await auditService.logAudit({
+        actor_id: actor.employee_code || actor.username || 'ADMIN',
+        actor_name: actor.staff_name || actor.name || actor.username || 'Quản Trị Viên Hệ Thống',
+        action: 'RESET_PASSWORD',
+        resource_type: 'IAM_ACCOUNT',
+        resource_id: target.employee_code || target.username || String(accountIdOrEmpId),
+        old_values: null,
+        new_values: { message: 'Reset password by Admin' },
+        ip_address: actor.ip || null
+      });
+    }
 
     return {
       success: true,

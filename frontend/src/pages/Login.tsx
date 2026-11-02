@@ -66,6 +66,7 @@ export const Login: React.FC = () => {
           last_name: employee.last_name,
           name: `${employee.last_name} ${employee.first_name}`.trim(),
           department_code: employee.department_code,
+          gender: employee.gender,
           email: employee.email
         });
 

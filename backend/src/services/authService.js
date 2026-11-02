@@ -107,7 +107,8 @@ export const authService = {
         e.first_name,
         e.last_name,
         e.email,
-        e.department_code
+        e.department_code,
+        e.gender
       FROM Accounts a
       JOIN Roles r ON a.role_code = r.role_code
       LEFT JOIN Employees e ON a.employee_id = e.id
@@ -204,6 +205,7 @@ export const authService = {
         last_name: account.last_name,
         email: account.email,
         department_code: account.department_code,
+        gender: account.gender,
         role: resolvedRole,
         role_code: resolvedRole,
         role_name: account.role_name

@@ -107,6 +107,14 @@ export const Dashboard: React.FC = () => {
     staleTime: 30000
   });
 
+  const isDeptHead = user?.role === 'DEPARTMENT_HEAD';
+  const { data: deptPendingLeaves = [] } = useQuery({
+    queryKey: ['dept-pending-leaves', user?.department_code],
+    queryFn: () => leaveApi.getAllRequests({ department_code: user?.department_code, status: 'PENDING' }),
+    enabled: isDeptHead,
+    staleTime: 15000
+  });
+
   // =========================================================================
   // VIEW 1: DEDICATED HR / ADMIN MANAGEMENT DASHBOARD
   // (No clinical ward rounds, no doctor bedside tasks, no shift handovers)
@@ -569,14 +577,14 @@ export const Dashboard: React.FC = () => {
                 {t('dashboard.clinical_awaiting', 'Đang chờ xử lý lâm sàng')}
               </h5>
               <span className="text-muted small">
-                {pendingHandovers.length + pendingTasks.length} {t('dashboard.items_need_confirm', 'mục cần xác nhận')}
+                {pendingHandovers.length + pendingTasks.length + deptPendingLeaves.length} {t('dashboard.items_need_confirm', 'mục cần xác nhận')}
               </span>
             </div>
 
             <div className="d-flex flex-column gap-2.5">
               {isHandoversLoading || isTasksLoading ? (
                 <TheoryOfNextLoader variant="card" />
-              ) : pendingHandovers.length === 0 && pendingTasks.length === 0 ? (
+              ) : pendingHandovers.length === 0 && pendingTasks.length === 0 && deptPendingLeaves.length === 0 ? (
                 <Card className="wd-card mb-0">
                   <Card.Body className="p-4 text-center text-muted">
                     <ShieldCheck size={28} className="text-success mb-2" />
@@ -586,6 +594,36 @@ export const Dashboard: React.FC = () => {
                 </Card>
               ) : (
                 <>
+                  {/* Department Head Pending Leaves */}
+                  {deptPendingLeaves.map((dl: any) => (
+                    <Card key={dl.id} className="wd-card mb-0">
+                      <Card.Body className="p-3.5 d-flex align-items-start justify-content-between gap-3">
+                        <div className="d-flex align-items-start gap-3">
+                          <div
+                            className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 text-warning"
+                            style={{ width: '38px', height: '38px', backgroundColor: '#fef3c7' }}
+                          >
+                            <Calendar size={20} />
+                          </div>
+                          <div>
+                            <div className="fw-bold text-dark" style={{ fontSize: '14px' }}>
+                              {t('dashboard.dept_leave_awaiting', 'Đơn nghỉ phép chờ Trưởng khoa duyệt')}: {dl.staff_name || dl.staff_id}
+                            </div>
+                            <div className="text-muted small mt-0.5" style={{ fontSize: '12.5px' }}>
+                              {dl.leave_type} &bull; {dl.days_requested || 1} ngày ({dl.start_date?.slice(0, 10)}) &bull; {dl.reason || '-'}
+                            </div>
+                            <div className="mt-2">
+                              <span className="badge bg-warning bg-opacity-10 text-dark fw-normal">CHỜ TRƯỞNG KHOA DUYỆT</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Link to="/leave" className="wd-pill-btn-primary flex-shrink-0" style={{ fontSize: '12px', padding: '5px 14px' }}>
+                          Xét duyệt &gt;
+                        </Link>
+                      </Card.Body>
+                    </Card>
+                  ))}
+
                   {/* Shift Handover Signatures */}
                   {pendingHandovers.map((h: any) => (
                     <Card key={h.id} className="wd-card mb-0">

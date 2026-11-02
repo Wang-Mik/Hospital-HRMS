@@ -32,7 +32,8 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, AdminAccount } from '../api/adminApi';
+import { adminApi, AdminAccount, AuditLogItem } from '../api/adminApi';
+import { useAuthStore } from '../store/authStore';
 import { departmentApi, Department } from '../api/departmentApi';
 import { useTranslation } from '../i18n/useTranslation';
 import { ConfirmModal, ConfirmDetailItem } from '../components/common/ConfirmModal';
@@ -40,6 +41,7 @@ import { ConfirmModal, ConfirmDetailItem } from '../components/common/ConfirmMod
 export const SystemManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const { t, lang } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -52,14 +54,15 @@ export const SystemManagement: React.FC = () => {
     }
   }, [searchParams, navigate]);
 
-  const validTabs: Array<'staff_iam' | 'departments' | 'broadcast'> = [
+  const validTabs: Array<'staff_iam' | 'departments' | 'broadcast' | 'audit_logs'> = [
     'staff_iam',
     'departments',
-    'broadcast'
+    'broadcast',
+    'audit_logs'
   ];
 
   const initialTab = (searchParams.get('tab') as any);
-  const [activeTab, setActiveTab] = useState<'staff_iam' | 'departments' | 'broadcast'>(
+  const [activeTab, setActiveTab] = useState<'staff_iam' | 'departments' | 'broadcast' | 'audit_logs'>(
     validTabs.includes(initialTab) ? initialTab : 'staff_iam'
   );
 
@@ -72,7 +75,7 @@ export const SystemManagement: React.FC = () => {
   }, [searchParams]);
 
   // Handler to switch tabs and sync URL
-  const handleTabChange = (newTab: 'staff_iam' | 'departments' | 'broadcast') => {
+  const handleTabChange = (newTab: 'staff_iam' | 'departments' | 'broadcast' | 'audit_logs') => {
     setActiveTab(newTab);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -157,8 +160,26 @@ export const SystemManagement: React.FC = () => {
 
   // Modals state
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const [selectedEmpForEdit, setSelectedEmpForEdit] = useState<any>(null);
+  // Audit Logs State
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditActionFilter, setAuditActionFilter] = useState('ALL');
+  const [auditSearch, setAuditSearch] = useState('');
+  const [selectedAuditItem, setSelectedAuditItem] = useState<AuditLogItem | null>(null);
+  const [showAuditDiffModal, setShowAuditDiffModal] = useState(false);
+
+  const { data: auditLogsRes, isLoading: isAuditLoading, refetch: refetchAuditLogs } = useQuery({
+    queryKey: ['admin-audit-logs', auditPage, auditActionFilter, auditSearch],
+    queryFn: () => adminApi.getAuditLogs({
+      page: auditPage,
+      limit: 25,
+      action: auditActionFilter !== 'ALL' ? auditActionFilter : undefined,
+      search: auditSearch || undefined
+    }),
+    enabled: activeTab === 'audit_logs'
+  });
+  const auditLogs = auditLogsRes?.data || [];
+  const auditTotal = auditLogsRes?.total || 0;
+  const auditTotalPages = auditLogsRes?.totalPages || 1;
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedAccountForPassword, setSelectedAccountForPassword] = useState<AdminAccount | null>(null);
   const [newPasswordValue, setNewPasswordValue] = useState('');
@@ -179,8 +200,6 @@ export const SystemManagement: React.FC = () => {
     department_code: 'ALL'
   });
 
-  // Master Profile Edit Form
-  const [profileFormData, setProfileFormData] = useState<any>({});
 
   // Mutations
   const lockAccountMutation = useMutation({
@@ -219,20 +238,6 @@ export const SystemManagement: React.FC = () => {
     },
     onError: (err: any) => {
       showToast(`${t('admin.toast_role_failed', 'Không thể cập nhật phân quyền')}: ${err.message || ''}`, 'danger');
-    }
-  });
-
-  const adminUpdateEmployeeMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string | number; data: any }) =>
-      adminApi.adminUpdateEmployee(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      setShowEditProfileModal(false);
-      showToast(t('admin.btn_save_profile', 'Lưu Thay Đổi Hồ Sơ'));
-    },
-    onError: (err: any) => {
-      showToast(`${t('admin.toast_update_failed', 'Lỗi cập nhật')}: ${err.message || ''}`, 'danger');
     }
   });
 
@@ -281,39 +286,11 @@ export const SystemManagement: React.FC = () => {
   });
 
   // Handlers
-  const handleOpenMasterEdit = (acc: AdminAccount) => {
-    setSelectedEmpForEdit(acc);
-    setProfileFormData({
-      first_name: acc.first_name || '',
-      last_name: acc.last_name || '',
-      email: acc.email || '',
-      phone: acc.phone || '',
-      role: acc.role || 'STAFF',
-      specialty: acc.specialty || '',
-      department_code: acc.department_code || '',
-      status: acc.employee_status || 'ACTIVE',
-      work_location: 'Central General Hospital',
-      office_location: acc.department_name || '',
-      hire_date: '2026-01-01',
-      dob: '1985-05-15',
-      gender: 'MALE',
-      national_id: '001085001234',
-      nationality: 'Vietnam',
-      marital_status: 'MARRIED',
-      personal_email: acc.email || '',
-      personal_phone: acc.phone || '',
-      home_phone: acc.phone || '',
-      home_address: 'Hanoi',
-      district: 'Ba Dinh',
-      city_province: 'Hanoi'
-    });
-    setShowEditProfileModal(true);
-  };
-
   const handleRefreshAll = () => {
     refetchOverview();
     refetchAccounts();
     refetchDepartments();
+    refetchAuditLogs();
     showToast(t('admin.toast_sync_success', 'Dữ liệu toàn hệ thống đã được đồng bộ mới nhất từ máy chủ!'));
   };
 
@@ -552,6 +529,15 @@ export const SystemManagement: React.FC = () => {
             <Bell size={15} className="me-2" />
             {t('admin.tab_broadcast', 'Phát Lệnh Thông Báo')}
           </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'audit_logs' ? 'active' : ''}`}
+            onClick={() => handleTabChange('audit_logs')}
+          >
+            <ShieldCheck size={15} className="me-2" />
+            {t('admin.tab_audit_logs', 'Nhật Ký Kiểm Toán')}
+          </button>
         </div>
 
         <button
@@ -694,31 +680,43 @@ export const SystemManagement: React.FC = () => {
 
                     <td className="text-end">
                       <div className="d-flex align-items-center justify-content-end gap-1.5 flex-nowrap">
-                        {/* Assign IAM Role */}
-                        <button
-                          type="button"
-                          className="wd-action-btn wd-action-btn-role"
-                          onClick={() => {
-                            setSelectedAccountForRole(acc);
-                            setNewRoleCode(acc.role_code || acc.role || 'STAFF');
-                            setShowRoleModal(true);
-                          }}
-                          title={t('admin.action_role_tooltip', 'Phân quyền vai trò IAM')}
-                        >
-                          <ShieldCheck size={14} />
-                          <span>{t('admin.action_role_btn', 'Vai Trò')}</span>
-                        </button>
-
-                        {/* Master Profile Edit */}
-                        <button
-                          type="button"
-                          className="wd-action-btn wd-action-btn-edit"
-                          onClick={() => handleOpenMasterEdit(acc)}
-                          title={t('admin.action_edit_tooltip', 'Chỉnh sửa toàn bộ hồ sơ cán bộ')}
-                        >
-                          <Edit2 size={13} />
-                          <span>{t('admin.action_edit_btn', 'Sửa')}</span>
-                        </button>
+                        {/* Assign IAM Role - Toggle SuperAdmin vs Staff with Self Guard */}
+                        {(() => {
+                          const isSelf = Boolean(
+                            (acc.employee_code && acc.employee_code === user?.employee_code) ||
+                            (acc.username && acc.username === user?.username) ||
+                            (acc.account_id && acc.account_id === user?.id)
+                          );
+                          if (isSelf) {
+                            return (
+                              <button
+                                type="button"
+                                className="wd-action-btn wd-action-btn-role opacity-50"
+                                disabled
+                                title={t('admin.self_role_forbidden', 'Tài khoản của bạn (Không được phép tự thay đổi quyền hạn của chính mình)')}
+                              >
+                                <ShieldCheck size={14} />
+                                <span>{t('admin.action_role_btn', 'Vai Trò')}</span>
+                              </button>
+                            );
+                          }
+                          return (
+                            <button
+                              type="button"
+                              className="wd-action-btn wd-action-btn-role"
+                              onClick={() => {
+                                setSelectedAccountForRole(acc);
+                                const isSuperAdmin = (acc.role_code || acc.role) === 'SUPER_ADMIN';
+                                setNewRoleCode(isSuperAdmin ? 'STAFF' : 'SUPER_ADMIN');
+                                setShowRoleModal(true);
+                              }}
+                              title={t('admin.action_role_tooltip', 'Phân quyền vai trò IAM')}
+                            >
+                              <ShieldCheck size={14} />
+                              <span>{t('admin.action_role_btn', 'Vai Trò')}</span>
+                            </button>
+                          );
+                        })()}
 
                         {/* Lock / Unlock with Confirmation */}
                         <button
@@ -931,188 +929,218 @@ export const SystemManagement: React.FC = () => {
         </Row>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: MASTER PROFILE EDIT (Unlocks All Fields) */}
-      {/* ========================================================================= */}
-      <Modal show={showEditProfileModal} onHide={() => setShowEditProfileModal(false)} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
-            <Edit2 size={18} className="text-primary" />
-            {t('admin.modal_edit_profile_title', 'Sửa Toàn Bộ Hồ Sơ Nhân Viên')}
-          </Modal.Title>
-        </Modal.Header>
-        <Form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (selectedEmpForEdit) {
-              adminUpdateEmployeeMutation.mutate({
-                id: selectedEmpForEdit.employee_code,
-                data: profileFormData
-              });
-            }
-          }}
-        >
-          <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-            <Alert variant="info" className="py-2 small mb-3">
-              {t('admin.modal_edit_profile_subtitle', 'Quyền Admin cho phép chỉnh sửa toàn bộ các trường nhân sự, bao gồm cả khoa phòng, chức vụ, trạng thái và ngày vào làm.')}
-            </Alert>
+      {/* TAB 4: SYSTEM AUDIT LOGS */}
+      {activeTab === 'audit_logs' && (
+        <div className="wd-card p-4 mb-4">
+          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+            <div>
+              <h2 className="h5 fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <ShieldCheck size={20} className="text-primary" />
+                <span>{t('admin.audit_logs_title', 'Nhật Ký Kiểm Toán Toàn Hệ Thống')}</span>
+              </h2>
+              <p className="text-muted small mb-0">
+                {t('admin.audit_logs_subtitle', 'Lưu vết tự động mọi thao tác phân quyền IAM, thay đổi mật khẩu, cơ cấu phòng ban và duyệt nghỉ phép.')}
+              </p>
+            </div>
 
-            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">{t('admin.sec_clinical_org', '1. Thông Tin Chuyên Môn & Tổ Chức')}</h6>
-            <Row className="g-3 mb-3">
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')}</Form.Label>
-                  <Form.Select
-                    aria-label={t('admin.field_dept', 'Khoa / Phòng Chuyên Môn')}
-                    value={profileFormData.department_code || ''}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, department_code: e.target.value })}
-                    className="wd-input"
-                  >
-                    {departments.map((d) => (
-                      <option key={d.department_code} value={d.department_code}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <div className="position-relative" style={{ width: '260px' }}>
+                <Search size={14} className="position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted" />
+                <input
+                  type="text"
+                  placeholder={t('admin.search_audit_placeholder', 'Tìm theo người sửa, hành động, ID đối tượng...')}
+                  value={auditSearch}
+                  onChange={(e) => {
+                    setAuditSearch(e.target.value);
+                    setAuditPage(1);
+                  }}
+                  className="wd-input ps-4 py-1.5 fs-6 w-100"
+                />
+              </div>
 
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_assigned_role', 'Chức Danh Phân Quyền')}</Form.Label>
-                  <Form.Select
-                    aria-label={t('admin.field_assigned_role', 'Chức Danh Phân Quyền')}
-                    value={profileFormData.role || 'STAFF'}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, role: e.target.value })}
-                    className="wd-input"
-                  >
-                    <option value="SUPER_ADMIN">{t('roles.super_admin', 'Ban Giám Đốc')}</option>
-                    <option value="HR_MANAGER">{t('roles.hr_manager', 'Trưởng Phòng Nhân Sự')}</option>
-                    <option value="DEPARTMENT_HEAD">{t('roles.dept_head', 'Trưởng Khoa')}</option>
-                    <option value="DOCTOR">{t('roles.doctor', 'Bác Sĩ Điều Trị')}</option>
-                    <option value="NURSE">{t('roles.nurse', 'Điều Dưỡng Viên')}</option>
-                    <option value="TECHNICIAN">{t('roles.technician', 'Kỹ Thuật Viên')}</option>
-                    <option value="STAFF">{t('roles.staff', 'Nhân Viên Hành Chính')}</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
+              <Form.Select
+                aria-label={t('admin.col_action', 'Hành Động')}
+                value={auditActionFilter}
+                onChange={(e) => {
+                  setAuditActionFilter(e.target.value);
+                  setAuditPage(1);
+                }}
+                className="wd-input py-1.5 fs-6"
+                style={{ width: '200px' }}
+              >
+                <option value="ALL">{t('admin.filter_all_actions', 'Tất cả hành động')}</option>
+                <option value="UPDATE_IAM_ROLE">Cấp / Hạ Quyền IAM</option>
+                <option value="LOCK_ACCOUNT">Khóa Tài Khoản</option>
+                <option value="UNLOCK_ACCOUNT">Mở Khóa Tài Khoản</option>
+                <option value="RESET_PASSWORD">Đặt Lại Mật Khẩu</option>
+                <option value="DEPT_APPROVE_LEAVE">Trưởng Khoa Duyệt Phép</option>
+                <option value="HR_CONFIRM_LEAVE">HR Xác Nhận Nghỉ Phép</option>
+                <option value="REJECT_LEAVE">Từ Chối Nghỉ Phép</option>
+              </Form.Select>
 
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_specialty', 'Chuyên Khoa / Bổ Nhiệm')}</Form.Label>
-                  <Form.Control
-                    type="text"
-                    aria-label={t('admin.field_specialty', 'Chuyên Khoa / Bổ Nhiệm')}
-                    value={profileFormData.specialty || ''}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, specialty: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
+              <button
+                type="button"
+                className="wd-pill-btn d-flex align-items-center gap-1.5 py-1.5 px-3"
+                onClick={() => refetchAuditLogs()}
+              >
+                <RefreshCw size={14} />
+                <span>{t('admin.refresh', 'Làm Mới')}</span>
+              </button>
+            </div>
+          </div>
 
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_staff_status', 'Trạng Thái Nhân Sự')}</Form.Label>
-                  <Form.Select
-                    aria-label={t('admin.field_staff_status', 'Trạng Thái Nhân Sự')}
-                    value={profileFormData.status || 'ACTIVE'}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, status: e.target.value })}
-                    className="wd-input"
-                  >
-                    <option value="ACTIVE">{t('common.active', 'Đang làm việc')}</option>
-                    <option value="INACTIVE">{t('common.inactive', 'Đã nghỉ việc')}</option>
-                    <option value="SUSPENDED">{t('admin.status_suspended', 'Tạm đình chỉ')}</option>
-                    <option value="ON_LEAVE">{t('admin.status_on_leave', 'Nghỉ dài hạn')}</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
+          <div className="table-responsive">
+            <table className="wd-table w-100">
+              <thead>
+                <tr>
+                  <th>{t('dashboard.th_time', 'Thời Gian')}</th>
+                  <th>{t('admin.col_actor', 'Người Thực Hiện')}</th>
+                  <th>{t('admin.col_action', 'Hành Động')}</th>
+                  <th>{t('admin.col_resource', 'Đối Tượng')}</th>
+                  <th>{t('admin.col_ip', 'Địa Chỉ IP')}</th>
+                  <th className="text-end">{t('admin.col_details', 'Chi Tiết Thay Đổi')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isAuditLoading ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4 text-muted">
+                      <RefreshCw size={18} className="spin-slow me-2" />
+                      <span>Đang tải nhật ký kiểm toán hệ thống...</span>
+                    </td>
+                  </tr>
+                ) : auditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-5 text-muted">
+                      <ShieldCheck size={28} className="text-muted mb-2 d-block mx-auto" />
+                      <span>{t('admin.no_audit_logs', 'Chưa ghi nhận nhật ký kiểm toán nào.')}</span>
+                    </td>
+                  </tr>
+                ) : (
+                  auditLogs.map((log: AuditLogItem) => (
+                    <tr key={log.id}>
+                      <td className="text-nowrap small text-muted font-monospace">
+                        {log.created_at ? new Date(log.created_at).toLocaleString('vi-VN') : '-'}
+                      </td>
+                      <td>
+                        <div className="fw-semibold text-dark">{log.actor_name || log.actor_id}</div>
+                        <div className="text-muted small font-monospace">@{log.actor_id}</div>
+                      </td>
+                      <td>
+                        {(() => {
+                          switch (log.action) {
+                            case 'UPDATE_IAM_ROLE':
+                              return (
+                                <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                  <ShieldCheck size={12} />
+                                  <span>Cấp/Hạ Quyền IAM</span>
+                                </span>
+                              );
+                            case 'LOCK_ACCOUNT':
+                              return (
+                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                  <Lock size={12} />
+                                  <span>Khóa Tài Khoản</span>
+                                </span>
+                              );
+                            case 'UNLOCK_ACCOUNT':
+                              return (
+                                <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                  <Unlock size={12} />
+                                  <span>Mở Khóa Tài Khoản</span>
+                                </span>
+                              );
+                            case 'RESET_PASSWORD':
+                              return (
+                                <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                  <Key size={12} />
+                                  <span>Đặt Lại Mật Khẩu</span>
+                                </span>
+                              );
+                            case 'DEPT_APPROVE_LEAVE':
+                              return (
+                                <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                  <CheckCircle2 size={12} />
+                                  <span>Trưởng Khoa Duyệt Phép</span>
+                                </span>
+                              );
+                            case 'HR_CONFIRM_LEAVE':
+                              return (
+                                <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                  <CheckCircle2 size={12} />
+                                  <span>HR Xác Nhận Nghỉ Phép</span>
+                                </span>
+                              );
+                            case 'REJECT_LEAVE':
+                              return (
+                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                  <AlertTriangle size={12} />
+                                  <span>Từ Chối Nghỉ Phép</span>
+                                </span>
+                              );
+                            default:
+                              return (
+                                <span className="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-pill">
+                                  {log.action}
+                                </span>
+                              );
+                          }
+                        })()}
+                      </td>
+                      <td>
+                        <span className="badge bg-light text-dark border me-1 font-monospace">{log.resource_type}</span>
+                        {log.resource_id && <span className="small text-muted">{log.resource_id}</span>}
+                      </td>
+                      <td className="small font-monospace text-muted">
+                        {log.ip_address || 'Local / Loopback'}
+                      </td>
+                      <td className="text-end">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary py-1 px-2.5 d-inline-flex align-items-center gap-1"
+                          onClick={() => {
+                            setSelectedAuditItem(log);
+                            setShowAuditDiffModal(true);
+                          }}
+                        >
+                          <FileText size={13} />
+                          <span>{t('admin.view_diff_btn', 'Xem Chi Tiết')}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-            <h6 className="fw-bold text-dark border-bottom pb-1 mb-3">{t('admin.sec_identity_contact', '2. Thông Tin Định Danh & Liên Hệ')}</h6>
-            <Row className="g-3 mb-3">
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_last_name', 'Họ và Tên Đệm')}</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={profileFormData.last_name || ''}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, last_name: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_first_name', 'Tên Gọi')}</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={profileFormData.first_name || ''}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, first_name: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_official_email', 'Email Công Vụ')}</Form.Label>
-                  <Form.Control
-                    type="email"
-                    value={profileFormData.email || ''}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_phone', 'Số Điện Thoại')}</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={profileFormData.phone || ''}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_id_card', 'Số CCCD / Hộ Chiếu')}</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={profileFormData.national_id || ''}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, national_id: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col xs={12} md={6}>
-                <Form.Group>
-                  <Form.Label className="small fw-semibold">{t('admin.field_nationality', 'Quốc Tịch')}</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={profileFormData.nationality || 'Vietnam'}
-                    onChange={(e) => setProfileFormData({ ...profileFormData, nationality: e.target.value })}
-                    className="wd-input"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowEditProfileModal(false)}>
-              {t('admin.btn_cancel', 'Hủy')}
-            </Button>
-            <Button type="submit" variant="primary" disabled={adminUpdateEmployeeMutation.isPending}>
-              {adminUpdateEmployeeMutation.isPending ? t('admin.btn_saving', 'Đang lưu...') : t('admin.btn_save_profile', 'Lưu Thay Đổi Hồ Sơ')}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+          {auditTotalPages > 1 && (
+            <div className="d-flex align-items-center justify-content-between pt-3 mt-3 border-top">
+              <span className="small text-muted">
+                Tổng cộng <strong>{auditTotal}</strong> bản ghi nhật ký kiểm toán (Trang {auditPage} / {auditTotalPages})
+              </span>
+              <div className="d-flex align-items-center gap-1.5">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary py-1 px-2.5"
+                  disabled={auditPage <= 1}
+                  onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft size={14} /> Trước
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary py-1 px-2.5"
+                  disabled={auditPage >= auditTotalPages}
+                  onClick={() => setAuditPage((p) => Math.min(auditTotalPages, p + 1))}
+                >
+                  Sau <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: ONBOARD WIZARD */}
@@ -1497,25 +1525,48 @@ export const SystemManagement: React.FC = () => {
               </div>
             )}
 
-            <Form.Group className="mb-4">
-              <Form.Label className="fw-bold text-dark small d-flex justify-content-between align-items-center">
-                <span>{t('admin.field_select_new_role', 'Chọn Vai Trò Mới *')}</span>
-                <span className="text-muted fw-normal small">{t('admin.rbac_standard_note', 'Hệ thống áp dụng chuẩn RBAC')}</span>
-              </Form.Label>
-              <Form.Select
-                aria-label={t('admin.field_select_new_role', 'Chọn Vai Trò Mới')}
-                value={newRoleCode}
-                onChange={(e) => setNewRoleCode(e.target.value)}
-                className="wd-input fs-6 py-2"
-                required
-              >
-                {systemRoles.map((r: any) => (
-                  <option key={r.role_code} value={r.role_code}>
-                    {r.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+            {(() => {
+              const isCurrentSuperAdmin = (selectedAccountForRole?.role_code || selectedAccountForRole?.role) === 'SUPER_ADMIN';
+              const isSelf = Boolean(
+                selectedAccountForRole && (
+                  (selectedAccountForRole.employee_code && selectedAccountForRole.employee_code === user?.employee_code) ||
+                  (selectedAccountForRole.username && selectedAccountForRole.username === user?.username) ||
+                  (selectedAccountForRole.account_id && selectedAccountForRole.account_id === user?.id)
+                )
+              );
+
+              return (
+                <div className="mb-4">
+                  {isSelf && (
+                    <Alert variant="danger" className="py-2.5 px-3 mb-3 small d-flex align-items-center gap-2">
+                      <AlertTriangle size={16} className="text-danger flex-shrink-0" />
+                      <span>{t('admin.self_role_forbidden', 'Tài khoản của bạn (Không được phép tự thay đổi quyền hạn của chính mình)')}</span>
+                    </Alert>
+                  )}
+
+                  <div className="p-3 mb-3 rounded-3 border bg-white shadow-sm">
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <ShieldCheck size={20} className={isCurrentSuperAdmin ? 'text-warning' : 'text-primary'} />
+                      <h6 className="fw-bold mb-0 text-dark">
+                        {isCurrentSuperAdmin 
+                          ? t('admin.role_demote_staff', 'Hạ quyền thành Người Dùng Thường (STAFF)')
+                          : t('admin.role_promote_admin', 'Nâng cấp thành Quản Trị Viên (SUPER_ADMIN)')}
+                      </h6>
+                    </div>
+                    <p className="text-muted small mb-0">
+                      {isCurrentSuperAdmin
+                        ? t('admin.role_demote_desc', 'Thu hồi quyền quản trị hệ thống, chuyển tài khoản về người dùng thông thường.')
+                        : t('admin.role_promote_desc', 'Cấp quyền Quản trị viên hệ thống để truy cập IAM, cấu trúc phòng ban và nhật ký kiểm toán.')}
+                    </p>
+                  </div>
+
+                  <Alert variant="warning" className="small py-2.5 px-3 mb-0 border-0 bg-warning bg-opacity-10 text-dark">
+                    <div className="fw-semibold mb-1">Ranh Giới Quyền Hạn Quản Trị Viên:</div>
+                    <div>{t('admin.role_boundary_note', 'Theo chuẩn bảo mật y tế, Quản trị viên chỉ chuyển đổi giữa Admin và Người dùng thường. Các chức danh chuyên môn (Bác sĩ, Điều dưỡng, Trưởng khoa, Dược sĩ, Kỹ thuật viên) do Phòng Tổ Chức Cán Bộ (HR) bổ nhiệm.')}</div>
+                  </Alert>
+                </div>
+              );
+            })()}
 
             {(() => {
               const activeRoleObj = systemRoles.find((r: any) => r.role_code === newRoleCode);
@@ -1583,7 +1634,13 @@ export const SystemManagement: React.FC = () => {
             <Button
               type="submit"
               variant="primary"
-              disabled={updateRoleMutation.isPending}
+              disabled={updateRoleMutation.isPending || Boolean(
+                selectedAccountForRole && (
+                  (selectedAccountForRole.employee_code && selectedAccountForRole.employee_code === user?.employee_code) ||
+                  (selectedAccountForRole.username && selectedAccountForRole.username === user?.username) ||
+                  (selectedAccountForRole.account_id && selectedAccountForRole.account_id === user?.id)
+                )
+              )}
               className="d-flex align-items-center gap-1.5"
             >
               {updateRoleMutation.isPending ? (
@@ -1600,6 +1657,71 @@ export const SystemManagement: React.FC = () => {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* MODAL: AUDIT LOG DIFF VIEWER */}
+      <Modal show={showAuditDiffModal} onHide={() => setShowAuditDiffModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-bottom pb-3">
+          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2 mb-0">
+            <ShieldCheck size={18} className="text-primary" />
+            <span>{t('admin.modal_audit_diff_title', 'Chi Tiết Nhật Ký Kiểm Toán')}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {selectedAuditItem && (
+            <div>
+              <div className="p-3 mb-3 rounded-2 bg-light border small">
+                <Row className="g-2">
+                  <Col xs={6} md={3}>
+                    <span className="text-muted d-block">Thời gian:</span>
+                    <strong>{new Date(selectedAuditItem.created_at).toLocaleString('vi-VN')}</strong>
+                  </Col>
+                  <Col xs={6} md={3}>
+                    <span className="text-muted d-block">Người thực hiện:</span>
+                    <strong>{selectedAuditItem.actor_name || selectedAuditItem.actor_id}</strong>
+                  </Col>
+                  <Col xs={6} md={3}>
+                    <span className="text-muted d-block">Hành động:</span>
+                    <span className="badge bg-primary">{selectedAuditItem.action}</span>
+                  </Col>
+                  <Col xs={6} md={3}>
+                    <span className="text-muted d-block">Đối tượng:</span>
+                    <strong>{selectedAuditItem.resource_type} ({selectedAuditItem.resource_id})</strong>
+                  </Col>
+                </Row>
+              </div>
+
+              <Row className="g-3">
+                <Col xs={12} md={6}>
+                  <div className="border rounded-2 p-3 bg-white h-100">
+                    <span className="small fw-semibold text-danger d-block mb-2">
+                      {t('admin.label_old_values', 'Giá trị trước thay đổi')}:
+                    </span>
+                    <pre className="p-2.5 rounded bg-light border text-dark font-monospace small mb-0" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                      {selectedAuditItem.old_values ? JSON.stringify(selectedAuditItem.old_values, null, 2) : 'null (Khởi tạo mới)'}
+                    </pre>
+                  </div>
+                </Col>
+
+                <Col xs={12} md={6}>
+                  <div className="border rounded-2 p-3 bg-white h-100">
+                    <span className="small fw-semibold text-success d-block mb-2">
+                      {t('admin.label_new_values', 'Giá trị sau thay đổi')}:
+                    </span>
+                    <pre className="p-2.5 rounded bg-light border text-dark font-monospace small mb-0" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                      {selectedAuditItem.new_values ? JSON.stringify(selectedAuditItem.new_values, null, 2) : 'null'}
+                    </pre>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-top pt-3">
+          <Button variant="secondary" onClick={() => setShowAuditDiffModal(false)}>
+            {t('common.close', 'Đóng')}
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       {/* GLOBAL CONFIRMATION MODAL */}

@@ -11,9 +11,14 @@ export const leaveApi = {
     return res.data?.data || [];
   },
 
-  getAllRequests: async (filters?: { status?: string; leave_type?: string }) => {
+  getAllRequests: async (filters?: { status?: string; leave_type?: string; department_code?: string; staff_id?: string }) => {
     const res = await axiosClient.get('/leave', { params: filters });
     return res.data?.data || [];
+  },
+
+  updateRequestStatus: async (id: string, status: 'PENDING' | 'DEPT_APPROVED' | 'APPROVED' | 'REJECTED') => {
+    const res = await axiosClient.patch(`/leave/requests/${id}/status`, { status });
+    return res.data?.data;
   },
 
   submitRequest: async (data: {

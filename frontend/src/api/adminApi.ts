@@ -31,6 +31,27 @@ export interface SystemRole {
   permissions: RolePermission[];
 }
 
+export interface AuditLogItem {
+  id: string;
+  actor_id: string;
+  actor_name?: string | null;
+  action: string;
+  resource_type: string;
+  resource_id?: string | null;
+  old_values?: any;
+  new_values?: any;
+  ip_address?: string | null;
+  created_at: string;
+}
+
+export interface AuditLogsResponse {
+  data: AuditLogItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface AdminAccount {
   account_id: string;
   employee_id: number;
@@ -145,9 +166,14 @@ export const adminApi = {
     return res.data?.data;
   },
 
-  updateLeaveRequestStatus: async (id: string, status: 'PENDING' | 'APPROVED' | 'REJECTED'): Promise<any> => {
+  updateLeaveRequestStatus: async (id: string, status: 'PENDING' | 'DEPT_APPROVED' | 'APPROVED' | 'REJECTED'): Promise<any> => {
     const res = await axiosClient.patch(`/leave/requests/${id}/status`, { status });
     return res.data?.data;
+  },
+
+  getAuditLogs: async (params?: { page?: number; limit?: number; action?: string; resource_type?: string; search?: string }): Promise<AuditLogsResponse> => {
+    const res = await axiosClient.get('/admin/audit-logs', { params });
+    return res.data;
   }
 };
 

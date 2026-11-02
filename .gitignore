@@ -53,3 +53,12 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# ============================================================================
+# 6. Defense Media & Internal Strategy Notes
+# ============================================================================
+vid/
+*.mp4
+*.mp3
+docs/master_plan_bao_ve_do_an_va_market_research.md
+

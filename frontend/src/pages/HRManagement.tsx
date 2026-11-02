@@ -164,8 +164,8 @@ export const HRManagement: React.FC = () => {
 
   // Filter states
   const initialLeaveStatus = searchParams.get('status') as any;
-  const [leaveFilter, setLeaveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>(
-    initialLeaveStatus && ['ALL', 'PENDING', 'APPROVED', 'REJECTED'].includes(initialLeaveStatus)
+  const [leaveFilter, setLeaveFilter] = useState<'ALL' | 'PENDING' | 'DEPT_APPROVED' | 'APPROVED' | 'REJECTED'>(
+    initialLeaveStatus && ['ALL', 'PENDING', 'DEPT_APPROVED', 'APPROVED', 'REJECTED'].includes(initialLeaveStatus)
       ? initialLeaveStatus
       : 'ALL'
   );
@@ -173,7 +173,7 @@ export const HRManagement: React.FC = () => {
   // Sync leave filter if query param changes
   useEffect(() => {
     const statusParam = searchParams.get('status') as any;
-    if (statusParam && ['ALL', 'PENDING', 'APPROVED', 'REJECTED'].includes(statusParam) && statusParam !== leaveFilter) {
+    if (statusParam && ['ALL', 'PENDING', 'DEPT_APPROVED', 'APPROVED', 'REJECTED'].includes(statusParam) && statusParam !== leaveFilter) {
       setLeaveFilter(statusParam);
     }
   }, [searchParams]);
@@ -587,16 +587,24 @@ export const HRManagement: React.FC = () => {
             </div>
 
             <div className="d-flex align-items-center flex-wrap gap-1.5">
-              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  className={`btn btn-sm ${leaveFilter === st ? 'btn-primary' : 'btn-outline-secondary'} py-1 px-2.5`}
-                  onClick={() => setLeaveFilter(st)}
-                >
-                  {st === 'ALL' ? t('admin.filter_all', 'Tất Cả') : st === 'PENDING' ? t('admin.filter_pending', 'Chờ Duyệt') : st === 'APPROVED' ? t('admin.filter_approved', 'Đã Duyệt') : t('admin.filter_rejected', 'Từ Chối')}
-                </button>
-              ))}
+              {(['ALL', 'PENDING', 'DEPT_APPROVED', 'APPROVED', 'REJECTED'] as const).map((st) => {
+                let label = t('admin.filter_all', 'Tất Cả');
+                if (st === 'PENDING') label = t('admin.filter_pending', 'Chờ Trưởng Khoa');
+                else if (st === 'DEPT_APPROVED') label = t('admin.filter_dept_approved', 'Chờ HR Xác Nhận');
+                else if (st === 'APPROVED') label = t('admin.filter_approved', 'Đã Duyệt');
+                else if (st === 'REJECTED') label = t('admin.filter_rejected', 'Từ Chối');
+
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    className={`btn btn-sm ${leaveFilter === st ? 'btn-primary' : 'btn-outline-secondary'} py-1 px-2.5`}
+                    onClick={() => setLeaveFilter(st)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -640,28 +648,66 @@ export const HRManagement: React.FC = () => {
                       {lr.reason || t('admin.no_reason', 'Không có lý do')}
                     </td>
                     <td>
-                      <Badge
-                        bg={lr.status === 'APPROVED' ? 'success' : lr.status === 'PENDING' ? 'warning' : 'danger'}
-                        text={lr.status === 'PENDING' ? 'dark' : 'white'}
-                        className="fw-normal px-2 py-1"
-                      >
-                        {lr.status === 'APPROVED' ? t('admin.filter_approved', 'Đã Duyệt') : lr.status === 'PENDING' ? t('admin.filter_pending', 'Chờ Duyệt') : t('admin.filter_rejected', 'Từ Chối')}
-                      </Badge>
+                      {(() => {
+                        switch (lr.status) {
+                          case 'DEPT_APPROVED':
+                            return (
+                              <Badge bg="info" text="white" className="fw-normal px-2 py-1">
+                                {t('admin.status_dept_approved', 'Trưởng khoa đã duyệt (Chờ HR xác nhận)')}
+                              </Badge>
+                            );
+                          case 'PENDING':
+                            return (
+                              <Badge bg="warning" text="dark" className="fw-normal px-2 py-1">
+                                {t('admin.status_submitted_pending', 'Đã nộp đơn (Chờ Trưởng khoa duyệt)')}
+                              </Badge>
+                            );
+                          case 'APPROVED':
+                            return (
+                              <Badge bg="success" text="white" className="fw-normal px-2 py-1">
+                                {t('admin.status_hr_approved', 'Đã duyệt hoàn tất (Đã trừ quỹ phép)')}
+                              </Badge>
+                            );
+                          case 'REJECTED':
+                            return (
+                              <Badge bg="danger" text="white" className="fw-normal px-2 py-1">
+                                {t('admin.filter_rejected', 'Từ Chối')}
+                              </Badge>
+                            );
+                          default:
+                            return <Badge bg="secondary">{lr.status}</Badge>;
+                        }
+                      })()}
                     </td>
                     <td className="text-end">
-                      {lr.status === 'PENDING' ? (
+                      {lr.status === 'DEPT_APPROVED' ? (
                         <div className="d-flex align-items-center justify-content-end gap-1.5">
                           <button
                             type="button"
-                            className="btn btn-sm btn-success py-1 px-2.5"
+                            className="btn btn-sm btn-success py-1 px-2.5 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm"
                             onClick={() => handleConfirmLeaveDecision(lr, 'APPROVED')}
                           >
-                            {t('admin.btn_approve', 'Duyệt')}
+                            <span>{t('admin.btn_hr_confirm', 'Xác Nhận Hồ Sơ Viện')}</span>
                           </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger py-1 px-2"
                             onClick={() => handleConfirmLeaveDecision(lr, 'REJECTED')}
+                          >
+                            {t('admin.btn_reject', 'Từ Chối')}
+                          </button>
+                        </div>
+                      ) : lr.status === 'PENDING' ? (
+                        <div className="d-flex align-items-center justify-content-end gap-1.5">
+                          <span className="text-muted small fst-italic">
+                            Chờ Trưởng khoa duyệt
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger py-0.5 px-2"
+                            style={{ fontSize: '11px' }}
+                            onClick={() => handleConfirmLeaveDecision(lr, 'REJECTED')}
+                            title="Từ chối khẩn cấp"
                           >
                             {t('admin.btn_reject', 'Từ Chối')}
                           </button>

@@ -1,4 +1,5 @@
 import adminService from '../services/adminService.js';
+import auditService from '../services/auditService.js';
 
 export const adminController = {
   /**
@@ -57,7 +58,8 @@ export const adminController = {
     }
 
     try {
-      const updated = await adminService.toggleAccountLock(id, is_locked);
+      const actor = { ...(req.user || {}), ip: req.ip };
+      const updated = await adminService.toggleAccountLock(id, is_locked, actor);
       return res.status(200).json({
         success: true,
         message: `Đã ${is_locked ? 'khóa' : 'mở khóa'} tài khoản thành công.`,
@@ -65,9 +67,9 @@ export const adminController = {
       });
     } catch (error) {
       console.error('[adminController.toggleAccountLock Error]:', error);
-      return res.status(500).json({
+      return res.status(error.statusCode || 500).json({
         success: false,
-        message: 'Lỗi khi thay đổi trạng thái khóa tài khoản',
+        message: error.message || 'Lỗi khi thay đổi trạng thái khóa tài khoản',
         error: error.message
       });
     }
@@ -88,7 +90,8 @@ export const adminController = {
     }
 
     try {
-      const result = await adminService.resetPassword(id, new_password);
+      const actor = { ...(req.user || {}), ip: req.ip };
+      const result = await adminService.resetPassword(id, new_password, actor);
       return res.status(200).json(result);
     } catch (error) {
       console.error('[adminController.resetPassword Error]:', error);
@@ -150,7 +153,8 @@ export const adminController = {
     }
 
     try {
-      const updated = await adminService.updateAccountRole(id, role_code);
+      const actor = { ...(req.user || {}), ip: req.ip };
+      const updated = await adminService.updateAccountRole(id, role_code, actor);
       return res.status(200).json({
         success: true,
         message: `Đã cập nhật phân quyền tài khoản thành ${role_code} thành công.`,
@@ -161,6 +165,26 @@ export const adminController = {
       return res.status(error.statusCode || 500).json({
         success: false,
         message: error.message || 'Lỗi khi cập nhật vai trò tài khoản'
+      });
+    }
+  },
+
+  /**
+   * GET /api/admin/audit-logs
+   */
+  async getAuditLogs(req, res) {
+    try {
+      const result = await auditService.getAuditLogs(req.query);
+      return res.status(200).json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('[adminController.getAuditLogs Error]:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi tải nhật ký kiểm toán hệ thống',
+        error: error.message
       });
     }
   },

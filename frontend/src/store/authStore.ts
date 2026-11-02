@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
 export interface AuthUser {
+  id?: string;
+  username?: string;
   employee_code: string;
   role: string;
   role_code?: string;

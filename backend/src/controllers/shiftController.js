@@ -28,7 +28,8 @@ export const shiftController = {
       is_24h_on_call = false,
       status = 'SCHEDULED',
       requires_handover = true,
-      allow_insufficient_rest = false
+      allow_insufficient_rest = false,
+      allow_unverified_license = false
     } = req.body;
 
     // RBAC Scope Check: Only HR_MANAGER or SUPER_ADMIN can schedule shifts
@@ -85,7 +86,8 @@ export const shiftController = {
         is_24h_on_call,
         status,
         requires_handover,
-        allow_insufficient_rest: Boolean(allow_insufficient_rest)
+        allow_insufficient_rest: Boolean(allow_insufficient_rest),
+        allow_unverified_license: Boolean(allow_unverified_license)
       });
 
       return res.status(201).json({
@@ -333,6 +335,117 @@ export const shiftController = {
         success: false,
         message: 'Không thể xóa ca trực.',
         error: error.message
+      });
+    }
+  },
+
+  /**
+   * GET /api/shifts/fill-gap/candidates
+   * Query recommended staff to cover an emergency gap or surge
+   */
+  async getFillGapCandidates(req, res) {
+    try {
+      const { department_code, department_id, shift_date, shift_type, required_role } = req.query;
+
+      // Allow DEPARTMENT_HEAD to default to their own department if not passed
+      let targetDept = department_code || department_id;
+      if (!targetDept && req.user && req.user.role === 'DEPARTMENT_HEAD') {
+        targetDept = await getStaffDepartment(req.user.employee_code);
+      }
+
+      const result = await shiftService.getFillGapCandidates({
+        department_code: targetDept,
+        shift_date,
+        shift_type,
+        required_role
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('[shiftController.getFillGapCandidates Error]:', error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Không thể tìm ứng viên lấp khoảng trống ca trực.'
+      });
+    }
+  },
+
+  /**
+   * POST /api/shifts/fill-gap/dispatch
+   * Dispatch selected candidate for emergency cover
+   */
+  async dispatchSurgeCover(req, res) {
+    try {
+      const {
+        staff_id,
+        department_code,
+        department_id,
+        shift_date,
+        start_time,
+        end_time,
+        shift_type = 'EMERGENCY_COVER',
+        reason,
+        on_call_tier = 'CLINICAL'
+      } = req.body;
+
+      let targetDept = department_code || department_id;
+      if (!targetDept && req.user && req.user.role === 'DEPARTMENT_HEAD') {
+        targetDept = await getStaffDepartment(req.user.employee_code);
+      }
+
+      const result = await shiftService.dispatchSurgeCover(
+        {
+          staff_id,
+          department_code: targetDept,
+          shift_date,
+          start_time,
+          end_time,
+          shift_type,
+          reason,
+          on_call_tier
+        },
+        req.user
+      );
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error('[shiftController.dispatchSurgeCover Error]:', error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        code: error.code,
+        message: error.message || 'Không thể phát lệnh điều động cấp cứu khẩn cấp.'
+      });
+    }
+  },
+
+  /**
+   * POST /api/shifts/:id/overrun
+   * Record shift overrun when doctor/nurse stays late for resuscitation / surgery
+   */
+  async recordShiftOverrun(req, res) {
+    try {
+      const { id } = req.params;
+      const { overrun_minutes = 60, reason } = req.body;
+
+      const result = await shiftService.recordShiftOverrun(
+        id,
+        { overrun_minutes, reason },
+        req.user
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Đã ghi nhận ca trực kéo dài thêm ${overrun_minutes} phút thành công.`,
+        data: result
+      });
+    } catch (error) {
+      console.error('[shiftController.recordShiftOverrun Error]:', error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Không thể ghi nhận ca trực kéo dài.'
       });
     }
   }

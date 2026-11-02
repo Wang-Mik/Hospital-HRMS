@@ -17,6 +17,7 @@ router.get('/accounts', adminController.getAllAccounts);
 router.patch('/accounts/:id/lock', adminController.toggleAccountLock);
 router.patch('/accounts/:id/role', adminController.updateAccountRole);
 router.post('/accounts/:id/reset-password', adminController.resetPassword);
+router.get('/audit-logs', adminController.getAuditLogs);
 router.get('/roles', adminController.getAllRoles);
 router.post('/broadcast', adminController.broadcastNotification);
 router.post('/onboard', adminController.adminOnboardStaff);

@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import pool from '../db.js';
+import auditService from './auditService.js';
 
 export const leaveService = {
   /**
@@ -89,7 +90,7 @@ export const leaveService = {
    * Get all leave requests with filters
    */
   async getAllLeaveRequests(filters = {}) {
-    const { status, leave_type, staff_id } = filters;
+    const { status, leave_type, staff_id, department_code } = filters;
     let sql = `
       SELECT 
         lr.*,
@@ -117,6 +118,10 @@ export const leaveService = {
       sql += ' AND lr.staff_id = ?';
       params.push(staff_id);
     }
+    if (department_code) {
+      sql += ' AND e.department_code = ?';
+      params.push(department_code);
+    }
 
     sql += ' ORDER BY lr.created_at DESC';
     const [rows] = await pool.query(sql, params);
@@ -124,17 +129,29 @@ export const leaveService = {
   },
 
   /**
-   * Update leave request status (APPROVE / REJECT) and deduct leave quota accordingly
+   * Update leave request status (DEPT_APPROVED / APPROVED / REJECTED)
+   * 2-Step clinical workflow:
+   * 1. DEPARTMENT_HEAD approves staff in their own department -> DEPT_APPROVED (or REJECTED)
+   * 2. HR_MANAGER confirms request -> APPROVED (deducts Leave_Balances quota) (or REJECTED)
    */
-  async updateLeaveRequestStatus(id, { status }) {
-    const validStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
+  async updateLeaveRequestStatus(id, { status }, actor = {}) {
+    const validStatuses = ['PENDING', 'DEPT_APPROVED', 'APPROVED', 'REJECTED'];
     if (!validStatuses.includes(status)) {
       const err = new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
       err.statusCode = 400;
       throw err;
     }
 
-    const [existing] = await pool.query('SELECT * FROM Leave_Requests WHERE id = ?', [id]);
+    const [existing] = await pool.query(`
+      SELECT 
+        lr.*,
+        e.department_code,
+        CONCAT(COALESCE(e.last_name, ''), ' ', COALESCE(e.first_name, '')) AS staff_name
+      FROM Leave_Requests lr
+      LEFT JOIN Employees e ON lr.staff_id = e.employee_code
+      WHERE lr.id = ?
+    `, [id]);
+
     if (existing.length === 0) {
       const err = new Error(`Leave request with id ${id} not found.`);
       err.statusCode = 404;
@@ -144,9 +161,35 @@ export const leaveService = {
     const leaveReq = existing[0];
     const prevStatus = leaveReq.status;
 
+    // Role-based clinical workflow validation
+    if (actor && actor.role) {
+      if (actor.role === 'DEPARTMENT_HEAD') {
+        // Department Head can only review requests from their own department
+        if (actor.department_code && leaveReq.department_code && actor.department_code !== leaveReq.department_code) {
+          const err = new Error('Trưởng khoa chỉ có quyền xét duyệt đơn nghỉ phép của nhân sự thuộc khoa của mình.');
+          err.statusCode = 403;
+          throw err;
+        }
+
+        // Department Head can only set DEPT_APPROVED or REJECTED
+        if (status !== 'DEPT_APPROVED' && status !== 'REJECTED') {
+          const err = new Error('Trưởng khoa chỉ có thẩm quyền Phê Duyệt Cấp Khoa (DEPT_APPROVED) hoặc Từ Chối (REJECTED). Việc xác nhận hồ sơ vào quỹ viện do HR thực hiện.');
+          err.statusCode = 403;
+          throw err;
+        }
+      } else if (actor.role === 'HR_MANAGER' || actor.role === 'SUPER_ADMIN') {
+        // HR / Executive can confirm (APPROVED) or reject (REJECTED)
+        // HR can also set DEPT_APPROVED if assisting
+      } else {
+        const err = new Error('Chỉ Trưởng khoa lâm sàng hoặc Phòng Nhân Sự mới có thẩm quyền xét duyệt đơn nghỉ phép.');
+        err.statusCode = 403;
+        throw err;
+      }
+    }
+
     await pool.query('UPDATE Leave_Requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [status, id]);
 
-    // If approving, increase used_days in Leave_Balances
+    // If approving officially (APPROVED), increase used_days in Leave_Balances
     const daysDeduction = Number(leaveReq.days_requested || (leaveReq.day_part !== 'FULL' ? 0.5 : 1.0));
     const year = new Date(leaveReq.start_date).getFullYear();
 
@@ -165,6 +208,28 @@ export const leaveService = {
         [daysDeduction, leaveReq.staff_id, year, leaveReq.leave_type]
       );
     }
+
+    // Determine audit action name
+    let auditAction = 'UPDATE_LEAVE_STATUS';
+    if (status === 'DEPT_APPROVED') {
+      auditAction = 'DEPT_APPROVE_LEAVE';
+    } else if (status === 'APPROVED') {
+      auditAction = 'HR_CONFIRM_LEAVE';
+    } else if (status === 'REJECTED') {
+      auditAction = 'REJECT_LEAVE';
+    }
+
+    // Audit Logging
+    await auditService.logAudit({
+      actor_id: actor.employee_code || actor.username || 'HR_OFFICE',
+      actor_name: actor.staff_name || actor.name || actor.username || (actor.role === 'DEPARTMENT_HEAD' ? 'Trưởng Khoa Lâm Sàng' : 'Phòng Nhân Sự'),
+      action: auditAction,
+      resource_type: 'LEAVE_REQUEST',
+      resource_id: id,
+      old_values: { status: prevStatus, staff_id: leaveReq.staff_id, days: daysDeduction },
+      new_values: { status: status, staff_id: leaveReq.staff_id, days: daysDeduction },
+      ip_address: actor.ip || null
+    });
 
     const [updated] = await pool.query(`
       SELECT 
@@ -189,26 +254,28 @@ export const leaveService = {
   async getLeaveBalances(staffId, year = null) {
     let sql = `
       SELECT 
-        id,
-        staff_id,
-        accrual_year,
-        leave_type,
-        total_days,
-        used_days,
-        (total_days - used_days) AS remaining_days,
-        created_at,
-        updated_at
-      FROM Leave_Balances
-      WHERE staff_id = ?
+        lb.id,
+        lb.staff_id,
+        lb.accrual_year,
+        lb.leave_type,
+        lb.total_days,
+        lb.used_days,
+        (lb.total_days - lb.used_days) AS remaining_days,
+        lb.created_at,
+        lb.updated_at
+      FROM Leave_Balances lb
+      LEFT JOIN Employees e ON lb.staff_id = e.employee_code
+      WHERE lb.staff_id = ?
+      AND NOT (e.gender = 'MALE' AND lb.leave_type = 'MATERNITY')
     `;
     const params = [staffId];
 
     if (year) {
-      sql += ' AND accrual_year = ?';
+      sql += ' AND lb.accrual_year = ?';
       params.push(year);
     }
 
-    sql += ' ORDER BY leave_type ASC';
+    sql += ' ORDER BY lb.leave_type ASC';
     const [rows] = await pool.query(sql, params);
     return rows.map((r) => ({
       ...r,
