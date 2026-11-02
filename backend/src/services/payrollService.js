@@ -136,6 +136,8 @@ export const payrollService = {
         e.specialty,
         COALESCE(pr.base_hourly_rate, 0) AS base_hourly_rate,
         COALESCE(pr.tax_tier, 'TIER_1') AS tax_tier,
+        pr.last_salary_increment_date,
+        COALESCE(pr.is_salary_increment_hidden, FALSE) AS is_salary_increment_hidden,
         pr.updated_at AS rate_updated_at
       FROM Employees e
       LEFT JOIN Departments d ON e.department_code = d.department_code

@@ -625,6 +625,159 @@ export const employeeService = {
     }
 
     return await this.getEmployeeById(id);
+  },
+
+  /**
+   * Get complete clinical personnel dossier (Bằng cấp, CCHN, CME, Hợp đồng, Bảo hiểm, Khen thưởng/Kỷ luật, KPI, Lương)
+   */
+  async getEmployeeFullDossier(idOrCode) {
+    const employee = await this.getEmployeeById(idOrCode);
+    if (!employee) return null;
+
+    const staffCode = employee.employee_code;
+    const empNumericId = employee.id;
+
+    // 1. Academic Degrees
+    const [degrees] = await pool.query(
+      `SELECT * FROM Academic_Degrees WHERE staff_id = ? ORDER BY graduation_year DESC`,
+      [staffCode]
+    );
+
+    // 2. Medical Licenses (CCHN)
+    const [licenses] = await pool.query(
+      `SELECT *, DATEDIFF(expiration_date, CURDATE()) AS days_until_expiry FROM Medical_Licenses WHERE employee_id = ? ORDER BY expiration_date ASC`,
+      [empNumericId]
+    );
+
+    // 3. Specialized Certifications & CME
+    const [certifications] = await pool.query(
+      `SELECT * FROM Specialized_Certifications WHERE staff_id = ? ORDER BY issue_date DESC`,
+      [staffCode]
+    );
+
+    // 4. Employment Contracts
+    const [contracts] = await pool.query(
+      `SELECT *, DATEDIFF(end_date, CURDATE()) AS days_until_expiry FROM Employment_Contracts WHERE staff_id = ? ORDER BY start_date DESC`,
+      [staffCode]
+    );
+
+    // 5. Social Insurances
+    const [insurances] = await pool.query(
+      `SELECT * FROM Social_Insurances WHERE staff_id = ? LIMIT 1`,
+      [staffCode]
+    );
+
+    // 6. Commendations & Disciplines
+    const [records] = await pool.query(
+      `SELECT * FROM Commendations_Disciplines WHERE staff_id = ? ORDER BY decision_date DESC`,
+      [staffCode]
+    );
+
+    // 7. Monthly KPIs (recent 12 months)
+    const [kpis] = await pool.query(
+      `SELECT * FROM Monthly_KPIs WHERE staff_id = ? ORDER BY kpi_month DESC LIMIT 12`,
+      [staffCode]
+    );
+
+    // 8. Pay Rate & Increment Date
+    const [payRates] = await pool.query(
+      `SELECT * FROM Pay_Rates WHERE staff_id = ? LIMIT 1`,
+      [staffCode]
+    );
+
+    return {
+      ...employee,
+      academic_degrees: degrees || [],
+      medical_licenses: licenses || [],
+      specialized_certifications: certifications || [],
+      employment_contracts: contracts || [],
+      social_insurances: insurances[0] || null,
+      commendations_disciplines: records || [],
+      monthly_kpis: kpis || [],
+      pay_rate: payRates[0] || null
+    };
+  },
+
+  /**
+   * Add an academic degree for an employee
+   */
+  async addAcademicDegree(staffId, data) {
+    const {
+      degree_level = 'BACHELOR',
+      degree_name,
+      institution_name,
+      graduation_year,
+      classification = 'Giỏi',
+      degree_number = null,
+      document_url = null
+    } = data;
+
+    if (!degree_name || !institution_name || !graduation_year) {
+      throw new Error('Vui lòng cung cấp đầy đủ tên văn bằng, cơ sở đào tạo và năm tốt nghiệp');
+    }
+
+    const degreeId = randomUUID();
+
+    await pool.query(
+      `INSERT INTO Academic_Degrees (id, staff_id, degree_level, degree_name, institution_name, graduation_year, classification, degree_number, document_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [degreeId, staffId, degree_level, degree_name, institution_name, graduation_year, classification, degree_number, document_url]
+    );
+
+    const [rows] = await pool.query(`SELECT * FROM Academic_Degrees WHERE id = ?`, [degreeId]);
+    return rows[0];
+  },
+
+  /**
+   * Delete an academic degree
+   */
+  async deleteAcademicDegree(staffId, degreeId) {
+    const [result] = await pool.query(
+      `DELETE FROM Academic_Degrees WHERE id = ? AND staff_id = ?`,
+      [degreeId, staffId]
+    );
+    return result.affectedRows > 0;
+  },
+
+  /**
+   * Add a specialized certification (CME)
+   */
+  async addSpecializedCertification(staffId, data) {
+    const {
+      certificate_name,
+      issuing_organization,
+      issue_date,
+      expiration_date = null,
+      certificate_code = null,
+      cme_hours = 0,
+      document_url = null
+    } = data;
+
+    if (!certificate_name || !issuing_organization || !issue_date) {
+      throw new Error('Vui lòng cung cấp đầy đủ tên chứng chỉ, cơ quan cấp và ngày cấp');
+    }
+
+    const certId = randomUUID();
+
+    await pool.query(
+      `INSERT INTO Specialized_Certifications (id, staff_id, certificate_name, issuing_organization, issue_date, expiration_date, certificate_code, cme_hours, document_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [certId, staffId, certificate_name, issuing_organization, issue_date, expiration_date || null, certificate_code, cme_hours, document_url]
+    );
+
+    const [rows] = await pool.query(`SELECT * FROM Specialized_Certifications WHERE id = ?`, [certId]);
+    return rows[0];
+  },
+
+  /**
+   * Delete a specialized certification
+   */
+  async deleteSpecializedCertification(staffId, certId) {
+    const [result] = await pool.query(
+      `DELETE FROM Specialized_Certifications WHERE id = ? AND staff_id = ?`,
+      [certId, staffId]
+    );
+    return result.affectedRows > 0;
   }
 };
 

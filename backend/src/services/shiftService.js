@@ -279,12 +279,18 @@ export const shiftService = {
       }
     }
 
+    const approvalStatus = data.approval_status || 'APPROVED';
+    const submittedBy = data.submitted_by || staff_id;
+    const approvedBy = approvalStatus === 'APPROVED' ? (data.approved_by || submittedBy) : null;
+    const approvedAt = approvalStatus === 'APPROVED' ? new Date() : null;
+
     const shiftId = randomUUID();
     const insertSql = `
       INSERT INTO Shifts (
         id, staff_id, department_code, start_time, end_time, shift_type,
-        on_call_tier, team_code, is_24h_on_call, status, requires_handover
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        on_call_tier, team_code, is_24h_on_call, status, requires_handover,
+        approval_status, submitted_by, approved_by, approved_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     await pool.execute(insertSql, [
@@ -298,7 +304,11 @@ export const shiftService = {
       team_code || 'GENERAL',
       Boolean(is_24h_on_call),
       status,
-      requires_handover
+      requires_handover,
+      approvalStatus,
+      submittedBy,
+      approvedBy,
+      approvedAt
     ]);
 
     return {
@@ -314,6 +324,10 @@ export const shiftService = {
       is_24h_on_call: Boolean(is_24h_on_call),
       status,
       requires_handover,
+      approval_status: approvalStatus,
+      submitted_by: submittedBy,
+      approved_by: approvedBy,
+      approved_at: approvedAt,
       rest_warning: restWarning
     };
   },
@@ -1337,6 +1351,120 @@ export const shiftService = {
       overrun_minutes,
       reason,
       status: shift.status
+    };
+  },
+
+  /**
+   * Set department roster delegate (Thư ký khoa lập lịch)
+   */
+  async setDepartmentRosterDelegate(departmentCode, delegatedStaffId, notes = null, actor = {}) {
+    const [empRows] = await pool.query(
+      `SELECT employee_code, department_code, first_name, last_name, role FROM Employees WHERE employee_code = ? LIMIT 1`,
+      [delegatedStaffId]
+    );
+    if (!empRows || empRows.length === 0) {
+      const err = new Error(`Cán bộ y tế "${delegatedStaffId}" không tồn tại trong hệ thống.`);
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const delegatedEmp = empRows[0];
+    const { randomUUID } = await import('crypto');
+    const delegationId = randomUUID();
+
+    await pool.query(
+      `INSERT INTO Department_Roster_Delegations (id, department_code, delegated_staff_id, assigned_by, notes, is_active)
+       VALUES (?, ?, ?, ?, ?, TRUE)
+       ON DUPLICATE KEY UPDATE delegated_staff_id = VALUES(delegated_staff_id), assigned_by = VALUES(assigned_by), notes = VALUES(notes), is_active = TRUE`,
+      [delegationId, departmentCode, delegatedStaffId, actor.employee_code || 'EMP-DOC-001', notes]
+    );
+
+    try {
+      await pool.execute(
+        `INSERT INTO Audit_Logs (id, actor_id, actor_name, action, resource_type, resource_id, new_values)
+         VALUES (?, ?, ?, 'DELEGATE_ROSTER_SECRETARY', 'Departments', ?, ?)`,
+        [
+          randomUUID(),
+          actor.employee_code || 'SYSTEM',
+          actor.name || 'Trưởng Khoa Lâm Sàng',
+          departmentCode,
+          JSON.stringify({ delegated_staff_id: delegatedStaffId, notes })
+        ]
+      );
+    } catch (auditErr) {
+      console.warn('[setDepartmentRosterDelegate] Failed to log audit:', auditErr.message);
+    }
+
+    return {
+      department_code: departmentCode,
+      delegated_staff_id: delegatedStaffId,
+      staff_name: `${delegatedEmp.last_name} ${delegatedEmp.first_name}`.trim(),
+      role: delegatedEmp.role,
+      notes,
+      assigned_by: actor.employee_code || 'EMP-DOC-001'
+    };
+  },
+
+  /**
+   * Get current active roster delegate for a department
+   */
+  async getDepartmentRosterDelegate(departmentCode) {
+    const [rows] = await pool.query(
+      `SELECT d.*, e.first_name, e.last_name, e.role, e.specialty
+       FROM Department_Roster_Delegations d
+       JOIN Employees e ON d.delegated_staff_id = e.employee_code
+       WHERE d.department_code = ? AND d.is_active = TRUE
+       LIMIT 1`,
+      [departmentCode]
+    );
+    return rows[0] || null;
+  },
+
+  /**
+   * Batch approve pending shifts for a department
+   */
+  async approveDepartmentShifts(payload, actor = {}) {
+    const { department_code, shift_ids, date_range } = payload;
+    let sql = `UPDATE Shifts SET approval_status = 'APPROVED', approved_by = ?, approved_at = NOW() WHERE approval_status = 'PENDING_APPROVAL'`;
+    const params = [actor.employee_code || 'EMP-DOC-001'];
+
+    if (department_code && department_code !== 'ALL') {
+      sql += ` AND department_code = ?`;
+      params.push(department_code);
+    }
+    if (shift_ids && Array.isArray(shift_ids) && shift_ids.length > 0) {
+      sql += ` AND id IN (?)`;
+      params.push(shift_ids);
+    }
+    if (date_range?.start && date_range?.end) {
+      sql += ` AND start_time >= ? AND end_time <= ?`;
+      params.push(date_range.start, date_range.end);
+    }
+
+    const [res] = await pool.query(sql, params);
+
+    try {
+      const { randomUUID } = await import('crypto');
+      await pool.execute(
+        `INSERT INTO Audit_Logs (id, actor_id, actor_name, action, resource_type, resource_id, new_values)
+         VALUES (?, ?, ?, 'APPROVE_WARD_SHIFTS', 'Shifts', ?, ?)`,
+        [
+          randomUUID(),
+          actor.employee_code || 'SYSTEM',
+          actor.name || 'Trưởng Khoa Lâm Sàng',
+          department_code || 'ALL',
+          JSON.stringify({ approved_count: res.affectedRows })
+        ]
+      );
+    } catch (auditErr) {
+      console.warn('[approveDepartmentShifts] Failed to log audit:', auditErr.message);
+    }
+
+    return {
+      success: true,
+      approved_count: res.affectedRows,
+      department_code: department_code || 'ALL',
+      approved_by: actor.employee_code || 'EMP-DOC-001'
     };
   }
 };

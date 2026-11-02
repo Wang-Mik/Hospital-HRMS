@@ -186,6 +186,29 @@ export const shiftApi = {
   ) => {
     const res = await axiosClient.post(`/attendance/${id}/clock-out`, payload);
     return res.data?.data;
+  },
+
+  // Ward Delegation & Approval
+  getDepartmentRosterDelegate: async (departmentCode: string) => {
+    const res = await axiosClient.get(`/shifts/departments/${departmentCode}/delegate`);
+    return res.data?.data;
+  },
+
+  setDepartmentRosterDelegate: async (
+    departmentCode: string,
+    payload: { delegated_staff_id: string; notes?: string; is_active?: boolean }
+  ) => {
+    const res = await axiosClient.post(`/shifts/departments/${departmentCode}/delegate`, payload);
+    return res.data?.data;
+  },
+
+  approveDepartmentShifts: async (payload: {
+    department_code?: string;
+    shift_ids?: string[];
+    date_range?: { start: string; end: string };
+  }) => {
+    const res = await axiosClient.post('/shifts/approve-batch', payload);
+    return res.data;
   }
 };
 

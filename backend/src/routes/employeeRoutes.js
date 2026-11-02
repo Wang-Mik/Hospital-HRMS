@@ -193,11 +193,16 @@ router.get('/', employeeController.getAllEmployees);
 router.get('/licenses', employeeController.getAllLicenses);
 router.post('/licenses', employeeController.createLicense);
 router.patch('/licenses/:id/status', employeeController.updateLicenseStatus);
+router.get('/:id/dossier', employeeController.getEmployeeFullDossier);
 router.get('/:id', employeeController.getEmployeeWithActiveLicenses);
 router.post('/', employeeController.createEmployee);
 router.patch('/:id/admin-update', employeeController.adminUpdateEmployee);
 router.patch('/:staff_id/profile', employeeController.updateProfile);
 router.post('/:staff_id/avatar', employeeController.updateAvatar);
 router.delete('/:staff_id/emergency-contacts/:contact_id', employeeController.deleteEmergencyContact);
+router.post('/:staff_id/degrees', employeeController.addAcademicDegree);
+router.delete('/:staff_id/degrees/:degree_id', employeeController.deleteAcademicDegree);
+router.post('/:staff_id/certifications', employeeController.addSpecializedCertification);
+router.delete('/:staff_id/certifications/:cert_id', employeeController.deleteSpecializedCertification);
 
 export default router;

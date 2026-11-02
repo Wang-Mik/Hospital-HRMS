@@ -412,6 +412,116 @@ export const employeeController = {
         error: error.message
       });
     }
+  },
+
+  /**
+   * GET /api/employees/:id/dossier
+   * Return full personnel dossier (Degrees, CCHN, CME, Contracts, Insurances, Commendations/Disciplines, KPIs, Pay)
+   */
+  async getEmployeeFullDossier(req, res) {
+    const { id } = req.params;
+    try {
+      const dossier = await employeeService.getEmployeeFullDossier(id);
+      if (!dossier) {
+        return res.status(404).json({
+          success: false,
+          message: `Không tìm thấy hồ sơ cán bộ nhân sự với mã ${id}`
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        data: dossier
+      });
+    } catch (error) {
+      console.error('[employeeController.getEmployeeFullDossier Error]:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi tải toàn bộ hồ sơ nhân sự',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * POST /api/employees/:staff_id/degrees
+   */
+  async addAcademicDegree(req, res) {
+    const { staff_id } = req.params;
+    try {
+      const degree = await employeeService.addAcademicDegree(staff_id, req.body);
+      return res.status(201).json({
+        success: true,
+        message: 'Thêm văn bằng học vị thành công.',
+        data: degree
+      });
+    } catch (error) {
+      console.error('[employeeController.addAcademicDegree Error]:', error);
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Lỗi khi thêm văn bằng'
+      });
+    }
+  },
+
+  /**
+   * DELETE /api/employees/:staff_id/degrees/:degree_id
+   */
+  async deleteAcademicDegree(req, res) {
+    const { staff_id, degree_id } = req.params;
+    try {
+      const success = await employeeService.deleteAcademicDegree(staff_id, degree_id);
+      return res.status(200).json({
+        success,
+        message: success ? 'Đã xóa văn bằng học vị.' : 'Không tìm thấy văn bằng cần xóa.'
+      });
+    } catch (error) {
+      console.error('[employeeController.deleteAcademicDegree Error]:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi xóa văn bằng'
+      });
+    }
+  },
+
+  /**
+   * POST /api/employees/:staff_id/certifications
+   */
+  async addSpecializedCertification(req, res) {
+    const { staff_id } = req.params;
+    try {
+      const cert = await employeeService.addSpecializedCertification(staff_id, req.body);
+      return res.status(201).json({
+        success: true,
+        message: 'Thêm chứng chỉ chuyên môn thành công.',
+        data: cert
+      });
+    } catch (error) {
+      console.error('[employeeController.addSpecializedCertification Error]:', error);
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Lỗi khi thêm chứng chỉ chuyên môn'
+      });
+    }
+  },
+
+  /**
+   * DELETE /api/employees/:staff_id/certifications/:cert_id
+   */
+  async deleteSpecializedCertification(req, res) {
+    const { staff_id, cert_id } = req.params;
+    try {
+      const success = await employeeService.deleteSpecializedCertification(staff_id, cert_id);
+      return res.status(200).json({
+        success,
+        message: success ? 'Đã xóa chứng chỉ chuyên môn.' : 'Không tìm thấy chứng chỉ cần xóa.'
+      });
+    } catch (error) {
+      console.error('[employeeController.deleteSpecializedCertification Error]:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi xóa chứng chỉ chuyên môn'
+      });
+    }
   }
 };
 

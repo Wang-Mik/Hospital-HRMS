@@ -55,6 +55,9 @@ export interface ShiftItem {
   end_time: string;
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'SWAPPED';
   requires_handover: boolean;
+  approval_status?: 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED';
+  submitted_by?: string;
+  approved_by?: string;
 }
 
 // 6 Core Clinical Shift Categories matching Google Calendar colors
@@ -368,9 +371,27 @@ export const ShiftRostering: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
 
-  // Role Restriction: STRICTLY ONLY HR (HR_MANAGER) or Admin (SUPER_ADMIN) can manage shifts
-  const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN';
+  // Role Restriction: HR, Leadership, Department Head, and Delegated Ward Secretary can manage shifts
+  const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN' || user?.role === 'HEAD_OF_HR' || user?.role === 'HOSPITAL_DIRECTOR' || user?.role === 'VICE_DIRECTOR';
   const isDeptHead = user?.role === 'DEPARTMENT_HEAD';
+  const userDeptCode = user?.department_code || 'DEP-HSTC';
+
+  // Ward Secretary Delegation Query
+  const { data: activeDelegate, refetch: refetchDelegate } = useQuery({
+    queryKey: ['wardDelegate', userDeptCode],
+    queryFn: () => shiftApi.getDepartmentRosterDelegate(userDeptCode),
+    enabled: Boolean(userDeptCode)
+  });
+
+  const isWardSecretary = activeDelegate?.delegated_staff_id === user?.employee_code;
+  const canSchedule = isHR || isDeptHead || isWardSecretary;
+
+  // Delegation Modal & Approval State
+  const [isDelegateModalOpen, setIsDelegateModalOpen] = useState<boolean>(false);
+  const [delegatedSecretaryId, setDelegatedSecretaryId] = useState<string>('');
+  const [delegationNotes, setDelegationNotes] = useState<string>('');
+  const [isSavingDelegate, setIsSavingDelegate] = useState<boolean>(false);
+  const [isApprovingPending, setIsApprovingPending] = useState<boolean>(false);
 
   // 1. Staff selection: default to logged-in user or doctor EMP-DOC-001
   const defaultStaffId = user?.employee_code || 'EMP-DOC-001';
@@ -438,6 +459,11 @@ export const ShiftRostering: React.FC = () => {
     staleTime: 10000
   });
   const shifts: ShiftItem[] = Array.isArray(serverShifts) ? serverShifts : [];
+
+  // Filter pending shifts waiting for department head approval
+  const pendingShifts = useMemo(() => {
+    return shifts.filter((s) => s.approval_status === 'PENDING_APPROVAL');
+  }, [shifts]);
 
   // Query employees for staff switcher dropdown
   const { data: serverEmployees } = useQuery({
@@ -753,6 +779,57 @@ export const ShiftRostering: React.FC = () => {
       alert('Không thể xóa ca trực: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // Ward Secretary Delegation & Batch Shift Approval Handlers
+  const handleSaveDelegation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!delegatedSecretaryId) return;
+    setIsSavingDelegate(true);
+    try {
+      await shiftApi.setDepartmentRosterDelegate(userDeptCode, {
+        delegated_staff_id: delegatedSecretaryId,
+        notes: delegationNotes,
+        is_active: true
+      });
+      await refetchDelegate();
+      setIsDelegateModalOpen(false);
+      setDelegationNotes('');
+      alert('Đã chỉ định Thư ký khoa lập lịch thành công!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Lỗi khi chỉ định thư ký khoa');
+    } finally {
+      setIsSavingDelegate(false);
+    }
+  };
+
+  const handleApproveAllPending = async () => {
+    setIsApprovingPending(true);
+    try {
+      await shiftApi.approveDepartmentShifts({
+        department_code: userDeptCode
+      });
+      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      alert('Đã phê duyệt toàn bộ ca trực của khoa thành công!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Lỗi khi phê duyệt ca trực');
+    } finally {
+      setIsApprovingPending(false);
+    }
+  };
+
+  const handleApproveSingleShift = async (shiftId: string) => {
+    try {
+      await shiftApi.approveDepartmentShifts({
+        department_code: userDeptCode,
+        shift_ids: [shiftId]
+      });
+      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      setSelectedShiftDetail((prev) => (prev ? { ...prev, approval_status: 'APPROVED' } : null));
+      alert('Đã phê duyệt ca trực này thành công!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Lỗi khi phê duyệt ca trực');
     }
   };
 
@@ -1335,10 +1412,10 @@ export const ShiftRostering: React.FC = () => {
       <div className="gcal-body">
         {/* LEFT SIDEBAR (256px) */}
         <aside className={`gcal-sidebar ${isSidebarOpen ? '' : 'collapsed'}`}>
-          {/* Action Buttons - ONLY FOR HR/ADMIN OR DEPARTMENT HEAD */}
-          {(isHR || isDeptHead) && (
+          {/* Action Buttons - HR, Department Head, and Delegated Ward Secretary */}
+          {(canSchedule || isDeptHead) && (
             <div className="d-flex flex-column gap-2 mb-2">
-              {isHR && (
+              {canSchedule && (
                 <button
                   type="button"
                   className="gcal-fab"
@@ -1351,7 +1428,23 @@ export const ShiftRostering: React.FC = () => {
                   >
                     <Plus size={18} strokeWidth={2.8} />
                   </div>
-                  <span>Tạo Ca</span>
+                  <span>{isWardSecretary ? 'Thư Ký Lập Ca' : 'Tạo Ca'}</span>
+                </button>
+              )}
+              {isDeptHead && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-pill shadow-xs"
+                  onClick={() => {
+                    setDelegatedSecretaryId(activeDelegate?.delegated_staff_id || '');
+                    setDelegationNotes(activeDelegate?.notes || '');
+                    setIsDelegateModalOpen(true);
+                  }}
+                  style={{ fontSize: '12.5px', fontWeight: 600 }}
+                  title="Chỉ định nhân viên / điều dưỡng làm thư ký lập lịch cho khoa"
+                >
+                  <Users size={15} />
+                  <span>Chỉ Định Thư Ký Khoa</span>
                 </button>
               )}
               <button
@@ -1364,6 +1457,17 @@ export const ShiftRostering: React.FC = () => {
                 <Activity size={15} />
                 <span>Điều Động Khẩn Cấp</span>
               </button>
+            </div>
+          )}
+
+          {activeDelegate && (
+            <div className="p-2 mb-2 rounded border bg-light text-muted" style={{ fontSize: '11px' }}>
+              <div className="fw-bold text-dark d-flex align-items-center gap-1 mb-0.5">
+                <ShieldCheck size={12} className="text-primary" />
+                <span>Thư ký khoa {userDeptCode}:</span>
+              </div>
+              <div className="fw-semibold text-dark">{activeDelegate.last_name} {activeDelegate.first_name}</div>
+              <div className="font-mono">{activeDelegate.delegated_staff_id} &bull; {activeDelegate.role}</div>
             </div>
           )}
 
@@ -1520,6 +1624,28 @@ export const ShiftRostering: React.FC = () => {
           {(isShiftsLoading || isShiftsFetching) && (
             <TheoryOfNextLoader variant="calendar" />
           )}
+
+          {/* Ward Approval Banner for Department Head / Leadership */}
+          {pendingShifts.length > 0 && (isDeptHead || isHR) && (
+            <div className="alert alert-warning py-2 px-3 mx-3 mt-2 mb-1 d-flex align-items-center justify-content-between rounded-2 shadow-xs z-3 position-relative">
+              <div className="d-flex align-items-center gap-2">
+                <AlertTriangle size={16} className="text-warning flex-shrink-0" />
+                <span style={{ fontSize: '13px' }}>
+                  Khoa có <strong>{pendingShifts.length}</strong> ca trực do Thư ký lập đang chờ Trưởng khoa phê duyệt.
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-success fw-semibold px-3 py-1 rounded-pill d-inline-flex align-items-center gap-1"
+                style={{ fontSize: '12px' }}
+                onClick={handleApproveAllPending}
+                disabled={isApprovingPending}
+              >
+                <Check size={14} />
+                <span>{isApprovingPending ? 'Đang duyệt...' : 'Phê Duyệt Toàn Bộ'}</span>
+              </button>
+            </div>
+          )}
           {/* ===================== 1. WEEK VIEW ===================== */}
           {viewMode === 'WEEK' && (
             <div className="d-flex flex-column flex-1 overflow-hidden h-100">
@@ -1601,6 +1727,14 @@ export const ShiftRostering: React.FC = () => {
                                 <div className="gcal-event-title d-flex align-items-center gap-1">
                                   {segment.isContinuationFromYesterday && <CornerDownRight size={11} className="flex-shrink-0" />}
                                   <span className="text-truncate">{segment.displayTitle}</span>
+                                {shift.approval_status === 'PENDING_APPROVAL' && (
+                                  <span className="badge bg-warning text-dark px-1 py-0 ms-auto" style={{ fontSize: '8px', fontWeight: 700 }}>Chờ duyệt</span>
+                                )}
+                                  {shift.approval_status === 'PENDING_APPROVAL' && (
+                                    <span className="badge bg-warning text-dark px-1 py-0 ms-auto" style={{ fontSize: '9px', fontWeight: 700 }}>
+                                      Chờ duyệt
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="gcal-event-time">
                                   {segment.displayTime}
@@ -1697,6 +1831,9 @@ export const ShiftRostering: React.FC = () => {
                                   <span>{shift.start_time.slice(11, 16)}</span>
                                 )}
                                 <span className="text-truncate">{segment.displayTitle}</span>
+                                {shift.approval_status === 'PENDING_APPROVAL' && (
+                                  <span className="badge bg-warning text-dark px-1 py-0 ms-auto" style={{ fontSize: '8px', fontWeight: 700 }}>Chờ duyệt</span>
+                                )}
                               </div>
                             );
                           })}
@@ -2092,6 +2229,25 @@ export const ShiftRostering: React.FC = () => {
                         </div>
                       </div>
                     )}
+                    {selectedShiftDetail && selectedShiftDetail.approval_status === 'PENDING_APPROVAL' && (
+                      <div className="alert alert-warning py-2 px-2.5 mt-3 mb-0 rounded-2 d-flex align-items-center justify-content-between" style={{ fontSize: '12px' }}>
+                        <div className="d-flex align-items-center gap-1.5">
+                          <AlertTriangle size={14} className="text-warning flex-shrink-0" />
+                          <span>Ca trực do Thư ký khoa lập, đang chờ Trưởng khoa phê duyệt.</span>
+                        </div>
+                        {(isDeptHead || isHR) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-success rounded-pill px-2.5 py-0.5 fw-semibold d-inline-flex align-items-center gap-1"
+                            style={{ fontSize: '11px' }}
+                            onClick={() => selectedShiftDetail && handleApproveSingleShift(selectedShiftDetail.id)}
+                          >
+                            <Check size={12} />
+                            <span>Phê Duyệt Ngay</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Modal.Body>
@@ -2266,6 +2422,25 @@ export const ShiftRostering: React.FC = () => {
                         <span className="text-muted fst-italic" style={{ fontSize: '12px' }}>Chưa cập nhật</span>
                       )}
                     </div>
+                    {selectedShiftDetail && selectedShiftDetail.approval_status === 'PENDING_APPROVAL' && (
+                      <div className="alert alert-warning py-2 px-2.5 mt-3 mb-0 rounded-2 d-flex align-items-center justify-content-between" style={{ fontSize: '12px' }}>
+                        <div className="d-flex align-items-center gap-1.5">
+                          <AlertTriangle size={14} className="text-warning flex-shrink-0" />
+                          <span>Ca trực do Thư ký khoa lập, đang chờ Trưởng khoa phê duyệt.</span>
+                        </div>
+                        {(isDeptHead || isHR) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-success rounded-pill px-2.5 py-0.5 fw-semibold d-inline-flex align-items-center gap-1"
+                            style={{ fontSize: '11px' }}
+                            onClick={() => selectedShiftDetail && handleApproveSingleShift(selectedShiftDetail.id)}
+                          >
+                            <Check size={12} />
+                            <span>Phê Duyệt Ngay</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Modal.Body>
@@ -2284,13 +2459,19 @@ export const ShiftRostering: React.FC = () => {
         })()}
       </Modal>
 
-      {/* ===================== "+ TẠO CA" MODAL (HR MANAGEMENT ROSTERING TABS) ===================== */}
-      {isHR && (
+      {/* ===================== "+ TẠO CA" MODAL (HR MANAGEMENT & WARD ROSTERING TABS) ===================== */}
+      {canSchedule && (
         <Modal show={isCreateModalOpen} onHide={() => setIsCreateModalOpen(false)} size="lg" centered>
           <Modal.Header closeButton className="border-bottom py-2.5">
             <Modal.Title className="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
               <Plus size={18} className="text-primary" />
-              <span>{t('shifts.modal_assign_title', 'Phân Bổ Lịch Làm Việc & Ca Trực (Phòng Nhân Sự HR)')}</span>
+              <span>
+                {isWardSecretary
+                  ? 'Phân Bổ Lịch Trực Khoa (Tài Khoản Thư Ký - Chờ Trưởng Khoa Phê Duyệt)'
+                  : isDeptHead
+                  ? 'Phân Bổ Lịch Làm Việc & Ca Trực (Trưởng Khoa Lâm Sàng)'
+                  : t('shifts.modal_assign_title', 'Phân Bổ Lịch Làm Việc & Ca Trực (Phòng Nhân Sự HR)')}
+              </span>
             </Modal.Title>
           </Modal.Header>
 
@@ -3463,6 +3644,73 @@ export const ShiftRostering: React.FC = () => {
             Đóng
           </button>
         </Modal.Footer>
+      </Modal>
+
+      {/* ===================== DELEGATE WARD SECRETARY MODAL ===================== */}
+      <Modal show={isDelegateModalOpen} onHide={() => setIsDelegateModalOpen(false)} centered>
+        <Form onSubmit={handleSaveDelegation}>
+          <Modal.Header closeButton className="border-bottom py-2.5">
+            <Modal.Title className="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
+              <Users size={18} className="text-primary" />
+              <span>Phân Quyền Thư Ký Lập Lịch Khoa ({userDeptCode})</span>
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="p-3.5">
+            <div className="mb-3 p-2.5 rounded-2 bg-light border text-muted" style={{ fontSize: '12px', lineHeight: 1.5 }}>
+              <div className="fw-bold text-dark mb-1">Quy định phân quyền & kiểm duyệt:</div>
+              &bull; Trưởng khoa chỉ định 1 cán bộ y tế (điều dưỡng, y tá hoặc nhân viên hành chính) làm <strong>Thư ký khoa</strong>.<br />
+              &bull; Thư ký khoa đăng nhập bằng tài khoản của mình để nhập lịch trực (trạng thái: <em>Chờ duyệt</em>).<br />
+              &bull; Sau khi thư ký nhập xong, Trưởng khoa sẽ đối chiếu và bấm <strong>Phê Duyệt</strong> bằng tài khoản của Trưởng khoa.<br />
+              &bull; <em>Ghi chú:</em> Đối với bệnh viện ít nhân sự, Trưởng khoa tự lập lịch thì ca trực sẽ được duyệt ngay.
+            </div>
+
+            <Form.Group className="mb-3">
+              <label className="wd-label">Chọn Cán Bộ Làm Thư Ký Khoa</label>
+              <select
+                className="wd-select w-100"
+                value={delegatedSecretaryId}
+                onChange={(e) => setDelegatedSecretaryId(e.target.value)}
+                required
+              >
+                <option value="">-- Chọn cán bộ thuộc khoa {userDeptCode} --</option>
+                {employees
+                  .filter((e) => e.department_code === userDeptCode)
+                  .map((e) => (
+                    <option key={e.employee_code} value={e.employee_code}>
+                      {e.last_name} {e.first_name} ({e.employee_code}) - {e.role}
+                    </option>
+                  ))}
+              </select>
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <label className="wd-label">Ghi Chú Phân Công</label>
+              <input
+                type="text"
+                className="wd-input w-100"
+                placeholder="VD: Ủy quyền thư ký lập lịch trực tháng 11/2026"
+                value={delegationNotes}
+                onChange={(e) => setDelegationNotes(e.target.value)}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="border-top py-2 d-flex justify-content-between">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+              onClick={() => setIsDelegateModalOpen(false)}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={!delegatedSecretaryId || isSavingDelegate}
+              className="btn btn-sm btn-primary rounded-pill px-3"
+            >
+              {isSavingDelegate ? 'Đang lưu...' : 'Lưu Chỉ Định Thư Ký'}
+            </button>
+          </Modal.Footer>
+        </Form>
       </Modal>
     </div>
   );

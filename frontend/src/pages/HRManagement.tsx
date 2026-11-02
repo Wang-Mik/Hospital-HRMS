@@ -24,7 +24,15 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  Briefcase,
+  ShieldCheck,
+  Star,
+  FileCheck,
+  Search,
+  DollarSign,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, AdminPayRate, AdminOverviewData } from '../api/adminApi';
@@ -34,6 +42,8 @@ import { payrollApi } from '../api/payrollApi';
 import { shiftApi } from '../api/shiftApi';
 import { handoverApi } from '../api/handoverApi';
 import { employeeApi } from '../api/employeeApi';
+import { hrApi, EmploymentContract, SocialInsurance, CommendationDiscipline } from '../api/hrApi';
+import { kpiApi, MonthlyKpiRecord } from '../api/kpiApi';
 import { useTranslation } from '../i18n/useTranslation';
 import { ConfirmModal, ConfirmDetailItem } from '../components/common/ConfirmModal';
 
@@ -43,15 +53,30 @@ export const HRManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
-  const validTabs: Array<'leaves' | 'compensation' | 'shifts_handover' | 'licensing'> = [
+  const validTabs: Array<
+    | 'leaves'
+    | 'compensation'
+    | 'shifts_handover'
+    | 'licensing'
+    | 'contracts'
+    | 'insurances'
+    | 'rewards_disciplines'
+    | 'monthly_kpis'
+  > = [
     'leaves',
     'compensation',
     'shifts_handover',
-    'licensing'
+    'licensing',
+    'contracts',
+    'insurances',
+    'rewards_disciplines',
+    'monthly_kpis'
   ];
 
+  type HRTab = typeof validTabs[number];
+
   const initialTab = searchParams.get('tab') as any;
-  const [activeTab, setActiveTab] = useState<'leaves' | 'compensation' | 'shifts_handover' | 'licensing'>(
+  const [activeTab, setActiveTab] = useState<HRTab>(
     validTabs.includes(initialTab) ? initialTab : 'leaves'
   );
 
@@ -63,7 +88,7 @@ export const HRManagement: React.FC = () => {
     }
   }, [searchParams]);
 
-  const handleTabChange = (newTab: 'leaves' | 'compensation' | 'shifts_handover' | 'licensing') => {
+  const handleTabChange = (newTab: HRTab) => {
     setActiveTab(newTab);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -162,6 +187,98 @@ export const HRManagement: React.FC = () => {
     queryFn: () => employeeApi.getAllLicenses()
   });
 
+  // 5. Contracts Queries & State
+  const [contractExpiryFilter, setContractExpiryFilter] = useState<number | undefined>(undefined);
+  const [contractTypeFilter, setContractTypeFilter] = useState<string>('');
+  const [contractSearch, setContractSearch] = useState<string>('');
+  const { data: contracts = [], refetch: refetchContracts } = useQuery<EmploymentContract[]>({
+    queryKey: ['hr-contracts', contractExpiryFilter, contractTypeFilter, contractSearch],
+    queryFn: () => hrApi.getContracts({
+      expiring_within_days: contractExpiryFilter,
+      contract_type: contractTypeFilter || undefined,
+      search: contractSearch || undefined
+    })
+  });
+
+  // 6. Insurances Queries & State
+  const [insuranceSearch, setInsuranceSearch] = useState<string>('');
+  const { data: insurances = [], refetch: refetchInsurances } = useQuery<SocialInsurance[]>({
+    queryKey: ['hr-insurances', insuranceSearch],
+    queryFn: () => hrApi.getInsurances({ search: insuranceSearch || undefined })
+  });
+
+  // 7. Commendations & Disciplines Queries & State
+  const [recordTypeFilter, setRecordTypeFilter] = useState<'COMMENDATION' | 'DISCIPLINE' | undefined>(undefined);
+  const { data: commendationsDisciplines = [], refetch: refetchRewards } = useQuery<CommendationDiscipline[]>({
+    queryKey: ['hr-rewards-disciplines', recordTypeFilter],
+    queryFn: () => hrApi.getCommendationsDisciplines({ record_type: recordTypeFilter })
+  });
+
+  // 8. Monthly KPIs Queries & State
+  const [kpiMonthFilter, setKpiMonthFilter] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [kpiDeptFilter, setKpiDeptFilter] = useState<string>('ALL');
+  const { data: monthlyKpis = [], refetch: refetchKpis } = useQuery<MonthlyKpiRecord[]>({
+    queryKey: ['hr-monthly-kpis', kpiMonthFilter, kpiDeptFilter],
+    queryFn: () => kpiApi.getMonthlyKpis({
+      month: kpiMonthFilter,
+      department_code: kpiDeptFilter === 'ALL' ? undefined : kpiDeptFilter
+    })
+  });
+
+  // Query all employees for dropdown selections
+  const { data: allEmployees = [] } = useQuery({
+    queryKey: ['hr-all-employees'],
+    queryFn: () => employeeApi.getAll()
+  });
+
+  // New Modals State
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractFormData, setContractFormData] = useState<Partial<EmploymentContract>>({
+    staff_id: '',
+    contract_number: '',
+    contract_type: 'DEFINITE_1YR',
+    start_date: new Date().toISOString().slice(0, 10),
+    end_date: '',
+    job_title: '',
+    base_salary: 15000000,
+    status: 'ACTIVE',
+    notes: ''
+  });
+
+  const [showInsuranceModal, setShowInsuranceModal] = useState(false);
+  const [selectedInsuranceStaff, setSelectedInsuranceStaff] = useState<string>('');
+  const [insuranceFormData, setInsuranceFormData] = useState<Partial<SocialInsurance>>({
+    bhxh_book_number: '',
+    bhyt_card_number: '',
+    primary_hospital_name: 'Bệnh viện Đa khoa Trung tâm',
+    has_bhxh: true,
+    has_bhyt: true,
+    has_bhtn: true,
+    has_occupational_accident: true,
+    insurance_salary: 12000000
+  });
+
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [rewardFormData, setRewardFormData] = useState<Partial<CommendationDiscipline>>({
+    staff_id: '',
+    record_type: 'COMMENDATION',
+    decision_number: '',
+    decision_date: new Date().toISOString().slice(0, 10),
+    signatory_authority: 'Giám Đốc Bệnh Viện',
+    title: '',
+    reason: '',
+    reward_or_fine_amount: 1000000
+  });
+
+  const [showKpiEvalModal, setShowKpiEvalModal] = useState(false);
+  const [selectedKpiRecord, setSelectedKpiRecord] = useState<MonthlyKpiRecord | null>(null);
+  const [kpiEvalFormData, setKpiEvalFormData] = useState({
+    clinical_performance_score: 90,
+    patient_satisfaction_score: 95,
+    disciplinary_penalty_points: 0,
+    evaluation_notes: ''
+  });
+
   // Filter states
   const initialLeaveStatus = searchParams.get('status') as any;
   const [leaveFilter, setLeaveFilter] = useState<'ALL' | 'PENDING' | 'DEPT_APPROVED' | 'APPROVED' | 'REJECTED'>(
@@ -183,6 +300,8 @@ export const HRManagement: React.FC = () => {
   const [selectedPayRate, setSelectedPayRate] = useState<AdminPayRate | null>(null);
   const [newHourlyRate, setNewHourlyRate] = useState('');
   const [newTaxTier, setNewTaxTier] = useState('');
+  const [newIncrementDate, setNewIncrementDate] = useState('');
+  const [newIncrementHidden, setNewIncrementHidden] = useState(false);
 
   const [showNewRunModal, setShowNewRunModal] = useState(false);
   const [newRunStartDate, setNewRunStartDate] = useState(new Date().toISOString().slice(0, 7) + '-01');
@@ -199,8 +318,13 @@ export const HRManagement: React.FC = () => {
 
   // Mutations
   const updatePayRateMutation = useMutation({
-    mutationFn: ({ staffId, base_hourly_rate, tax_tier }: any) =>
-      adminApi.updatePayRate(staffId, { base_hourly_rate: Number(base_hourly_rate), tax_tier }),
+    mutationFn: async ({ staffId, base_hourly_rate, tax_tier, last_salary_increment_date, is_salary_increment_hidden }: any) => {
+      await adminApi.updatePayRate(staffId, { base_hourly_rate: Number(base_hourly_rate), tax_tier });
+      await hrApi.updateSalaryIncrement(staffId, {
+        last_salary_increment_date: last_salary_increment_date || null,
+        is_salary_increment_hidden: Boolean(is_salary_increment_hidden)
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-pay-rates'] });
       setShowPayRateModal(false);
@@ -272,10 +396,78 @@ export const HRManagement: React.FC = () => {
     }
   });
 
+  // 5. Contracts Mutation
+  const saveContractMutation = useMutation({
+    mutationFn: (payload: Partial<EmploymentContract>) => hrApi.saveContract(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-contracts'] });
+      setShowContractModal(false);
+      showToast('Đã lưu hợp đồng lao động thành công!');
+    },
+    onError: (err: any) => {
+      showToast(`Lỗi lưu hợp đồng: ${err.message || ''}`, 'danger');
+    }
+  });
+
+  // 6. Insurance Mutation
+  const updateInsuranceMutation = useMutation({
+    mutationFn: ({ staffId, data }: { staffId: string; data: Partial<SocialInsurance> }) =>
+      hrApi.updateInsurance(staffId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-insurances'] });
+      setShowInsuranceModal(false);
+      showToast('Đã cập nhật thông tin sổ bảo hiểm thành công!');
+    },
+    onError: (err: any) => {
+      showToast(`Lỗi cập nhật bảo hiểm: ${err.message || ''}`, 'danger');
+    }
+  });
+
+  // 7. Commendation & Discipline Mutation
+  const saveRewardMutation = useMutation({
+    mutationFn: (payload: Partial<CommendationDiscipline>) => hrApi.createCommendationDiscipline(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-rewards-disciplines'] });
+      setShowRewardModal(false);
+      showToast('Đã lưu quyết định khen thưởng / kỷ luật thành công!');
+    },
+    onError: (err: any) => {
+      showToast(`Lỗi lưu quyết định: ${err.message || ''}`, 'danger');
+    }
+  });
+
+  // 8. Auto Compute Monthly KPI Mutation
+  const autoComputeKpiMutation = useMutation({
+    mutationFn: ({ month, dept }: { month: string; dept?: string }) =>
+      kpiApi.autoComputeMonthlyKpi(month, dept === 'ALL' ? undefined : dept),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['hr-monthly-kpis'] });
+      showToast(res.message || 'Đã tính toán KPI tháng thành công!');
+    },
+    onError: (err: any) => {
+      showToast(`Lỗi tính KPI: ${err.message || ''}`, 'danger');
+    }
+  });
+
+  // 9. Save KPI Evaluation Mutation
+  const saveKpiEvaluationMutation = useMutation({
+    mutationFn: (payload: any) => kpiApi.saveKpiEvaluation(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hr-monthly-kpis'] });
+      setShowKpiEvalModal(false);
+      showToast('Đã lưu đánh giá & xếp loại KPI cán bộ thành công!');
+    },
+    onError: (err: any) => {
+      showToast(`Lỗi lưu đánh giá KPI: ${err.message || ''}`, 'danger');
+    }
+  });
+
   const handleOpenPayRateEdit = (pr: AdminPayRate) => {
     setSelectedPayRate(pr);
     setNewHourlyRate(String(pr.base_hourly_rate));
     setNewTaxTier(pr.tax_tier || 'Tier 1');
+    setNewIncrementDate(pr.last_salary_increment_date ? String(pr.last_salary_increment_date).slice(0, 10) : '');
+    setNewIncrementHidden(Boolean(pr.is_salary_increment_hidden));
     setShowPayRateModal(true);
   };
 
@@ -288,6 +480,10 @@ export const HRManagement: React.FC = () => {
     refetchShifts();
     refetchHandovers();
     refetchLicenses();
+    refetchContracts();
+    refetchInsurances();
+    refetchRewards();
+    refetchKpis();
   };
 
   const kpis = overviewData?.kpis || {
@@ -562,6 +758,42 @@ export const HRManagement: React.FC = () => {
             <Award size={15} className="me-2" />
             {t('hr_portal.tab_licensing', 'Tuân Thủ CCHN')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{licenses.length}</span>
           </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'contracts' ? 'active' : ''}`}
+            onClick={() => handleTabChange('contracts')}
+          >
+            <Briefcase size={15} className="me-2" />
+            <span>Hợp Đồng Lao Động</span> <span className="badge rounded-pill bg-light text-dark ms-1.5">{contracts.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'insurances' ? 'active' : ''}`}
+            onClick={() => handleTabChange('insurances')}
+          >
+            <ShieldCheck size={15} className="me-2" />
+            <span>Bảo Hiểm Xã Hội & Y Tế</span> <span className="badge rounded-pill bg-light text-dark ms-1.5">{insurances.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'rewards_disciplines' ? 'active' : ''}`}
+            onClick={() => handleTabChange('rewards_disciplines')}
+          >
+            <Star size={15} className="me-2" />
+            <span>Khen Thưởng & Kỷ Luật</span> <span className="badge rounded-pill bg-light text-dark ms-1.5">{commendationsDisciplines.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'monthly_kpis' ? 'active' : ''}`}
+            onClick={() => handleTabChange('monthly_kpis')}
+          >
+            <FileCheck size={15} className="me-2" />
+            <span>Đánh Giá KPI Tháng</span> <span className="badge rounded-pill bg-light text-dark ms-1.5">{monthlyKpis.length}</span>
+          </button>
         </div>
 
         <button
@@ -747,6 +979,7 @@ export const HRManagement: React.FC = () => {
                     <th>{t('admin.col_base_hourly', 'Mức Lương Cơ Bản / Giờ')}</th>
                     <th>{t('admin.col_monthly_est', 'Ước Tính Tháng')}</th>
                     <th>{t('admin.col_tax_tier', 'Bậc Thuế / Chế Độ')}</th>
+                    <th>{t('admin.last_increment_date', 'Ngày Tăng Lương Cuối')}</th>
                     <th className="text-end">{t('common.actions', 'Hành Động')}</th>
                   </tr>
                 </thead>
@@ -778,6 +1011,20 @@ export const HRManagement: React.FC = () => {
                         </td>
                         <td>
                           <span className="badge bg-light text-secondary border">{pr.tax_tier || 'Tier 1'}</span>
+                        </td>
+                        <td>
+                          {pr.last_salary_increment_date ? (
+                            <div>
+                              <div className="font-mono small text-dark">{String(pr.last_salary_increment_date).slice(0, 10)}</div>
+                              {pr.is_salary_increment_hidden ? (
+                                <Badge bg="secondary" className="small fw-normal">Đã ẩn trên phiếu lương</Badge>
+                              ) : (
+                                <Badge bg="success" bg-opacity="10" className="small text-success fw-normal border border-success">Hiển thị</Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted small">Chưa ghi nhận</span>
+                          )}
                         </td>
                         <td className="text-end">
                           <button
@@ -1077,6 +1324,588 @@ export const HRManagement: React.FC = () => {
         </div>
       )}
 
+      {/* TAB 5: EMPLOYMENT CONTRACTS */}
+      {activeTab === 'contracts' && (
+        <div className="wd-card p-3 mb-4">
+          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+            <div>
+              <h2 className="h5 fw-bold mb-1">Quản Lý Hợp Đồng Lao Động Cán Bộ Y Tế</h2>
+              <p className="text-muted small mb-0">
+                Theo dõi hợp đồng thử việc, học việc, xác định thời hạn và không thời hạn; cảnh báo tự động trước khi hết hạn.
+              </p>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
+                onClick={() => {
+                  setContractFormData({
+                    staff_id: allEmployees[0]?.employee_code || '',
+                    contract_number: `HDLD-${new Date().getFullYear()}-${String(contracts.length + 1).padStart(3, '0')}`,
+                    contract_type: 'DEFINITE_1YR',
+                    start_date: new Date().toISOString().slice(0, 10),
+                    end_date: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+                    job_title: 'Bác sĩ chuyên khoa',
+                    base_salary: 18000000,
+                    status: 'ACTIVE',
+                    notes: ''
+                  });
+                  setShowContractModal(true);
+                }}
+              >
+                <Plus size={15} />
+                <span>Thêm Hợp Đồng</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="row g-2 mb-3 align-items-center">
+            <div className="col-12 col-md-5">
+              <div className="input-group input-group-sm">
+                <span className="input-group-text bg-light border-end-0">
+                  <Search size={14} className="text-muted" />
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-start-0"
+                  placeholder="Tìm theo tên cán bộ, mã NV, số HĐ..."
+                  value={contractSearch}
+                  onChange={(e) => setContractSearch(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="col-6 col-md-3">
+              <select
+                aria-label="Lọc theo loại hợp đồng"
+                className="form-select form-select-sm"
+                value={contractTypeFilter}
+                onChange={(e) => setContractTypeFilter(e.target.value)}
+              >
+                <option value="">Tất Cả Loại Hợp Đồng</option>
+                <option value="PROBATION">Hợp Đồng Thử Việc</option>
+                <option value="APPRENTICE">Hợp Đồng Học Việc</option>
+                <option value="DEFINITE_1YR">HĐ Có Thời Hạn (1 Năm)</option>
+                <option value="DEFINITE_3YR">HĐ Có Thời Hạn (3 Năm)</option>
+                <option value="INDEFINITE">HĐ Không Xác Định Thời Hạn</option>
+              </select>
+            </div>
+            <div className="col-6 col-md-4 d-flex justify-content-md-end gap-1.5">
+              <button
+                type="button"
+                className={`btn btn-sm ${contractExpiryFilter === undefined ? 'btn-primary' : 'btn-outline-secondary'}`}
+                onClick={() => setContractExpiryFilter(undefined)}
+              >
+                Tất Cả
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${contractExpiryFilter === 30 ? 'btn-danger' : 'btn-outline-danger'}`}
+                onClick={() => setContractExpiryFilter(contractExpiryFilter === 30 ? undefined : 30)}
+              >
+                Hết Hạn ≤ 30 Ngày
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${contractExpiryFilter === 60 ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'}`}
+                onClick={() => setContractExpiryFilter(contractExpiryFilter === 60 ? undefined : 60)}
+              >
+                Hết Hạn ≤ 60 Ngày
+              </button>
+            </div>
+          </div>
+
+          {/* Contracts Table */}
+          <div className="table-responsive">
+            <table className="wd-table w-100">
+              <thead>
+                <tr>
+                  <th>Cán Bộ Y Tế</th>
+                  <th>Số HĐ & Vị Trí</th>
+                  <th>Loại Hợp Đồng</th>
+                  <th>Thời Hạn & Cảnh Báo</th>
+                  <th>Mức Lương HĐ</th>
+                  <th>Trạng Thái</th>
+                  <th className="text-end">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-4 text-muted">
+                      Không tìm thấy dữ liệu hợp đồng lao động phù hợp với bộ lọc.
+                    </td>
+                  </tr>
+                ) : (
+                  contracts.map((c) => {
+                    const daysLeft = c.days_until_expiry;
+                    const isExpiringSoon = daysLeft !== null && daysLeft !== undefined && daysLeft <= 30 && daysLeft >= 0;
+                    const isExpired = daysLeft !== null && daysLeft !== undefined && daysLeft < 0;
+
+                    const getContractTypeBadge = (type: string) => {
+                      switch (type) {
+                        case 'PROBATION':
+                          return <Badge bg="warning" text="dark">Thử Việc</Badge>;
+                        case 'APPRENTICE':
+                          return <Badge bg="info">Học Việc</Badge>;
+                        case 'DEFINITE_1YR':
+                          return <Badge bg="primary">Thời Hạn 1 Năm</Badge>;
+                        case 'DEFINITE_3YR':
+                          return <Badge bg="indigo" style={{ backgroundColor: '#6366f1' }}>Thời Hạn 3 Năm</Badge>;
+                        case 'INDEFINITE':
+                          return <Badge bg="success">Không Thời Hạn</Badge>;
+                        default:
+                          return <Badge bg="secondary">{type}</Badge>;
+                      }
+                    };
+
+                    return (
+                      <tr key={c.id}>
+                        <td>
+                          <div className="fw-semibold text-dark">{c.staff_name || c.staff_id}</div>
+                          <div className="text-muted small">{c.staff_id} • {c.department_name || c.role}</div>
+                        </td>
+                        <td>
+                          <div className="fw-bold font-mono text-dark">{c.contract_number}</div>
+                          <div className="text-muted small">{c.job_title || 'N/A'}</div>
+                        </td>
+                        <td>{getContractTypeBadge(c.contract_type)}</td>
+                        <td>
+                          <div className="small font-mono">
+                            {c.start_date?.slice(0, 10)} → {c.end_date ? c.end_date.slice(0, 10) : 'Vô thời hạn'}
+                          </div>
+                          {isExpired ? (
+                            <span className="badge bg-danger bg-opacity-10 text-danger mt-1 small">
+                              Đã hết hạn
+                            </span>
+                          ) : isExpiringSoon ? (
+                            <span className="badge bg-danger text-white mt-1 small">
+                              Còn {daysLeft} ngày
+                            </span>
+                          ) : daysLeft !== null && daysLeft !== undefined && daysLeft <= 60 ? (
+                            <span className="badge bg-warning bg-opacity-20 text-dark mt-1 small">
+                              Còn {daysLeft} ngày
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>
+                          <span className="fw-bold font-mono text-dark">
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(c.base_salary || 0))}
+                          </span>
+                        </td>
+                        <td>
+                          <Badge bg={c.status === 'ACTIVE' ? 'success' : c.status === 'EXPIRED' ? 'danger' : 'secondary'} className="fw-normal">
+                            {c.status === 'ACTIVE' ? 'Hiệu Lực' : c.status === 'EXPIRED' ? 'Hết Hạn' : 'Đã Chấm Dứt'}
+                          </Badge>
+                        </td>
+                        <td className="text-end">
+                          <button
+                            type="button"
+                            className="wd-action-btn wd-action-btn-edit"
+                            onClick={() => {
+                              setContractFormData({
+                                id: c.id,
+                                staff_id: c.staff_id,
+                                contract_number: c.contract_number,
+                                contract_type: c.contract_type,
+                                start_date: c.start_date?.slice(0, 10),
+                                end_date: c.end_date ? c.end_date.slice(0, 10) : '',
+                                job_title: c.job_title,
+                                base_salary: Number(c.base_salary),
+                                status: c.status,
+                                notes: c.notes || ''
+                              });
+                              setShowContractModal(true);
+                            }}
+                          >
+                            <Edit2 size={13} />
+                            <span>Sửa</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: SOCIAL & HEALTH INSURANCE */}
+      {activeTab === 'insurances' && (
+        <div className="wd-card p-3 mb-4">
+          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+            <div>
+              <h2 className="h5 fw-bold mb-1">Quản Lý Sổ Bảo Hiểm Xã Hội & Y Tế Cán Bộ</h2>
+              <p className="text-muted small mb-0">
+                Theo dõi tình trạng cấp sổ BHXH, thẻ BHYT, nơi KCB ban đầu và các chế độ bảo hiểm bắt buộc (BHXH, BHYT, BHTN, TNLĐ-BNN).
+              </p>
+            </div>
+            <div className="w-100 w-md-auto" style={{ maxWidth: '300px' }}>
+              <div className="input-group input-group-sm">
+                <span className="input-group-text bg-light border-end-0">
+                  <Search size={14} className="text-muted" />
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-start-0"
+                  placeholder="Tìm kiếm cán bộ..."
+                  value={insuranceSearch}
+                  onChange={(e) => setInsuranceSearch(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="table-responsive">
+            <table className="wd-table w-100">
+              <thead>
+                <tr>
+                  <th>Cán Bộ Y Tế</th>
+                  <th>Mã Sổ BHXH</th>
+                  <th>Mã Thẻ BHYT & KCB Ban Đầu</th>
+                  <th>Chế Độ Tham Gia</th>
+                  <th>Lương Đóng BH</th>
+                  <th className="text-end">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {insurances.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4 text-muted">
+                      Chưa có hồ sơ bảo hiểm phù hợp.
+                    </td>
+                  </tr>
+                ) : (
+                  insurances.map((ins) => (
+                    <tr key={ins.id}>
+                      <td>
+                        <div className="fw-semibold text-dark">{ins.staff_name || ins.staff_id}</div>
+                        <div className="text-muted small">{ins.staff_id} • {ins.department_name}</div>
+                      </td>
+                      <td>
+                        <div className="font-mono fw-bold text-dark">{ins.bhxh_book_number || 'Chưa cấp'}</div>
+                        <div className="text-muted small">Sổ BHXH Việt Nam</div>
+                      </td>
+                      <td>
+                        <div className="font-mono text-dark">{ins.bhyt_card_number || 'Chưa cấp'}</div>
+                        <div className="text-muted small">{ins.primary_hospital_name || 'Bệnh viện Đa khoa'}</div>
+                      </td>
+                      <td>
+                        <div className="d-flex flex-wrap gap-1">
+                          <span className={`badge ${ins.has_bhxh ? 'bg-success' : 'bg-light text-muted border'}`}>BHXH</span>
+                          <span className={`badge ${ins.has_bhyt ? 'bg-info' : 'bg-light text-muted border'}`}>BHYT</span>
+                          <span className={`badge ${ins.has_bhtn ? 'bg-primary' : 'bg-light text-muted border'}`}>BHTN</span>
+                          <span className={`badge ${ins.has_occupational_accident ? 'bg-warning text-dark' : 'bg-light text-muted border'}`}>TNLĐ-BNN</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="fw-bold font-mono text-dark">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(ins.insurance_salary || 0))}
+                        </span>
+                      </td>
+                      <td className="text-end">
+                        <button
+                          type="button"
+                          className="wd-action-btn wd-action-btn-edit"
+                          onClick={() => {
+                            setSelectedInsuranceStaff(ins.staff_id);
+                            setInsuranceFormData({
+                              bhxh_book_number: ins.bhxh_book_number || '',
+                              bhyt_card_number: ins.bhyt_card_number || '',
+                              primary_hospital_name: ins.primary_hospital_name || '',
+                              has_bhxh: Boolean(ins.has_bhxh),
+                              has_bhyt: Boolean(ins.has_bhyt),
+                              has_bhtn: Boolean(ins.has_bhtn),
+                              has_occupational_accident: Boolean(ins.has_occupational_accident),
+                              insurance_salary: Number(ins.insurance_salary || 0),
+                              notes: ins.notes || ''
+                            });
+                            setShowInsuranceModal(true);
+                          }}
+                        >
+                          <Edit2 size={13} />
+                          <span>Cập Nhật</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: COMMENDATIONS & DISCIPLINES */}
+      {activeTab === 'rewards_disciplines' && (
+        <div className="wd-card p-3 mb-4">
+          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+            <div>
+              <h2 className="h5 fw-bold mb-1">Sổ Theo Dõi Khen Thưởng & Xử Lý Kỷ Luật</h2>
+              <p className="text-muted small mb-0">
+                Hồ sơ thi đua, danh hiệu thầy thuốc ưu tú, chiến sĩ thi đua và các quyết định kỷ luật chuyên môn lâm sàng.
+              </p>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
+                onClick={() => {
+                  setRewardFormData({
+                    staff_id: allEmployees[0]?.employee_code || '',
+                    record_type: 'COMMENDATION',
+                    decision_number: `QD-KT-${new Date().getFullYear()}/${String(commendationsDisciplines.length + 1).padStart(3, '0')}`,
+                    decision_date: new Date().toISOString().slice(0, 10),
+                    signatory_authority: 'Ban Giám Đốc Bệnh Viện',
+                    title: 'Khen thưởng hoàn thành xuất sắc nhiệm vụ cấp cứu',
+                    reason: 'Cứu chữa thành công ca bệnh nặng ngừng tuần hoàn trong ca trực đêm',
+                    reward_or_fine_amount: 2000000
+                  });
+                  setShowRewardModal(true);
+                }}
+              >
+                <Plus size={15} />
+                <span>Tạo Quyết Định</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="d-flex align-items-center gap-2 mb-3">
+            <span className="small text-muted fw-semibold">Lọc phân loại:</span>
+            <button
+              type="button"
+              className={`btn btn-sm ${recordTypeFilter === undefined ? 'btn-primary' : 'btn-outline-secondary'}`}
+              onClick={() => setRecordTypeFilter(undefined)}
+            >
+              Tất Cả
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${recordTypeFilter === 'COMMENDATION' ? 'btn-success' : 'btn-outline-success'}`}
+              onClick={() => setRecordTypeFilter(recordTypeFilter === 'COMMENDATION' ? undefined : 'COMMENDATION')}
+            >
+              Khen Thưởng
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${recordTypeFilter === 'DISCIPLINE' ? 'btn-danger' : 'btn-outline-danger'}`}
+              onClick={() => setRecordTypeFilter(recordTypeFilter === 'DISCIPLINE' ? undefined : 'DISCIPLINE')}
+            >
+              Kỷ Luật
+            </button>
+          </div>
+
+          <div className="table-responsive">
+            <table className="wd-table w-100">
+              <thead>
+                <tr>
+                  <th>Cán Bộ Y Tế</th>
+                  <th>Phân Loại</th>
+                  <th>Số QĐ & Cơ Quan Ban Hành</th>
+                  <th>Nội Dung & Lý Do Chi Tiết</th>
+                  <th>Mức Thưởng / Phạt</th>
+                  <th>Ngày Ký QĐ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commendationsDisciplines.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4 text-muted">
+                      Chưa có hồ sơ khen thưởng hoặc kỷ luật nào.
+                    </td>
+                  </tr>
+                ) : (
+                  commendationsDisciplines.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="fw-semibold text-dark">{item.staff_name || item.staff_id}</div>
+                        <div className="text-muted small">{item.staff_id} • {item.department_name}</div>
+                      </td>
+                      <td>
+                        {item.record_type === 'COMMENDATION' ? (
+                          <Badge bg="success" className="fw-normal">Khen Thưởng</Badge>
+                        ) : (
+                          <Badge bg="danger" className="fw-normal">Kỷ Luật</Badge>
+                        )}
+                      </td>
+                      <td>
+                        <div className="fw-bold font-mono text-dark">{item.decision_number}</div>
+                        <div className="text-muted small">{item.signatory_authority}</div>
+                      </td>
+                      <td>
+                        <div className="fw-medium text-dark">{item.title}</div>
+                        <div className="text-muted small">{item.reason}</div>
+                      </td>
+                      <td>
+                        <span className={`fw-bold font-mono ${item.record_type === 'COMMENDATION' ? 'text-success' : 'text-danger'}`}>
+                          {item.record_type === 'COMMENDATION' ? '+' : '-'}
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(item.reward_or_fine_amount || 0))}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="font-mono text-muted small">{item.decision_date?.slice(0, 10)}</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 8: MONTHLY KPIS */}
+      {activeTab === 'monthly_kpis' && (
+        <div className="wd-card p-3 mb-4">
+          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+            <div>
+              <h2 className="h5 fw-bold mb-1">Đánh Giá & Xếp Loại KPI Hàng Tháng</h2>
+              <p className="text-muted small mb-0">
+                Đánh giá toàn diện: Chuyên cần & đi ca đúng giờ (20%), Tuân thủ bàn giao ca (20%), Năng lực chuyên môn (30%), Sự hài lòng người bệnh (30%).
+              </p>
+            </div>
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <input
+                type="month"
+                className="form-control form-control-sm font-mono"
+                style={{ width: '160px' }}
+                value={kpiMonthFilter}
+                onChange={(e) => setKpiMonthFilter(e.target.value)}
+              />
+              <select
+                aria-label="Lọc theo khoa phòng"
+                className="form-select form-select-sm"
+                style={{ width: '180px' }}
+                value={kpiDeptFilter}
+                onChange={(e) => setKpiDeptFilter(e.target.value)}
+              >
+                <option value="ALL">Tất Cả Khoa Phòng</option>
+                {departments.map((d: any) => (
+                  <option key={d.department_code} value={d.department_code}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5"
+                disabled={autoComputeKpiMutation.isPending}
+                onClick={() => autoComputeKpiMutation.mutate({ month: kpiMonthFilter, dept: kpiDeptFilter })}
+              >
+                <RefreshCw size={13} className={autoComputeKpiMutation.isPending ? 'spin' : ''} />
+                <span>{autoComputeKpiMutation.isPending ? 'Đang tính toán...' : 'Tính Toán Tự Động KPI'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="table-responsive">
+            <table className="wd-table w-100">
+              <thead>
+                <tr>
+                  <th>Cán Bộ Y Tế</th>
+                  <th>Khối Lượng Trực</th>
+                  <th>Kỷ Luật Ca Trực</th>
+                  <th>Bàn Giao Ca</th>
+                  <th>Điểm Lâm Sàng & Hài Lòng</th>
+                  <th>Tổng Điểm & Xếp Loại</th>
+                  <th className="text-end">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyKpis.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-4 text-muted">
+                      Chưa có dữ liệu KPI cho tháng {kpiMonthFilter}. Hãy bấm &quot;Tính Toán Tự Động KPI&quot; để tổng hợp dữ liệu ca trực và chấm công!
+                    </td>
+                  </tr>
+                ) : (
+                  monthlyKpis.map((kpi) => {
+                    const shiftsCount = Number(kpi.actual_shifts ?? kpi.total_shifts ?? 0);
+                    const hoursCount = Number(kpi.actual_hours ?? kpi.total_hours ?? 0);
+                    const onTimeRate = Number(kpi.on_time_attendance_rate ?? 100);
+                    const handoverRate = Number(kpi.handover_compliance_rate ?? 100);
+                    const finalScore = Number(kpi.total_kpi_score ?? kpi.final_score ?? 0);
+                    const cleanGrade = (kpi.kpi_grade || 'GRADE_B').replace('GRADE_', '');
+                    const displayName = kpi.staff_name || (kpi.last_name ? `${kpi.last_name} ${kpi.first_name}` : kpi.staff_id);
+
+                    const getGradeBadge = (g: string) => {
+                      switch (g) {
+                        case 'A':
+                          return <Badge bg="success" className="px-2 py-1">Hạng A - Xuất Sắc</Badge>;
+                        case 'B':
+                          return <Badge bg="primary" className="px-2 py-1">Hạng B - Tốt</Badge>;
+                        case 'C':
+                          return <Badge bg="warning" text="dark" className="px-2 py-1">Hạng C - Đạt</Badge>;
+                        case 'D':
+                          return <Badge bg="danger" className="px-2 py-1">Hạng D - Kém</Badge>;
+                        default:
+                          return <Badge bg="secondary">{g}</Badge>;
+                      }
+                    };
+
+                    return (
+                      <tr key={kpi.id}>
+                        <td>
+                          <div className="fw-semibold text-dark">{displayName}</div>
+                          <div className="text-muted small">{kpi.staff_id} • {kpi.department_name}</div>
+                        </td>
+                        <td>
+                          <div className="fw-bold font-mono text-dark">{shiftsCount} ca trực</div>
+                          <div className="text-muted small">{hoursCount} giờ làm việc</div>
+                        </td>
+                        <td>
+                          <div className="font-mono">{onTimeRate}% đúng giờ</div>
+                          {onTimeRate < 90 && (
+                            <div className="text-warning small">Có phát sinh trễ ca</div>
+                          )}
+                        </td>
+                        <td>
+                          <div className="fw-medium text-dark">{handoverRate}% hoàn thành</div>
+                          <div className="text-muted small">Biên bản an toàn BN</div>
+                        </td>
+                        <td>
+                          <div className="small font-mono">
+                            Chuyên môn: <strong className="text-dark">{kpi.clinical_performance_score}/100</strong>
+                          </div>
+                          <div className="small font-mono text-muted">
+                            Hài lòng: {kpi.patient_satisfaction_score} • Trừ điểm: -{kpi.disciplinary_penalty_points}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="h6 fw-bold font-mono mb-1 text-dark">{finalScore} / 100</div>
+                          {getGradeBadge(cleanGrade)}
+                        </td>
+                        <td className="text-end">
+                          <button
+                            type="button"
+                            className="wd-action-btn wd-action-btn-edit"
+                            onClick={() => {
+                              setSelectedKpiRecord(kpi);
+                              setKpiEvalFormData({
+                                clinical_performance_score: Number(kpi.clinical_performance_score) || 90,
+                                patient_satisfaction_score: Number(kpi.patient_satisfaction_score) || 95,
+                                disciplinary_penalty_points: Number(kpi.disciplinary_penalty_points) || 0,
+                                evaluation_notes: kpi.evaluation_notes || ''
+                              });
+                              setShowKpiEvalModal(true);
+                            }}
+                          >
+                            <Edit2 size={13} />
+                            <span>Chấm Điểm</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 1: EDIT PAY RATE */}
       <Modal show={showPayRateModal} onHide={() => setShowPayRateModal(false)} centered>
         <Modal.Header closeButton>
@@ -1092,7 +1921,9 @@ export const HRManagement: React.FC = () => {
               updatePayRateMutation.mutate({
                 staffId: selectedPayRate.employee_code,
                 base_hourly_rate: Number(newHourlyRate),
-                tax_tier: newTaxTier
+                tax_tier: newTaxTier,
+                last_salary_increment_date: newIncrementDate,
+                is_salary_increment_hidden: newIncrementHidden
               });
             }
           }}
@@ -1128,6 +1959,27 @@ export const HRManagement: React.FC = () => {
                 <option value="Tier 3">{t('admin.tier_3_label', 'Tier 3 - Khấu trừ 15%')}</option>
                 <option value="Tier 4">{t('admin.tier_4_label', 'Tier 4 - Khấu trừ 20%')}</option>
               </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">{t('admin.last_increment_date', 'Ngày Tăng Lương Gần Nhất')}</Form.Label>
+              <Form.Control
+                type="date"
+                value={newIncrementDate}
+                onChange={(e) => setNewIncrementDate(e.target.value)}
+                className="wd-input font-monospace"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <Form.Check
+                type="switch"
+                id="is-salary-increment-hidden-switch"
+                label={t('admin.hide_increment_label', 'Ẩn thông tin ngày tăng lương trên phiếu lương cán bộ (Chính sách bảo mật BV)')}
+                checked={newIncrementHidden}
+                onChange={(e) => setNewIncrementHidden(e.target.checked)}
+                className="small"
+              />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
@@ -1292,6 +2144,547 @@ export const HRManagement: React.FC = () => {
             </Button>
             <Button type="submit" variant="primary" disabled={createShiftMutation.isPending}>
               {createShiftMutation.isPending ? t('admin.btn_assigning', 'Đang phân ca...') : t('admin.btn_confirm_shift', 'Xác Nhận Phân Ca')}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* MODAL 4: EMPLOYMENT CONTRACT */}
+      <Modal show={showContractModal} onHide={() => setShowContractModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
+            <Briefcase size={18} className="text-primary" />
+            {contractFormData.id ? 'Chỉnh Sửa Hợp Đồng Lao Động' : 'Thêm Hợp Đồng Lao Động Cán Bộ'}
+          </Modal.Title>
+        </Modal.Header>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveContractMutation.mutate(contractFormData);
+          }}
+        >
+          <Modal.Body>
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Cán Bộ Y Tế *</Form.Label>
+                  <Form.Select
+                    aria-label="Cán Bộ Y Tế"
+                    required
+                    disabled={Boolean(contractFormData.id)}
+                    value={contractFormData.staff_id}
+                    onChange={(e) => setContractFormData({ ...contractFormData, staff_id: e.target.value })}
+                    className="wd-input"
+                  >
+                    <option value="">-- Chọn Cán Bộ --</option>
+                    {allEmployees.map((emp: any) => (
+                      <option key={emp.employee_code} value={emp.employee_code}>
+                        {emp.employee_code} - {emp.last_name} {emp.first_name} ({emp.department_name || emp.role})
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Số Hợp Đồng *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    required
+                    value={contractFormData.contract_number}
+                    onChange={(e) => setContractFormData({ ...contractFormData, contract_number: e.target.value })}
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Loại Hợp Đồng *</Form.Label>
+                  <Form.Select
+                    aria-label="Loại Hợp Đồng"
+                    required
+                    value={contractFormData.contract_type}
+                    onChange={(e) => setContractFormData({ ...contractFormData, contract_type: e.target.value as any })}
+                    className="wd-input"
+                  >
+                    <option value="PROBATION">Hợp Đồng Thử Việc</option>
+                    <option value="APPRENTICE">Hợp Đồng Học Việc</option>
+                    <option value="DEFINITE_1YR">HĐ Có Thời Hạn (1 Năm)</option>
+                    <option value="DEFINITE_3YR">HĐ Có Thời Hạn (3 Năm)</option>
+                    <option value="INDEFINITE">HĐ Không Xác Định Thời Hạn</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Vị Trí / Chức Danh Công Việc</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={contractFormData.job_title || ''}
+                    onChange={(e) => setContractFormData({ ...contractFormData, job_title: e.target.value })}
+                    placeholder="VD: Bác sĩ điều trị, Điều dưỡng viên..."
+                    className="wd-input"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Ngày Bắt Đầu *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    required
+                    value={contractFormData.start_date || ''}
+                    onChange={(e) => setContractFormData({ ...contractFormData, start_date: e.target.value })}
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Ngày Kết Thúc (để trống nếu không thời hạn)</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={contractFormData.end_date || ''}
+                    onChange={(e) => setContractFormData({ ...contractFormData, end_date: e.target.value })}
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Lương Thỏa Thuận (VND) *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    required
+                    value={contractFormData.base_salary || 0}
+                    onChange={(e) => setContractFormData({ ...contractFormData, base_salary: Number(e.target.value) })}
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Trạng Thái Hợp Đồng *</Form.Label>
+                  <Form.Select
+                    aria-label="Trạng Thái Hợp Đồng"
+                    required
+                    value={contractFormData.status}
+                    onChange={(e) => setContractFormData({ ...contractFormData, status: e.target.value as any })}
+                    className="wd-input"
+                  >
+                    <option value="ACTIVE">Hiệu Lực</option>
+                    <option value="EXPIRED">Hết Hạn</option>
+                    <option value="TERMINATED">Chấm Dứt Trước Thời Hạn</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="small fw-semibold">Ghi Chú Hợp Đồng</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={contractFormData.notes || ''}
+                onChange={(e) => setContractFormData({ ...contractFormData, notes: e.target.value })}
+                className="wd-input"
+                placeholder="Điều khoản bổ sung, thoả thuận đào tạo nâng cao..."
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowContractModal(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" variant="primary" disabled={saveContractMutation.isPending}>
+              {saveContractMutation.isPending ? 'Đang lưu...' : 'Lưu Hợp Đồng'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* MODAL 5: SOCIAL & HEALTH INSURANCE */}
+      <Modal show={showInsuranceModal} onHide={() => setShowInsuranceModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
+            <ShieldCheck size={18} className="text-info" />
+            Cập Nhật Sổ Bảo Hiểm Cán Bộ ({selectedInsuranceStaff})
+          </Modal.Title>
+        </Modal.Header>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            updateInsuranceMutation.mutate({
+              staffId: selectedInsuranceStaff,
+              data: insuranceFormData
+            });
+          }}
+        >
+          <Modal.Body>
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Mã Số Sổ BHXH</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={insuranceFormData.bhxh_book_number || ''}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, bhxh_book_number: e.target.value })}
+                    placeholder="VD: 7912345678"
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Mã Số Thẻ BHYT</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={insuranceFormData.bhyt_card_number || ''}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, bhyt_card_number: e.target.value })}
+                    placeholder="VD: DN4791234567890"
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Nơi Đăng Ký KCB Ban Đầu</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={insuranceFormData.primary_hospital_name || ''}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, primary_hospital_name: e.target.value })}
+                    placeholder="Bệnh viện Đa khoa Trung tâm..."
+                    className="wd-input"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Mức Lương Đóng Bảo Hiểm (VND)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={insuranceFormData.insurance_salary || 0}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, insurance_salary: Number(e.target.value) })}
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold d-block mb-2">Các Chế Độ Bảo Hiểm Tham Gia</Form.Label>
+              <Row className="g-2">
+                <Col xs={6} md={3}>
+                  <Form.Check
+                    type="checkbox"
+                    id="has_bhxh"
+                    label="BHXH bắt buộc"
+                    checked={Boolean(insuranceFormData.has_bhxh)}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, has_bhxh: e.target.checked })}
+                  />
+                </Col>
+                <Col xs={6} md={3}>
+                  <Form.Check
+                    type="checkbox"
+                    id="has_bhyt"
+                    label="BHYT bắt buộc"
+                    checked={Boolean(insuranceFormData.has_bhyt)}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, has_bhyt: e.target.checked })}
+                  />
+                </Col>
+                <Col xs={6} md={3}>
+                  <Form.Check
+                    type="checkbox"
+                    id="has_bhtn"
+                    label="Bảo hiểm thất nghiệp"
+                    checked={Boolean(insuranceFormData.has_bhtn)}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, has_bhtn: e.target.checked })}
+                  />
+                </Col>
+                <Col xs={6} md={3}>
+                  <Form.Check
+                    type="checkbox"
+                    id="has_occupational_accident"
+                    label="Bảo hiểm TNLĐ - BNN"
+                    checked={Boolean(insuranceFormData.has_occupational_accident)}
+                    onChange={(e) => setInsuranceFormData({ ...insuranceFormData, has_occupational_accident: e.target.checked })}
+                  />
+                </Col>
+              </Row>
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="small fw-semibold">Ghi Chú</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={insuranceFormData.notes || ''}
+                onChange={(e) => setInsuranceFormData({ ...insuranceFormData, notes: e.target.value })}
+                className="wd-input"
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowInsuranceModal(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" variant="info" className="text-white" disabled={updateInsuranceMutation.isPending}>
+              {updateInsuranceMutation.isPending ? 'Đang lưu...' : 'Lưu Hồ Sơ Bảo Hiểm'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* MODAL 6: COMMENDATION & DISCIPLINE */}
+      <Modal show={showRewardModal} onHide={() => setShowRewardModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
+            <Star size={18} className="text-warning" />
+            Ban Hành Quyết Định Khen Thưởng / Kỷ Luật
+          </Modal.Title>
+        </Modal.Header>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveRewardMutation.mutate(rewardFormData);
+          }}
+        >
+          <Modal.Body>
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Cán Bộ Y Tế *</Form.Label>
+                  <Form.Select
+                    aria-label="Cán Bộ Y Tế"
+                    required
+                    value={rewardFormData.staff_id}
+                    onChange={(e) => setRewardFormData({ ...rewardFormData, staff_id: e.target.value })}
+                    className="wd-input"
+                  >
+                    <option value="">-- Chọn Cán Bộ --</option>
+                    {allEmployees.map((emp: any) => (
+                      <option key={emp.employee_code} value={emp.employee_code}>
+                        {emp.employee_code} - {emp.last_name} {emp.first_name} ({emp.department_name || emp.role})
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Phân Loại Quyết Định *</Form.Label>
+                  <Form.Select
+                    aria-label="Phân Loại Quyết Định"
+                    required
+                    value={rewardFormData.record_type}
+                    onChange={(e) => setRewardFormData({ ...rewardFormData, record_type: e.target.value as any })}
+                    className="wd-input"
+                  >
+                    <option value="COMMENDATION">Khen Thưởng Thi Đua</option>
+                    <option value="DISCIPLINE">Xử Lý Kỷ Luật</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Số Quyết Định *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    required
+                    value={rewardFormData.decision_number}
+                    onChange={(e) => setRewardFormData({ ...rewardFormData, decision_number: e.target.value })}
+                    placeholder="VD: QD-KT-2026/012"
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Cơ Quan / Cấp Ký Quyết Định *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    required
+                    value={rewardFormData.signatory_authority}
+                    onChange={(e) => setRewardFormData({ ...rewardFormData, signatory_authority: e.target.value })}
+                    placeholder="Giám Đốc Bệnh Viện, Hội Đồng Khen Thưởng..."
+                    className="wd-input"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3 mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Ngày Ban Hành *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    required
+                    value={rewardFormData.decision_date}
+                    onChange={(e) => setRewardFormData({ ...rewardFormData, decision_date: e.target.value })}
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Mức Thưởng / Tiền Phạt (VND)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={rewardFormData.reward_or_fine_amount || 0}
+                    onChange={(e) => setRewardFormData({ ...rewardFormData, reward_or_fine_amount: Number(e.target.value) })}
+                    className="wd-input font-monospace"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">Tiêu Đề Danh Hiệu / Hình Thức Xử Lý *</Form.Label>
+              <Form.Control
+                type="text"
+                required
+                value={rewardFormData.title}
+                onChange={(e) => setRewardFormData({ ...rewardFormData, title: e.target.value })}
+                placeholder="VD: Giấy khen Giám đốc Bệnh viện / Khiển trách chuyên môn..."
+                className="wd-input"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="small fw-semibold">Lý Do / Căn Cứ Thực Tế *</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                required
+                value={rewardFormData.reason}
+                onChange={(e) => setRewardFormData({ ...rewardFormData, reason: e.target.value })}
+                placeholder="Mô tả thành tích đóng góp hoặc hành vi vi phạm..."
+                className="wd-input"
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowRewardModal(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" variant="primary" disabled={saveRewardMutation.isPending}>
+              {saveRewardMutation.isPending ? 'Đang lưu...' : 'Lưu Quyết Định'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* MODAL 7: KPI EVALUATION */}
+      <Modal show={showKpiEvalModal} onHide={() => setShowKpiEvalModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
+            <FileCheck size={18} className="text-primary" />
+            Chấm Điểm & Xếp Loại KPI Cán Bộ
+          </Modal.Title>
+        </Modal.Header>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (selectedKpiRecord) {
+              saveKpiEvaluationMutation.mutate({
+                kpi_id: selectedKpiRecord.id,
+                staff_id: selectedKpiRecord.staff_id,
+                kpi_month: selectedKpiRecord.kpi_month || selectedKpiRecord.month || kpiMonthFilter,
+                ...kpiEvalFormData
+              });
+            }
+          }}
+        >
+          <Modal.Body>
+            <div className="mb-3 p-2.5 bg-light rounded-2 border">
+              <div className="fw-semibold text-dark">
+                {selectedKpiRecord?.staff_name || (selectedKpiRecord?.last_name ? `${selectedKpiRecord.last_name} ${selectedKpiRecord.first_name}` : selectedKpiRecord?.staff_id)}
+              </div>
+              <div className="text-muted small">{selectedKpiRecord?.staff_id} • Tháng {selectedKpiRecord?.kpi_month || selectedKpiRecord?.month || kpiMonthFilter}</div>
+              <div className="text-muted small mt-1 font-mono">
+                Số ca: {selectedKpiRecord?.actual_shifts ?? selectedKpiRecord?.total_shifts ?? 0} | Giờ trực: {selectedKpiRecord?.actual_hours ?? selectedKpiRecord?.total_hours ?? 0}h | Đúng giờ: {selectedKpiRecord?.on_time_attendance_rate ?? 100}% | Giao ca: {selectedKpiRecord?.handover_compliance_rate ?? 100}%
+              </div>
+            </div>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">
+                Điểm Đánh Giá Năng Lực Lâm Sàng (30% trọng số, thang 0-100)
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={100}
+                required
+                value={kpiEvalFormData.clinical_performance_score}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, clinical_performance_score: Number(e.target.value) })}
+                className="wd-input font-monospace"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">
+                Điểm Hài Lòng Người Bệnh & Thân Nhân (30% trọng số, thang 0-100)
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={100}
+                required
+                value={kpiEvalFormData.patient_satisfaction_score}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, patient_satisfaction_score: Number(e.target.value) })}
+                className="wd-input font-monospace"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold">
+                Điểm Trừ Vi Phạn Quy Chế / Khiếu Nại (Trừ thẳng vào tổng điểm)
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={50}
+                required
+                value={kpiEvalFormData.disciplinary_penalty_points}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, disciplinary_penalty_points: Number(e.target.value) })}
+                className="wd-input font-monospace"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="small fw-semibold">Nhận Xét & Đề Xuất Cải Tiến Của Trưởng Khoa / HR</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                value={kpiEvalFormData.evaluation_notes}
+                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, evaluation_notes: e.target.value })}
+                placeholder="Khen ngợi tinh thần cấp cứu hoặc nhắc nhở tuân thủ quy trình..."
+                className="wd-input"
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowKpiEvalModal(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" variant="primary" disabled={saveKpiEvaluationMutation.isPending}>
+              {saveKpiEvaluationMutation.isPending ? 'Đang lưu...' : 'Lưu Kết Quả KPI'}
             </Button>
           </Modal.Footer>
         </Form>

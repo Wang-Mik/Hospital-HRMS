@@ -378,6 +378,12 @@ export const PayrollManagement: React.FC = () => {
                 <div className="text-muted mt-1" style={{ fontSize: '11px' }}>
                   {currentBaseRate > 0 ? `${formatCurrency(currentBaseRate)} ${t('payroll.kpi_rate_suffix', '/ giờ • ')}` : ''}{serverPayRate?.tax_tier || user?.role || t('payroll.kpi_hospital_quota', 'Định mức bệnh viện')}
                 </div>
+                {!serverPayRate?.is_salary_increment_hidden && serverPayRate?.last_salary_increment_date && (
+                  <div className="text-success mt-1 d-flex align-items-center gap-1" style={{ fontSize: '11px' }}>
+                    <CheckCircle2 size={12} />
+                    <span>{t('admin.last_increment_date', 'Ngày tăng lương cuối')}: {String(serverPayRate.last_salary_increment_date).slice(0, 10)}</span>
+                  </div>
+                )}
               </div>
             </Col>
             <Col xs={12} sm={6} lg={3}>
@@ -722,6 +728,14 @@ export const PayrollManagement: React.FC = () => {
                   <div className="fw-bold text-dark mt-0.5">{selectedSlip.department_name}</div>
                   <div className="text-muted" style={{ fontSize: '11px' }}>{t('payroll.lbl_payment_date', 'Ngày chi trả:')} {selectedSlip.payment_date}</div>
                 </Col>
+                {!serverPayRate?.is_salary_increment_hidden && serverPayRate?.last_salary_increment_date && (
+                  <Col xs={12} className="border-top pt-2 mt-1">
+                    <div className="d-flex align-items-center gap-1.5 text-muted" style={{ fontSize: '11px' }}>
+                      <span className="fw-semibold text-uppercase">{t('admin.last_increment_date', 'Ngày tăng lương cuối')}:</span>
+                      <span className="font-mono text-dark fw-bold">{String(serverPayRate.last_salary_increment_date).slice(0, 10)}</span>
+                    </div>
+                  </Col>
+                )}
               </Row>
             </div>
 

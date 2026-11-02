@@ -12,6 +12,8 @@ import handoverRoutes from './handoverRoutes.js';
 import authRoutes from './authRoutes.js';
 import departmentRoutes from './departmentRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import kpiRoutes from './kpiRoutes.js';
+import hrRoutes from './hrRoutes.js';
 import { employeeController } from '../controllers/employeeController.js';
 import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
 
@@ -68,6 +70,14 @@ router.use('/api/v1/tasks', verifyToken, taskRoutes);
 // Clinical Shift Handover & Checklist Routes
 router.use('/api/handovers', verifyToken, handoverRoutes);
 router.use('/api/v1/handovers', verifyToken, handoverRoutes);
+
+// Monthly Clinical KPI & Evaluation
+router.use('/api/kpi', verifyToken, kpiRoutes);
+router.use('/api/v1/kpi', verifyToken, kpiRoutes);
+
+// Comprehensive HR Operations (Contracts, Insurances, Commendations/Disciplines, Salary Increments)
+router.use('/api/hr', verifyToken, hrRoutes);
+router.use('/api/v1/hr', verifyToken, hrRoutes);
 
 // Hospital HR & Enterprise System Admin Routes (Restricted to SUPER_ADMIN)
 router.use('/api/admin', verifyToken, requireRole('SUPER_ADMIN'), adminRoutes);

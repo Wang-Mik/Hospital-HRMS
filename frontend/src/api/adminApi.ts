@@ -86,6 +86,8 @@ export interface AdminPayRate {
   specialty?: string;
   base_hourly_rate: number | string;
   tax_tier: string;
+  last_salary_increment_date?: string | null;
+  is_salary_increment_hidden?: boolean | number;
   rate_updated_at?: string;
 }
 

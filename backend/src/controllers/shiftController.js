@@ -32,12 +32,44 @@ export const shiftController = {
       allow_unverified_license = false
     } = req.body;
 
-    // RBAC Scope Check: Only HR_MANAGER or SUPER_ADMIN can schedule shifts
-    if (req.user && req.user.role !== 'HR_MANAGER' && req.user.role !== 'SUPER_ADMIN') {
-      return res.status(403).json({
-        success: false,
-        message: 'Quyền truy cập bị từ chối: Chỉ nhân sự (HR) hoặc Quản trị viên mới có quyền phân công lịch làm việc và ca trực.'
-      });
+    // RBAC Scope Check: Hospital Admin, Department Head (within their department), or Delegated Ward Secretary
+    let approvalStatus = 'APPROVED';
+    if (req.user) {
+      const isHospitalWideAdmin = [
+        'SUPER_ADMIN',
+        'HR_MANAGER',
+        'HOSPITAL_DIRECTOR',
+        'VICE_DIRECTOR',
+        'HEAD_OF_GENERAL_PLANNING',
+        'HEAD_OF_HR'
+      ].includes(req.user.role);
+
+      const resolvedDept = department_code || department_id;
+      const isHeadOfDept = req.user.role === 'DEPARTMENT_HEAD' && req.user.department_code && (req.user.department_code === resolvedDept || resolvedDept === 'DEP-HSTC');
+
+      // Check if user is delegated secretary for this department
+      let isDelegatedSecretary = false;
+      if (!isHospitalWideAdmin && !isHeadOfDept && resolvedDept) {
+        try {
+          const [delRows] = await pool.query(
+            `SELECT id FROM Department_Roster_Delegations WHERE department_code = ? AND delegated_staff_id = ? AND is_active = TRUE LIMIT 1`,
+            [resolvedDept, req.user.employee_code]
+          );
+          if (delRows && delRows.length > 0) {
+            isDelegatedSecretary = true;
+            approvalStatus = 'PENDING_APPROVAL';
+          }
+        } catch {
+          isDelegatedSecretary = false;
+        }
+      }
+
+      if (!isHospitalWideAdmin && !isHeadOfDept && !isDelegatedSecretary) {
+        return res.status(403).json({
+          success: false,
+          message: 'Quyền truy cập bị từ chối: Chỉ nhân sự (HR), Trưởng khoa hoặc Thư ký khoa được ủy quyền mới có quyền phân công lịch làm việc và ca trực.'
+        });
+      }
     }
 
     const deptParam = department_code || department_id;
@@ -87,7 +119,9 @@ export const shiftController = {
         status,
         requires_handover,
         allow_insufficient_rest: Boolean(allow_insufficient_rest),
-        allow_unverified_license: Boolean(allow_unverified_license)
+        allow_unverified_license: Boolean(allow_unverified_license),
+        approval_status: approvalStatus,
+        submitted_by: req.user?.employee_code || staff_id
       });
 
       return res.status(201).json({
@@ -446,6 +480,82 @@ export const shiftController = {
       return res.status(error.statusCode || 500).json({
         success: false,
         message: error.message || 'Không thể ghi nhận ca trực kéo dài.'
+      });
+    }
+  },
+
+  /**
+   * GET /api/shifts/departments/:code/delegate
+   */
+  async getDepartmentRosterDelegate(req, res) {
+    try {
+      const { code } = req.params;
+      const delegate = await shiftService.getDepartmentRosterDelegate(code);
+      return res.status(200).json({
+        success: true,
+        data: delegate
+      });
+    } catch (error) {
+      console.error('[shiftController.getDepartmentRosterDelegate Error]:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi tải thông tin thư ký khoa'
+      });
+    }
+  },
+
+  /**
+   * POST /api/shifts/departments/:code/delegate
+   */
+  async setDepartmentRosterDelegate(req, res) {
+    try {
+      const { code } = req.params;
+      const { notes } = req.body;
+      const delegated_staff_id = req.body.delegated_staff_id || req.body.secretary_id;
+      if (!delegated_staff_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã cán bộ được ủy quyền là bắt buộc.'
+        });
+      }
+
+      const result = await shiftService.setDepartmentRosterDelegate(
+        code,
+        delegated_staff_id,
+        notes,
+        req.user
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Đã chỉ định cán bộ ${delegated_staff_id} làm Thư ký lập lịch cho khoa ${code}.`,
+        data: result
+      });
+    } catch (error) {
+      console.error('[shiftController.setDepartmentRosterDelegate Error]:', error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Lỗi khi chỉ định thư ký khoa'
+      });
+    }
+  },
+
+  /**
+   * POST /api/shifts/approve-batch
+   */
+  async approveDepartmentShifts(req, res) {
+    try {
+      const result = await shiftService.approveDepartmentShifts(req.body, req.user);
+      return res.status(200).json({
+        success: true,
+        message: `Đã phê duyệt thành công ${result.approved_count} ca trực của khoa.`,
+        data: result
+      });
+    } catch (error) {
+      console.error('[shiftController.approveDepartmentShifts Error]:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi phê duyệt ca trực'
       });
     }
   }

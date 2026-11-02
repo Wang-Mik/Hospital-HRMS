@@ -67,6 +67,31 @@ export const employeeApi = {
   createLicense: async (data: any) => {
     const res = await axiosClient.post('/licenses', data);
     return res.data?.data;
+  },
+
+  getDossier: async (id: number | string) => {
+    const res = await axiosClient.get(`/employees/${id}/dossier`);
+    return res.data?.data;
+  },
+
+  addDegree: async (staffId: string, data: any) => {
+    const res = await axiosClient.post(`/employees/${staffId}/degrees`, data);
+    return res.data?.data;
+  },
+
+  deleteDegree: async (staffId: string, degreeId: string) => {
+    const res = await axiosClient.delete(`/employees/${staffId}/degrees/${degreeId}`);
+    return res.data;
+  },
+
+  addCertification: async (staffId: string, data: any) => {
+    const res = await axiosClient.post(`/employees/${staffId}/certifications`, data);
+    return res.data?.data;
+  },
+
+  deleteCertification: async (staffId: string, certId: string) => {
+    const res = await axiosClient.delete(`/employees/${staffId}/certifications/${certId}`);
+    return res.data;
   }
 };
 
