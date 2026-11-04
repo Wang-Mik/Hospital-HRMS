@@ -233,6 +233,86 @@ describe('Ward Secretary Delegation, Roster Batch Approval, and Monthly KPI Test
       expect(res.body.data.kpi_grade).toBe('GRADE_A');
     });
 
+    it('POST /api/kpi/evaluate should support 6 criteria groups and incident classification per KPI.md', async () => {
+      // 1. Fetch current KPI record
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 'kpi-2',
+          staff_id: 'EMP-NUR-001',
+          kpi_month: '2026-11'
+        }
+      ]]);
+      // 2. Insert/Update KPI record
+      pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+      // 3. Return updated record with 6 criteria scores
+      pool.query.mockResolvedValueOnce([[
+        {
+          id: 'kpi-2',
+          staff_id: 'EMP-NUR-001',
+          score_discipline: 100.0,
+          score_task_completion: 95.0,
+          score_work_quality: 90.0,
+          score_communication: 98.0,
+          score_competence: 92.0,
+          score_innovation: 85.0,
+          incident_cause: 'INDIVIDUAL_ERROR',
+          incident_penalty_points: 5.0,
+          total_kpi_score: 89.2,
+          kpi_grade: 'GRADE_B',
+          status: 'APPROVED'
+        }
+      ]]);
+
+      const chiefNurseToken = generateAuthToken({ role: 'CHIEF_NURSE', employee_code: 'EMP-NUR-HEAD' });
+      const res = await request(app)
+        .post('/api/kpi/evaluate')
+        .set('Authorization', `Bearer ${chiefNurseToken}`)
+        .send({
+          staff_id: 'EMP-NUR-001',
+          kpi_month: '2026-11',
+          role: 'NURSE',
+          score_discipline: 100.0,
+          score_task_completion: 95.0,
+          score_work_quality: 90.0,
+          score_communication: 98.0,
+          score_competence: 92.0,
+          score_innovation: 85.0,
+          incident_cause: 'INDIVIDUAL_ERROR',
+          incident_penalty_points: 5.0,
+          incident_notes: 'Chậm trễ trong chuẩn bị bàn giao thiết bị phòng mổ'
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.kpi_grade).toBe('GRADE_B');
+    });
+
+    it('POST /api/kpi/auto-compute should allow CHIEF_NURSE to trigger ward KPI computation', async () => {
+      // 1. Employee query in department
+      pool.query.mockResolvedValueOnce([[{ employee_code: 'EMP-NUR-001', first_name: 'Hoa', last_name: 'Lê', role: 'NURSE', department_code: 'DEP-HSTC' }]]);
+      // 2. Attendance query
+      pool.query.mockResolvedValueOnce([[{ total_attendance: 20, late_count: 0, total_minutes: 9600 }]]);
+      // 3. Shifts query
+      pool.query.mockResolvedValueOnce([[]]);
+      // 4. Existing KPI check
+      pool.query.mockResolvedValueOnce([[]]);
+      // 5. Insert KPI
+      pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+      const chiefToken = generateAuthToken({ role: 'CHIEF_NURSE' });
+      const res = await request(app)
+        .post('/api/kpi/auto-compute')
+        .set('Authorization', `Bearer ${chiefToken}`)
+        .send({
+          month: '2026-11',
+          department_code: 'DEP-HSTC'
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.computed_count).toBe(1);
+    });
+
     it('GET /api/kpi/my-history should return KPI history for authenticated staff', async () => {
       pool.query.mockResolvedValueOnce([[
         {

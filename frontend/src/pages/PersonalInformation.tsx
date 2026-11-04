@@ -1266,17 +1266,18 @@ export const PersonalInformation: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Tháng</th>
-                      <th>Ca Thực Tế</th>
-                      <th>Đúng Giờ</th>
-                      <th>Bàn Giao</th>
+                      <th>Khối Lượng Trực</th>
+                      <th>6 Nhóm Tiêu Chí (KPI.md)</th>
+                      <th>Sự Cố Y Khoa</th>
                       <th>Điểm Tổng</th>
                       <th>Xếp Loại</th>
+                      <th>Nhận Xét</th>
                     </tr>
                   </thead>
                   <tbody>
                     {monthlyKpis.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-3 text-muted">
+                        <td colSpan={7} className="text-center py-3 text-muted">
                           Chưa có dữ liệu KPI tháng nào được tính toán.
                         </td>
                       </tr>
@@ -1284,10 +1285,33 @@ export const PersonalInformation: React.FC = () => {
                       monthlyKpis.map((k: any) => (
                         <tr key={k.id}>
                           <td className="font-mono fw-bold text-dark">{k.kpi_month}</td>
-                          <td className="font-mono">{k.actual_shifts} ca ({k.actual_hours}h)</td>
-                          <td className="font-mono">{k.on_time_attendance_rate}%</td>
-                          <td className="font-mono">{k.handover_compliance_rate}%</td>
-                          <td className="font-mono fw-bold">{k.total_kpi_score}</td>
+                          <td className="font-mono">
+                            {k.actual_shifts} ca ({k.actual_hours}h)
+                            <div className="small text-muted">{k.on_time_attendance_rate}% đúng giờ</div>
+                          </td>
+                          <td>
+                            <div className="small font-mono">
+                              Kỷ luật: <strong>{Number(k.score_discipline ?? k.on_time_attendance_rate ?? 100)}</strong> &bull; Nhiệm vụ: <strong>{Number(k.score_task_completion ?? 90)}</strong>
+                            </div>
+                            <div className="small font-mono text-muted">
+                              Chuyên môn: <strong>{Number(k.score_work_quality ?? k.clinical_performance_score ?? 90)}</strong> &bull; Giao tiếp: <strong>{Number(k.score_communication ?? k.patient_satisfaction_score ?? 95)}</strong>
+                            </div>
+                            <div className="small font-mono text-muted">
+                              Năng lực: <strong>{Number(k.score_competence ?? 90)}</strong> &bull; Cải tiến: <strong>{Number(k.score_innovation ?? 80)}</strong>
+                            </div>
+                          </td>
+                          <td>
+                            {k.incident_cause && k.incident_cause !== 'NONE' ? (
+                              <div className={`badge ${k.incident_cause === 'INDIVIDUAL_ERROR' ? 'bg-danger-subtle text-danger border border-danger' : 'bg-info-subtle text-info border border-info'}`} style={{ fontSize: '10px' }}>
+                                {k.incident_cause === 'INDIVIDUAL_ERROR' ? `Lỗi cá nhân (-${k.incident_penalty_points || 0}đ)` :
+                                 k.incident_cause === 'SYSTEM_PROCESS' ? 'Lỗi quy trình (0đ)' :
+                                 k.incident_cause === 'FACILITY_EQUIPMENT' ? 'Thiếu thiết bị (0đ)' : 'Near-miss (0đ)'}
+                              </div>
+                            ) : (
+                              <span className="text-muted small">Không</span>
+                            )}
+                          </td>
+                          <td className="font-mono fw-bold text-primary fs-6">{k.total_kpi_score} / 100</td>
                           <td>
                             <Badge
                               bg={
@@ -1298,11 +1322,14 @@ export const PersonalInformation: React.FC = () => {
                               }
                               className="px-2 py-1"
                             >
-                              {k.kpi_grade === 'GRADE_A' ? 'Hạng A'
-                                : k.kpi_grade === 'GRADE_B' ? 'Hạng B'
-                                : k.kpi_grade === 'GRADE_C' ? 'Hạng C'
-                                : 'Hạng D'}
+                              {k.kpi_grade === 'GRADE_A' ? 'Hạng A (Xuất Sắc)'
+                                : k.kpi_grade === 'GRADE_B' ? 'Hạng B (Tốt)'
+                                : k.kpi_grade === 'GRADE_C' ? 'Hạng C (Hoàn Thành)'
+                                : 'Hạng D (Không Đạt)'}
                             </Badge>
+                          </td>
+                          <td className="small text-muted" style={{ maxWidth: '200px' }}>
+                            {k.evaluation_notes || 'Hoàn thành nhiệm vụ được giao trong tháng.'}
                           </td>
                         </tr>
                       ))

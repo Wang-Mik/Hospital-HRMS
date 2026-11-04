@@ -63,7 +63,17 @@ export const kpiController = {
    */
   async autoComputeMonthlyKpi(req, res) {
     try {
-      const { month, department_code } = req.body;
+      let { month, department_code } = req.body || {};
+      if (!month || typeof month !== 'string' || month.trim() === '') {
+        month = new Date().toISOString().slice(0, 7);
+      } else {
+        month = month.trim();
+      }
+
+      if (department_code === 'ALL') {
+        department_code = null;
+      }
+
       const result = await kpiService.autoComputeMonthlyKpi(month, department_code);
       return res.status(200).json({
         success: true,

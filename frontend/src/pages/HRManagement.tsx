@@ -43,7 +43,7 @@ import { shiftApi } from '../api/shiftApi';
 import { handoverApi } from '../api/handoverApi';
 import { employeeApi } from '../api/employeeApi';
 import { hrApi, EmploymentContract, SocialInsurance, CommendationDiscipline } from '../api/hrApi';
-import { kpiApi, MonthlyKpiRecord } from '../api/kpiApi';
+import { kpiApi, MonthlyKpiRecord, IncidentCauseType } from '../api/kpiApi';
 import { useTranslation } from '../i18n/useTranslation';
 import { ConfirmModal, ConfirmDetailItem } from '../components/common/ConfirmModal';
 
@@ -272,12 +272,48 @@ export const HRManagement: React.FC = () => {
 
   const [showKpiEvalModal, setShowKpiEvalModal] = useState(false);
   const [selectedKpiRecord, setSelectedKpiRecord] = useState<MonthlyKpiRecord | null>(null);
+  const [manualKpiStaffId, setManualKpiStaffId] = useState('');
   const [kpiEvalFormData, setKpiEvalFormData] = useState({
-    clinical_performance_score: 90,
-    patient_satisfaction_score: 95,
-    disciplinary_penalty_points: 0,
-    evaluation_notes: ''
+    score_discipline: 100,
+    score_task_completion: 90,
+    score_work_quality: 90,
+    score_communication: 95,
+    score_competence: 90,
+    score_innovation: 80,
+    incident_cause: 'NONE' as IncidentCauseType,
+    incident_penalty_points: 0,
+    incident_notes: '',
+    evaluation_notes: '',
+    actual_shifts: 20,
+    actual_hours: 160
   });
+
+  const getRoleWeights = (role?: string) => {
+    const r = (role || '').toUpperCase();
+    if (r.includes('DOC') || r === 'DEPARTMENT_HEAD' || r === 'HOSPITAL_DIRECTOR' || r === 'VICE_DIRECTOR') {
+      return { discipline: 0.15, task_completion: 0.20, work_quality: 0.25, communication: 0.15, competence: 0.15, innovation: 0.10, title: 'Bác Sĩ' };
+    }
+    if (r.includes('NUR') || r === 'CHIEF_NURSE') {
+      return { discipline: 0.20, task_completion: 0.15, work_quality: 0.20, communication: 0.25, competence: 0.10, innovation: 0.10, title: 'Điều Dưỡng' };
+    }
+    if (r.includes('TECH') || r.includes('PHAR')) {
+      return { discipline: 0.20, task_completion: 0.25, work_quality: 0.25, communication: 0.10, competence: 0.15, innovation: 0.05, title: 'Kỹ Thuật Viên / Dược Sĩ' };
+    }
+    return { discipline: 0.25, task_completion: 0.30, work_quality: 0.15, communication: 0.15, competence: 0.10, innovation: 0.05, title: 'Hành Chính' };
+  };
+
+  const calculatePreviewScore = (data: typeof kpiEvalFormData, role?: string) => {
+    const w = getRoleWeights(role);
+    const raw =
+      Number(data.score_discipline || 0) * w.discipline +
+      Number(data.score_task_completion || 0) * w.task_completion +
+      Number(data.score_work_quality || 0) * w.work_quality +
+      Number(data.score_communication || 0) * w.communication +
+      Number(data.score_competence || 0) * w.competence +
+      Number(data.score_innovation || 0) * w.innovation;
+    const penalty = data.incident_cause === 'INDIVIDUAL_ERROR' ? Number(data.incident_penalty_points || 0) : 0;
+    return Math.max(0, Math.min(100, Math.round((raw - penalty) * 10) / 10));
+  };
 
   // Filter states
   const initialLeaveStatus = searchParams.get('status') as any;
@@ -445,7 +481,7 @@ export const HRManagement: React.FC = () => {
       showToast(res.message || 'Đã tính toán KPI tháng thành công!');
     },
     onError: (err: any) => {
-      showToast(`Lỗi tính KPI: ${err.message || ''}`, 'danger');
+      showToast(`Lỗi tính KPI: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`, 'danger');
     }
   });
 
@@ -458,7 +494,7 @@ export const HRManagement: React.FC = () => {
       showToast('Đã lưu đánh giá & xếp loại KPI cán bộ thành công!');
     },
     onError: (err: any) => {
-      showToast(`Lỗi lưu đánh giá KPI: ${err.message || ''}`, 'danger');
+      showToast(`Lỗi lưu đánh giá KPI: ${err.response?.data?.message || err.message || 'Lỗi không xác định'}`, 'danger');
     }
   });
 
@@ -1797,6 +1833,35 @@ export const HRManagement: React.FC = () => {
                 <RefreshCw size={13} className={autoComputeKpiMutation.isPending ? 'spin' : ''} />
                 <span>{autoComputeKpiMutation.isPending ? 'Đang tính toán...' : 'Tính Toán Tự Động KPI'}</span>
               </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary d-flex align-items-center gap-1.5"
+                onClick={() => {
+                  setSelectedKpiRecord(null);
+                  const candidateEmployees = kpiDeptFilter !== 'ALL'
+                    ? allEmployees.filter((e: any) => e.department_code === kpiDeptFilter)
+                    : allEmployees;
+                  setManualKpiStaffId(candidateEmployees[0]?.employee_code || (allEmployees[0]?.employee_code || ''));
+                  setKpiEvalFormData({
+                    score_discipline: 100,
+                    score_task_completion: 90,
+                    score_work_quality: 90,
+                    score_communication: 95,
+                    score_competence: 90,
+                    score_innovation: 80,
+                    incident_cause: 'NONE',
+                    incident_penalty_points: 0,
+                    incident_notes: '',
+                    evaluation_notes: '',
+                    actual_shifts: 20,
+                    actual_hours: 160
+                  });
+                  setShowKpiEvalModal(true);
+                }}
+              >
+                <Plus size={13} />
+                <span>Đánh Giá Thủ Công</span>
+              </button>
             </div>
           </div>
 
@@ -1808,7 +1873,7 @@ export const HRManagement: React.FC = () => {
                   <th>Khối Lượng Trực</th>
                   <th>Kỷ Luật Ca Trực</th>
                   <th>Bàn Giao Ca</th>
-                  <th>Điểm Lâm Sàng & Hài Lòng</th>
+                  <th>6 Nhóm Tiêu Chí (KPI.md)</th>
                   <th>Tổng Điểm & Xếp Loại</th>
                   <th className="text-end">Thao Tác</th>
                 </tr>
@@ -1817,7 +1882,7 @@ export const HRManagement: React.FC = () => {
                 {monthlyKpis.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-4 text-muted">
-                      Chưa có dữ liệu KPI cho tháng {kpiMonthFilter}. Hãy bấm &quot;Tính Toán Tự Động KPI&quot; để tổng hợp dữ liệu ca trực và chấm công!
+                      Chưa có dữ liệu KPI cho tháng {kpiMonthFilter}. Hãy bấm &quot;Tính Toán Tự Động KPI&quot; hoặc &quot;Đánh Giá Thủ Công&quot; để tổng hợp bảng đánh giá!
                     </td>
                   </tr>
                 ) : (
@@ -1867,11 +1932,21 @@ export const HRManagement: React.FC = () => {
                         </td>
                         <td>
                           <div className="small font-mono">
-                            Chuyên môn: <strong className="text-dark">{kpi.clinical_performance_score}/100</strong>
+                            Kỷ luật: <strong>{Number(kpi.score_discipline ?? kpi.on_time_attendance_rate ?? 100)}</strong> &bull; Nhiệm vụ: <strong>{Number(kpi.score_task_completion ?? 90)}</strong>
                           </div>
                           <div className="small font-mono text-muted">
-                            Hài lòng: {kpi.patient_satisfaction_score} • Trừ điểm: -{kpi.disciplinary_penalty_points}
+                            Chuyên môn: <strong>{Number(kpi.score_work_quality ?? kpi.clinical_performance_score ?? 90)}</strong> &bull; Giao tiếp: <strong>{Number(kpi.score_communication ?? kpi.patient_satisfaction_score ?? 95)}</strong>
                           </div>
+                          <div className="small font-mono text-muted">
+                            Năng lực: <strong>{Number(kpi.score_competence ?? 90)}</strong> &bull; Cải tiến: <strong>{Number(kpi.score_innovation ?? 80)}</strong>
+                          </div>
+                          {kpi.incident_cause && kpi.incident_cause !== 'NONE' && (
+                            <div className={`badge mt-1 ${kpi.incident_cause === 'INDIVIDUAL_ERROR' ? 'bg-danger-subtle text-danger border border-danger' : 'bg-info-subtle text-info border border-info'}`} style={{ fontSize: '10px' }}>
+                              {kpi.incident_cause === 'INDIVIDUAL_ERROR' ? `Lỗi cá nhân (-${kpi.incident_penalty_points || 0}đ)` :
+                               kpi.incident_cause === 'SYSTEM_PROCESS' ? 'Lỗi quy trình (0đ)' :
+                               kpi.incident_cause === 'FACILITY_EQUIPMENT' ? 'Thiếu thiết bị (0đ)' : 'Near-miss (0đ)'}
+                            </div>
+                          )}
                         </td>
                         <td>
                           <div className="h6 fw-bold font-mono mb-1 text-dark">{finalScore} / 100</div>
@@ -1883,11 +1958,20 @@ export const HRManagement: React.FC = () => {
                             className="wd-action-btn wd-action-btn-edit"
                             onClick={() => {
                               setSelectedKpiRecord(kpi);
+                              setManualKpiStaffId(kpi.staff_id);
                               setKpiEvalFormData({
-                                clinical_performance_score: Number(kpi.clinical_performance_score) || 90,
-                                patient_satisfaction_score: Number(kpi.patient_satisfaction_score) || 95,
-                                disciplinary_penalty_points: Number(kpi.disciplinary_penalty_points) || 0,
-                                evaluation_notes: kpi.evaluation_notes || ''
+                                score_discipline: Number(kpi.score_discipline ?? kpi.on_time_attendance_rate ?? 100),
+                                score_task_completion: Number(kpi.score_task_completion ?? 90),
+                                score_work_quality: Number(kpi.score_work_quality ?? kpi.clinical_performance_score ?? 90),
+                                score_communication: Number(kpi.score_communication ?? kpi.patient_satisfaction_score ?? 95),
+                                score_competence: Number(kpi.score_competence ?? 90),
+                                score_innovation: Number(kpi.score_innovation ?? 80),
+                                incident_cause: kpi.incident_cause || 'NONE',
+                                incident_penalty_points: Number(kpi.incident_penalty_points ?? kpi.disciplinary_penalty_points ?? 0),
+                                incident_notes: kpi.incident_notes || '',
+                                evaluation_notes: kpi.evaluation_notes || '',
+                                actual_shifts: Number(kpi.actual_shifts ?? 20),
+                                actual_hours: Number(kpi.actual_hours ?? 160)
                               });
                               setShowKpiEvalModal(true);
                             }}
@@ -2591,103 +2675,342 @@ export const HRManagement: React.FC = () => {
       </Modal>
 
       {/* MODAL 7: KPI EVALUATION */}
-      <Modal show={showKpiEvalModal} onHide={() => setShowKpiEvalModal(false)} centered>
-        <Modal.Header closeButton>
+      <Modal show={showKpiEvalModal} onHide={() => setShowKpiEvalModal(false)} size="lg" centered>
+        <Modal.Header closeButton className="border-bottom py-3">
           <Modal.Title className="h6 fw-bold text-dark d-flex align-items-center gap-2">
             <FileCheck size={18} className="text-primary" />
-            Chấm Điểm & Xếp Loại KPI Cán Bộ
+            {selectedKpiRecord
+              ? 'Chấm Điểm & Đánh Giá KPI Cán Bộ Y Tế'
+              : 'Tạo & Chấm Điểm KPI Thủ Công (Chuẩn KPI.md)'}
           </Modal.Title>
         </Modal.Header>
-        <Form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (selectedKpiRecord) {
-              saveKpiEvaluationMutation.mutate({
-                kpi_id: selectedKpiRecord.id,
-                staff_id: selectedKpiRecord.staff_id,
-                kpi_month: selectedKpiRecord.kpi_month || selectedKpiRecord.month || kpiMonthFilter,
-                ...kpiEvalFormData
-              });
-            }
-          }}
-        >
-          <Modal.Body>
-            <div className="mb-3 p-2.5 bg-light rounded-2 border">
-              <div className="fw-semibold text-dark">
-                {selectedKpiRecord?.staff_name || (selectedKpiRecord?.last_name ? `${selectedKpiRecord.last_name} ${selectedKpiRecord.first_name}` : selectedKpiRecord?.staff_id)}
-              </div>
-              <div className="text-muted small">{selectedKpiRecord?.staff_id} • Tháng {selectedKpiRecord?.kpi_month || selectedKpiRecord?.month || kpiMonthFilter}</div>
-              <div className="text-muted small mt-1 font-mono">
-                Số ca: {selectedKpiRecord?.actual_shifts ?? selectedKpiRecord?.total_shifts ?? 0} | Giờ trực: {selectedKpiRecord?.actual_hours ?? selectedKpiRecord?.total_hours ?? 0}h | Đúng giờ: {selectedKpiRecord?.on_time_attendance_rate ?? 100}% | Giao ca: {selectedKpiRecord?.handover_compliance_rate ?? 100}%
-              </div>
-            </div>
+        {(() => {
+          const candidateEmployees = kpiDeptFilter !== 'ALL'
+            ? allEmployees.filter((e: any) => e.department_code === kpiDeptFilter)
+            : allEmployees;
 
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">
-                Điểm Đánh Giá Năng Lực Lâm Sàng (30% trọng số, thang 0-100)
-              </Form.Label>
-              <Form.Control
-                type="number"
-                min={0}
-                max={100}
-                required
-                value={kpiEvalFormData.clinical_performance_score}
-                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, clinical_performance_score: Number(e.target.value) })}
-                className="wd-input font-monospace"
-              />
-            </Form.Group>
+          const activeStaff = selectedKpiRecord
+            ? {
+                code: selectedKpiRecord.staff_id,
+                name: selectedKpiRecord.staff_name || (selectedKpiRecord.last_name ? `${selectedKpiRecord.last_name} ${selectedKpiRecord.first_name}` : selectedKpiRecord.staff_id),
+                role: selectedKpiRecord.role || 'DOCTOR'
+              }
+            : (() => {
+                const found = candidateEmployees.find((e: any) => e.employee_code === manualKpiStaffId) || candidateEmployees[0] || allEmployees[0];
+                return {
+                  code: found?.employee_code || manualKpiStaffId,
+                  name: found ? `${found.last_name} ${found.first_name}` : manualKpiStaffId,
+                  role: found?.role || 'DOCTOR'
+                };
+              })();
 
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">
-                Điểm Hài Lòng Người Bệnh & Thân Nhân (30% trọng số, thang 0-100)
-              </Form.Label>
-              <Form.Control
-                type="number"
-                min={0}
-                max={100}
-                required
-                value={kpiEvalFormData.patient_satisfaction_score}
-                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, patient_satisfaction_score: Number(e.target.value) })}
-                className="wd-input font-monospace"
-              />
-            </Form.Group>
+          const activeRoleWeights = getRoleWeights(activeStaff.role);
+          const previewScore = calculatePreviewScore(kpiEvalFormData, activeStaff.role);
+          const previewGrade = previewScore >= 90 ? 'Hạng A (Xuất Sắc)' : previewScore >= 80 ? 'Hạng B (Tốt)' : previewScore >= 70 ? 'Hạng C (Hoàn Thành)' : 'Hạng D (Không Đạt)';
+          const previewVariant = previewScore >= 90 ? 'success' : previewScore >= 80 ? 'primary' : previewScore >= 70 ? 'warning' : 'danger';
 
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold">
-                Điểm Trừ Vi Phạn Quy Chế / Khiếu Nại (Trừ thẳng vào tổng điểm)
-              </Form.Label>
-              <Form.Control
-                type="number"
-                min={0}
-                max={50}
-                required
-                value={kpiEvalFormData.disciplinary_penalty_points}
-                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, disciplinary_penalty_points: Number(e.target.value) })}
-                className="wd-input font-monospace"
-              />
-            </Form.Group>
+          return (
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const targetStaffId = selectedKpiRecord ? selectedKpiRecord.staff_id : activeStaff.code;
+                const targetMonth = selectedKpiRecord ? (selectedKpiRecord.kpi_month || selectedKpiRecord.month || kpiMonthFilter) : kpiMonthFilter;
+                saveKpiEvaluationMutation.mutate({
+                  kpi_id: selectedKpiRecord?.id,
+                  staff_id: targetStaffId,
+                  kpi_month: targetMonth,
+                  role: activeStaff.role,
+                  ...kpiEvalFormData
+                });
+              }}
+            >
+              <Modal.Body className="p-3.5">
+                {selectedKpiRecord ? (
+                  <div className="mb-3 p-3 bg-light rounded-2 border">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div className="fw-bold text-dark fs-6">{activeStaff.name}</div>
+                      <Badge bg="secondary" className="px-2 py-1 font-mono">{activeStaff.code}</Badge>
+                    </div>
+                    <div className="text-muted small mt-0.5">
+                      Tháng {selectedKpiRecord?.kpi_month || selectedKpiRecord?.month || kpiMonthFilter} &bull; Chức vụ: <strong>{activeRoleWeights.title}</strong>
+                    </div>
+                    <div className="text-muted small mt-1 font-mono">
+                      Ca trực thực tế: {selectedKpiRecord?.actual_shifts ?? 20} ca &bull; Giờ trực: {selectedKpiRecord?.actual_hours ?? 160}h &bull; Đúng giờ: {selectedKpiRecord?.on_time_attendance_rate ?? 100}% &bull; Giao ca: {selectedKpiRecord?.handover_compliance_rate ?? 100}%
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-3 p-3 bg-light rounded-2 border">
+                    <Row className="g-2">
+                      <Col md={8}>
+                        <Form.Label className="small fw-semibold text-dark">Chọn Cán Bộ Y Tế Cần Đánh Giá</Form.Label>
+                        <Form.Select
+                          value={manualKpiStaffId || activeStaff.code}
+                          onChange={(e) => setManualKpiStaffId(e.target.value)}
+                          className="form-select form-select-sm"
+                          required
+                        >
+                          {candidateEmployees.map((emp: any) => (
+                            <option key={emp.employee_code} value={emp.employee_code}>
+                              {emp.last_name} {emp.first_name} ({emp.employee_code}) - {emp.role} - {emp.department_name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-semibold text-dark">Tháng Đánh Giá</Form.Label>
+                        <Form.Control
+                          type="month"
+                          value={kpiMonthFilter}
+                          onChange={(e) => setKpiMonthFilter(e.target.value)}
+                          className="form-control form-control-sm font-mono"
+                          required
+                        />
+                      </Col>
+                    </Row>
+                    <div className="text-muted small mt-2">
+                      Áp dụng khung trọng số chức danh: <strong className="text-primary">{activeRoleWeights.title}</strong>
+                    </div>
+                  </div>
+                )}
 
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold">Nhận Xét & Đề Xuất Cải Tiến Của Trưởng Khoa / HR</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                value={kpiEvalFormData.evaluation_notes}
-                onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, evaluation_notes: e.target.value })}
-                placeholder="Khen ngợi tinh thần cấp cứu hoặc nhắc nhở tuân thủ quy trình..."
-                className="wd-input"
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowKpiEvalModal(false)}>
-              Hủy
-            </Button>
-            <Button type="submit" variant="primary" disabled={saveKpiEvaluationMutation.isPending}>
-              {saveKpiEvaluationMutation.isPending ? 'Đang lưu...' : 'Lưu Kết Quả KPI'}
-            </Button>
-          </Modal.Footer>
-        </Form>
+                <div className="fw-bold text-dark small text-uppercase tracking-wider mb-2">
+                  1. Đánh Giá 6 Nhóm Tiêu Chí Chuẩn KPI.md
+                </div>
+
+                <Row className="g-3 mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <Form.Label className="small fw-semibold mb-0">
+                          Nhóm 1: Chấp hành kỷ luật lao động
+                        </Form.Label>
+                        <span className="badge bg-light text-primary border font-mono">
+                          {activeRoleWeights.discipline * 100}% trọng số
+                        </span>
+                      </div>
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={100}
+                        required
+                        value={kpiEvalFormData.score_discipline}
+                        onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, score_discipline: Number(e.target.value) })}
+                        className="wd-input font-monospace"
+                      />
+                      <Form.Text className="text-muted small" style={{ fontSize: '11px' }}>
+                        Đi làm đúng giờ, không bỏ vị trí, chấp hành ca trực (0-100)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <Form.Label className="small fw-semibold mb-0">
+                          Nhóm 2: Hoàn thành nhiệm vụ
+                        </Form.Label>
+                        <span className="badge bg-light text-primary border font-mono">
+                          {activeRoleWeights.task_completion * 100}% trọng số
+                        </span>
+                      </div>
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={100}
+                        required
+                        value={kpiEvalFormData.score_task_completion}
+                        onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, score_task_completion: Number(e.target.value) })}
+                        className="wd-input font-monospace"
+                      />
+                      <Form.Text className="text-muted small" style={{ fontSize: '11px' }}>
+                        Khối lượng ca trực, theo dõi người bệnh, hồ sơ đúng hạn (0-100)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <Form.Label className="small fw-semibold mb-0">
+                          Nhóm 3: Chất lượng & Chuyên môn
+                        </Form.Label>
+                        <span className="badge bg-light text-primary border font-mono">
+                          {activeRoleWeights.work_quality * 100}% trọng số
+                        </span>
+                      </div>
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={100}
+                        required
+                        value={kpiEvalFormData.score_work_quality}
+                        onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, score_work_quality: Number(e.target.value) })}
+                        className="wd-input font-monospace"
+                      />
+                      <Form.Text className="text-muted small" style={{ fontSize: '11px' }}>
+                        Tuân thủ quy trình lâm sàng, ký bàn giao ca an toàn (0-100)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <Form.Label className="small fw-semibold mb-0">
+                          Nhóm 4: Giao tiếp & Ứng xử
+                        </Form.Label>
+                        <span className="badge bg-light text-primary border font-mono">
+                          {activeRoleWeights.communication * 100}% trọng số
+                        </span>
+                      </div>
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={100}
+                        required
+                        value={kpiEvalFormData.score_communication}
+                        onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, score_communication: Number(e.target.value) })}
+                        className="wd-input font-monospace"
+                      />
+                      <Form.Text className="text-muted small" style={{ fontSize: '11px' }}>
+                        Thái độ phục vụ người bệnh, người nhà, hợp tác đồng nghiệp (0-100)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <Form.Label className="small fw-semibold mb-0">
+                          Nhóm 5: Năng lực & Trách nhiệm
+                        </Form.Label>
+                        <span className="badge bg-light text-primary border font-mono">
+                          {activeRoleWeights.competence * 100}% trọng số
+                        </span>
+                      </div>
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={100}
+                        required
+                        value={kpiEvalFormData.score_competence}
+                        onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, score_competence: Number(e.target.value) })}
+                        className="wd-input font-monospace"
+                      />
+                      <Form.Text className="text-muted small" style={{ fontSize: '11px' }}>
+                        Trình độ chuyên môn, chủ động xử lý ca bệnh khó (0-100)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <Form.Label className="small fw-semibold mb-0">
+                          Nhóm 6: Đóng góp & Cải tiến
+                        </Form.Label>
+                        <span className="badge bg-light text-primary border font-mono">
+                          {activeRoleWeights.innovation * 100}% trọng số
+                        </span>
+                      </div>
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={100}
+                        required
+                        value={kpiEvalFormData.score_innovation}
+                        onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, score_innovation: Number(e.target.value) })}
+                        className="wd-input font-monospace"
+                      />
+                      <Form.Text className="text-muted small" style={{ fontSize: '11px' }}>
+                        NCKH, sáng kiến cải tiến, hướng dẫn nhân viên mới (0-100)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <div className="fw-bold text-dark small text-uppercase tracking-wider mb-2 pt-2 border-top">
+                  2. Phân Loại Sai Sót & Sự Cố Y Khoa (Mục V KPI.md)
+                </div>
+
+                <Row className="g-2 mb-3">
+                  <Col md={7}>
+                    <Form.Label className="small fw-semibold">Kết Luận Phân Loại Sự Cố</Form.Label>
+                    <Form.Select
+                      value={kpiEvalFormData.incident_cause}
+                      onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, incident_cause: e.target.value as IncidentCauseType })}
+                      className="form-select form-select-sm"
+                    >
+                      <option value="NONE">Không có sự cố / sai sót</option>
+                      <option value="INDIVIDUAL_ERROR">Lỗi cá nhân thiếu trách nhiệm / vi phạm quy trình (Tính trừ điểm)</option>
+                      <option value="SYSTEM_PROCESS">Do quy trình quản lý chưa phù hợp (Không trừ điểm cá nhân)</option>
+                      <option value="FACILITY_EQUIPMENT">Do thiếu nhân lực / trang thiết bị y tế (Không trừ điểm cá nhân)</option>
+                      <option value="NEAR_MISS_PREVENTED">Sự cố được phát hiện & ngăn chặn kịp thời (Không trừ điểm)</option>
+                    </Form.Select>
+                  </Col>
+
+                  <Col md={5}>
+                    <Form.Label className="small fw-semibold">
+                      {kpiEvalFormData.incident_cause === 'INDIVIDUAL_ERROR' ? (
+                        <span className="text-danger fw-bold">Điểm Trừ Lỗi Cá Nhân (0-50)</span>
+                      ) : (
+                        <span className="text-muted">Điểm Trừ Áp Dụng: 0đ</span>
+                      )}
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      min={0}
+                      max={50}
+                      disabled={kpiEvalFormData.incident_cause !== 'INDIVIDUAL_ERROR'}
+                      value={kpiEvalFormData.incident_penalty_points}
+                      onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, incident_penalty_points: Number(e.target.value) })}
+                      className="wd-input font-monospace"
+                    />
+                  </Col>
+
+                  {kpiEvalFormData.incident_cause !== 'NONE' && (
+                    <Col xs={12}>
+                      <Form.Control
+                        type="text"
+                        placeholder="Mô tả kết luận thẩm định nguyên nhân sự cố y khoa..."
+                        value={kpiEvalFormData.incident_notes}
+                        onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, incident_notes: e.target.value })}
+                        className="wd-input form-control-sm"
+                      />
+                    </Col>
+                  )}
+                </Row>
+
+                <Form.Group className="mb-2">
+                  <Form.Label className="small fw-semibold">Nhận Xét & Đề Xuất Cải Tiến Của Trưởng Khoa / HR</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    value={kpiEvalFormData.evaluation_notes}
+                    onChange={(e) => setKpiEvalFormData({ ...kpiEvalFormData, evaluation_notes: e.target.value })}
+                    placeholder="Ghi nhận nỗ lực cấp cứu hoặc lưu ý cải tiến chất lượng chuyên môn..."
+                    className="wd-input"
+                  />
+                </Form.Group>
+              </Modal.Body>
+              <Modal.Footer className="d-flex justify-content-between align-items-center py-2.5 bg-light border-top">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="small text-muted">Tổng Điểm Dự Kiến:</span>
+                  <span className="fw-bold font-mono text-dark fs-6">{previewScore} / 100</span>
+                  <Badge bg={previewVariant} className="px-2 py-1">{previewGrade}</Badge>
+                </div>
+                <div className="d-flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => setShowKpiEvalModal(false)}>
+                    Hủy
+                  </Button>
+                  <Button type="submit" variant="primary" size="sm" disabled={saveKpiEvaluationMutation.isPending}>
+                    {saveKpiEvaluationMutation.isPending ? 'Đang lưu...' : 'Lưu Kết Quả KPI'}
+                  </Button>
+                </div>
+              </Modal.Footer>
+            </Form>
+          );
+        })()}
       </Modal>
 
       {/* GLOBAL CONFIRMATION MODAL */}
