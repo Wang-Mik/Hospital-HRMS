@@ -341,7 +341,6 @@ export const DailyBriefings: React.FC = () => {
             className={`wd-tab-btn d-inline-flex align-items-center gap-1.5 ${activeTab === 'HOSPITAL_BRIEFING' ? 'active' : ''}`}
             onClick={() => setActiveTab('HOSPITAL_BRIEFING')}
           >
-            <Users size={13} className="inline-block" />
             <span>{t('briefings.tab_hospital', 'Giao Ban Toàn Viện')}</span>
             <span className="badge bg-secondary rounded-pill fw-normal">{briefings.filter((b) => b.handover_category === 'HOSPITAL_BRIEFING').length}</span>
           </button>
@@ -350,7 +349,6 @@ export const DailyBriefings: React.FC = () => {
             className={`wd-tab-btn d-inline-flex align-items-center gap-1.5 ${activeTab === 'DEPT_BRIEFING' ? 'active' : ''}`}
             onClick={() => setActiveTab('DEPT_BRIEFING')}
           >
-            <Building2 size={13} className="inline-block" />
             <span>{t('briefings.tab_dept', 'Giao Ban Khoa Lâm Sàng')}</span>
             <span className="badge bg-secondary rounded-pill fw-normal">{briefings.filter((b) => b.handover_category === 'DEPT_BRIEFING').length}</span>
           </button>

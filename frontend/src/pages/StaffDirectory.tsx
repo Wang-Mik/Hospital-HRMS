@@ -380,48 +380,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
               <Award size={15} />
               <span>{t('directory.btn_register_license', 'Đăng Ký Chứng Chỉ Y Tế')}</span>
             </button>
-          ) : (
-            <div className="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                className="wd-pill-btn-outline"
-                disabled={autoComputeKpiMutation.isPending}
-                onClick={() => autoComputeKpiMutation.mutate({ month: kpiMonthFilter, dept: kpiDeptFilter })}
-              >
-                <RefreshCw size={14} className={autoComputeKpiMutation.isPending ? 'spin' : ''} />
-                <span>{autoComputeKpiMutation.isPending ? t('common.loading', 'Đang tính toán...') : t('directory.kpi_auto_btn', 'Tính Toán Tự Động KPI')}</span>
-              </button>
-              <button
-                type="button"
-                className="wd-pill-btn-primary"
-                onClick={() => {
-                  setSelectedKpiRecord(null);
-                  const candidateEmployees = isDeptLeader
-                    ? employees.filter(e => e.department_code === (user?.department_code || 'DEP-HSTC'))
-                    : employees;
-                  setManualKpiStaffId(candidateEmployees[0]?.employee_code || (employees[0]?.employee_code || ''));
-                  setKpiEvalFormData({
-                    score_discipline: 100,
-                    score_task_completion: 90,
-                    score_work_quality: 90,
-                    score_communication: 95,
-                    score_competence: 90,
-                    score_innovation: 80,
-                    incident_cause: 'NONE',
-                    incident_penalty_points: 0,
-                    incident_notes: '',
-                    evaluation_notes: '',
-                    actual_shifts: 20,
-                    actual_hours: 160
-                  });
-                  setShowKpiEvalModal(true);
-                }}
-              >
-                <Plus size={15} />
-                <span>{t('directory.kpi_manual_btn', 'Đánh Giá Thủ Công')}</span>
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -542,7 +501,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                     <button
                       type="button"
                       aria-label={t('directory.view_grid', 'Xem dạng lưới')}
-                      className={`btn btn-sm ${viewFormat === 'grid' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
+                      className={`btn btn-sm ${viewFormat === 'grid' ? 'btn-primary text-white' : 'btn-outline-secondary'}`}
                       onClick={() => setViewFormat('grid')}
                     >
                       <LayoutGrid size={14} aria-hidden="true" />
@@ -550,7 +509,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                     <button
                       type="button"
                       aria-label={t('directory.view_table', 'Xem dạng bảng')}
-                      className={`btn btn-sm ${viewFormat === 'table' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
+                      className={`btn btn-sm ${viewFormat === 'table' ? 'btn-primary text-white' : 'btn-outline-secondary'}`}
                       onClick={() => setViewFormat('table')}
                     >
                       <List size={14} aria-hidden="true" />

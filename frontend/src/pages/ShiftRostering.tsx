@@ -1396,31 +1396,6 @@ export const ShiftRostering: React.FC = () => {
               Lịch biểu
             </button>
           </div>
-
-          {/* Smart Clinical Surge Dispatcher quick button */}
-          {(isHR || isDeptHead) && (
-            <button
-              type="button"
-              className="btn btn-sm btn-danger text-white d-inline-flex align-items-center gap-1.5 rounded-pill px-3 py-1.5 shadow-xs"
-              style={{ fontSize: '13px', fontWeight: 600 }}
-              onClick={() => setIsSurgeModalOpen(true)}
-              title="Hệ thống điều động tăng cường thảm họa & Báo động cấp cứu lâm sàng (QĐ 1895 & QĐ 73/2011)"
-            >
-              <ShieldAlert size={14} className="text-warning" />
-              <span>Báo Động Cấp Cứu</span>
-            </button>
-          )}
-
-          {/* Attendance quick button */}
-          <Link
-            to="/attendance"
-            className="btn btn-sm btn-primary text-white d-inline-flex align-items-center gap-1.5 rounded-pill px-3 py-1.5"
-            style={{ fontSize: '13px' }}
-            title="Chuyển đến màn hình chấm công"
-          >
-            <Clock size={14} />
-            <span>Chấm Công</span>
-          </Link>
         </div>
       </header>
 
@@ -1667,7 +1642,7 @@ export const ShiftRostering: React.FC = () => {
                 onClick={handleApproveAllPending}
                 disabled={isApprovingPending}
               >
-                <Check size={14} />
+                {isApprovingPending ? <RotateCw size={14} className="spin" /> : <Check size={14} />}
                 <span>{isApprovingPending ? 'Đang duyệt...' : 'Phê Duyệt Toàn Bộ'}</span>
               </button>
             </div>
@@ -2308,16 +2283,18 @@ export const ShiftRostering: React.FC = () => {
                 )}
 
                 <div className="d-flex align-items-center gap-2">
-                  <Link
-                    to="/attendance"
-                    className="btn btn-sm btn-primary text-white px-3"
-                    onClick={() => setSelectedShiftDetail(null)}
-                  >
-                    Chấm Công
-                  </Link>
+                  {selectedShiftDetail && selectedShiftDetail.start_time && selectedShiftDetail.start_time.startsWith(todayStr) && (
+                    <Link
+                      to="/attendance"
+                      className="btn btn-sm btn-outline-primary px-3"
+                      onClick={() => setSelectedShiftDetail(null)}
+                    >
+                      Chấm Công
+                    </Link>
+                  )}
                   <button
                     type="button"
-                    className="btn btn-sm btn-outline-secondary px-3"
+                    className="btn btn-sm btn-primary text-white px-3"
                     onClick={() => setSelectedShiftDetail(null)}
                   >
                     Đóng

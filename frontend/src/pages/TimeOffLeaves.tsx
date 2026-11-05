@@ -379,7 +379,7 @@ export const TimeOffLeaves: React.FC = () => {
                           <div className="d-flex align-items-center justify-content-end gap-1.5">
                             <button
                               type="button"
-                              className="btn btn-sm btn-primary py-1 px-2.5 fw-semibold"
+                              className="btn btn-sm btn-success py-1 px-3 fw-semibold shadow-xs"
                               disabled={deptLeaveActionMutation.isPending}
                               onClick={() => deptLeaveActionMutation.mutate({ id: lr.id, status: 'DEPT_APPROVED' })}
                             >

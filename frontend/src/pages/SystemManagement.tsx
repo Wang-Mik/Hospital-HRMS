@@ -434,14 +434,36 @@ export const SystemManagement: React.FC = () => {
             <span>{t('admin.refresh', 'Làm Mới')}</span>
           </button>
 
-          <button
-            type="button"
-            className="wd-pill-btn-primary d-flex align-items-center gap-2 px-3 py-1.5"
-            onClick={() => setShowOnboardModal(true)}
-          >
-            <Plus size={16} />
-            <span>{t('admin.onboard_new_staff', 'Tiếp Nhận Cán Bộ Mới')}</span>
-          </button>
+          {activeTab === 'staff_iam' && (
+            <button
+              type="button"
+              className="wd-pill-btn-primary d-flex align-items-center gap-2 px-3 py-1.5"
+              onClick={() => setShowOnboardModal(true)}
+            >
+              <Plus size={16} />
+              <span>{t('admin.onboard_new_staff', 'Tiếp Nhận Cán Bộ Mới')}</span>
+            </button>
+          )}
+
+          {activeTab === 'departments' && (
+            <button
+              type="button"
+              className="wd-pill-btn-primary d-flex align-items-center gap-2 px-3 py-1.5"
+              onClick={() => {
+                setEditingDept({
+                  department_code: `DEP-NEW-${Math.floor(Math.random() * 900 + 100)}`,
+                  name: '',
+                  location: 'Building A',
+                  description: '',
+                  status: 'ACTIVE'
+                });
+                setShowDeptModal(true);
+              }}
+            >
+              <Plus size={16} />
+              <span>{t('admin.btn_add_dept', 'Thêm Khoa Phòng')}</span>
+            </button>
+          )}
         </div>
       </div>
 

@@ -620,23 +620,27 @@ export const HRManagement: React.FC = () => {
             <span>{t('admin.refresh', 'Làm Mới')}</span>
           </button>
 
-          <button
-            type="button"
-            className="wd-pill-btn d-flex align-items-center gap-2 px-3 py-1.5"
-            onClick={() => setShowAddShiftModal(true)}
-          >
-            <Clock size={15} />
-            <span>{t('admin.btn_assign_shift', 'Phân Ca Trực')}</span>
-          </button>
+          {activeTab === 'shifts_handover' && (
+            <button
+              type="button"
+              className="wd-pill-btn-primary d-flex align-items-center gap-2 px-3 py-1.5"
+              onClick={() => setShowAddShiftModal(true)}
+            >
+              <Clock size={15} />
+              <span>{t('admin.btn_assign_shift', 'Phân Ca Trực')}</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            className="wd-pill-btn-primary d-flex align-items-center gap-2 px-3 py-1.5"
-            onClick={() => setShowNewRunModal(true)}
-          >
-            <Plus size={16} />
-            <span>{t('admin.btn_create_run', 'Tạo Kỳ Lương')}</span>
-          </button>
+          {activeTab === 'compensation' && (
+            <button
+              type="button"
+              className="wd-pill-btn-primary d-flex align-items-center gap-2 px-3 py-1.5"
+              onClick={() => setShowNewRunModal(true)}
+            >
+              <Plus size={16} />
+              <span>{t('admin.btn_create_run', 'Tạo Kỳ Lương')}</span>
+            </button>
+          )}
         </div>
       </div>
 

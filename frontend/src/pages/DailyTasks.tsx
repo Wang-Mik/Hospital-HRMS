@@ -237,7 +237,7 @@ export const DailyTasks: React.FC = () => {
           <ButtonGroup size="sm">
             <button
               type="button"
-              className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
+              className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-primary text-white' : 'btn-outline-secondary'}`}
               onClick={() => setViewMode('kanban')}
             >
               <CheckSquare size={14} className="me-1" />
@@ -245,7 +245,7 @@ export const DailyTasks: React.FC = () => {
             </button>
             <button
               type="button"
-              className={`btn btn-sm ${viewMode === 'list' ? 'btn-secondary text-white' : 'btn-outline-secondary'}`}
+              className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary text-white' : 'btn-outline-secondary'}`}
               onClick={() => setViewMode('list')}
             >
               <FileText size={14} className="me-1" />

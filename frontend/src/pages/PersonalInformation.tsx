@@ -499,8 +499,7 @@ export const PersonalInformation: React.FC = () => {
             {/* Basic Identity Card */}
             <div className="wd-card mb-4">
               <div className="wd-card-header">
-                <div className="d-flex align-items-center gap-2">
-                  <User size={16} style={{ color: 'var(--wd-blue)' }} />
+                <div>
                   <span className="wd-card-title">{t('personal.title', 'Thông Tin Cán Bộ Y Tế')}</span>
                 </div>
                 <button
@@ -609,8 +608,7 @@ export const PersonalInformation: React.FC = () => {
             {/* Residential Contact Details Card */}
             <div className="wd-card mb-4">
               <div className="wd-card-header">
-                <div className="d-flex align-items-center gap-2">
-                  <MapPin size={16} style={{ color: 'var(--wd-blue)' }} />
+                <div>
                   <span className="wd-card-title">{t('personal.card_home_contact_title', 'Thông Tin Cư Trú & Liên Lạc Riêng')}</span>
                 </div>
                 <button
@@ -664,8 +662,7 @@ export const PersonalInformation: React.FC = () => {
             {/* Official Hospital Work Contact */}
             <div className="wd-card mb-4">
               <div className="wd-card-header">
-                <div className="d-flex align-items-center gap-2">
-                  <Building2 size={16} style={{ color: 'var(--wd-blue)' }} />
+                <div>
                   <span className="wd-card-title">{t('personal.card_work_contact_title', 'Thông Tin Công Vụ Y Tế')}</span>
                 </div>
                 <span className="wd-badge-locked">
@@ -707,8 +704,7 @@ export const PersonalInformation: React.FC = () => {
           <Col lg={5} xl={4}>
             <div className="wd-card mb-4">
               <div className="wd-card-header py-2.5">
-                <div className="d-flex align-items-center gap-2">
-                  <User size={15} style={{ color: 'var(--wd-blue)' }} />
+                <div>
                   <span className="wd-card-title" style={{ fontSize: '13.5px' }}>{t('personal.contacts_table_title', 'Người Thân Khẩn Cấp')}</span>
                 </div>
                 <button
@@ -782,12 +778,9 @@ export const PersonalInformation: React.FC = () => {
       {activeTab === 'degrees' && (
         <div className="wd-card">
           <div className="wd-card-header">
-            <div className="d-flex align-items-center gap-2">
-              <GraduationCap size={18} style={{ color: 'var(--wd-blue)' }} />
-              <div>
-                <span className="wd-card-title">{t('dossier.academic_degrees', 'Văn Bằng Học Vị Y Khoa & Chuyên Nghiệp')}</span>
-                <div className="text-muted small">Văn bằng cử nhân, bác sĩ, thạc sĩ, tiến sĩ, chuyên khoa I, chuyên khoa II theo chuẩn Bộ GD&ĐT & Bộ Y Tế.</div>
-              </div>
+            <div>
+              <span className="wd-card-title">{t('dossier.academic_degrees', 'Văn Bằng Học Vị Y Khoa & Chuyên Nghiệp')}</span>
+              <div className="text-muted small">Văn bằng cử nhân, bác sĩ, thạc sĩ, tiến sĩ, chuyên khoa I, chuyên khoa II theo chuẩn Bộ GD&ĐT & Bộ Y Tế.</div>
             </div>
             <button
               type="button"
@@ -862,12 +855,9 @@ export const PersonalInformation: React.FC = () => {
       {activeTab === 'licenses' && (
         <div className="wd-card">
           <div className="wd-card-header">
-            <div className="d-flex align-items-center gap-2">
-              <Award size={18} style={{ color: 'var(--wd-blue)' }} />
-              <div>
-                <span className="wd-card-title">{t('dossier.medical_licenses', 'Chứng Chỉ Hành Nghề Khám Bệnh, Chữa Bệnh (CCHN)')}</span>
-                <div className="text-muted small">Cấp bởi Bộ Y Tế hoặc Sở Y Tế theo Luật Khám bệnh, chữa bệnh 2023. Gating kiểm tra hợp lệ khi xếp ca trực lâm sàng.</div>
-              </div>
+            <div>
+              <span className="wd-card-title">{t('dossier.medical_licenses', 'Chứng Chỉ Hành Nghề Khám Bệnh, Chữa Bệnh (CCHN)')}</span>
+              <div className="text-muted small">Cấp bởi Bộ Y Tế hoặc Sở Y Tế theo Luật Khám bệnh, chữa bệnh 2023. Gating kiểm tra hợp lệ khi xếp ca trực lâm sàng.</div>
             </div>
           </div>
 
@@ -936,12 +926,9 @@ export const PersonalInformation: React.FC = () => {
       {activeTab === 'certs' && (
         <div className="wd-card">
           <div className="wd-card-header">
-            <div className="d-flex align-items-center gap-2">
-              <FileText size={18} style={{ color: 'var(--wd-blue)' }} />
-              <div>
-                <span className="wd-card-title">{t('dossier.specialized_certifications', 'Chứng Chỉ Chuyên Môn & Đào Tạo Y Khoa Liên Tục (CME)')}</span>
-                <div className="text-muted small">Chứng chỉ kỹ thuật thủ thuật, hồi sức cấp cứu nâng cao (ACLS/ATLS), nội soi, siêu âm và tích lũy giờ CME bắt buộc.</div>
-              </div>
+            <div>
+              <span className="wd-card-title">{t('dossier.specialized_certifications', 'Chứng Chỉ Chuyên Môn & Đào Tạo Y Khoa Liên Tục (CME)')}</span>
+              <div className="text-muted small">Chứng chỉ kỹ thuật thủ thuật, hồi sức cấp cứu nâng cao (ACLS/ATLS), nội soi, siêu âm và tích lũy giờ CME bắt buộc.</div>
             </div>
             <button
               type="button"
@@ -1061,8 +1048,7 @@ export const PersonalInformation: React.FC = () => {
           {/* Contracts Table */}
           <div className="wd-card">
             <div className="wd-card-header">
-              <div className="d-flex align-items-center gap-2">
-                <Briefcase size={18} style={{ color: 'var(--wd-blue)' }} />
+              <div>
                 <span className="wd-card-title">{t('dossier.employment_contracts', 'Hợp Đồng Lao Động & Tuyển Dụng')}</span>
               </div>
             </div>
@@ -1136,12 +1122,9 @@ export const PersonalInformation: React.FC = () => {
       {activeTab === 'insurances' && (
         <div className="wd-card">
           <div className="wd-card-header">
-            <div className="d-flex align-items-center gap-2">
-              <ShieldCheck size={18} style={{ color: 'var(--wd-blue)' }} />
-              <div>
-                <span className="wd-card-title">{t('dossier.social_insurances', 'Bảo Hiểm Xã Hội, Y Tế & Chế Độ Phúc Lợi Y Tế')}</span>
-                <div className="text-muted small">Căn cứ chế độ bảo hiểm bắt buộc theo Luật BHXH và BHYT Việt Nam cho cán bộ y tế.</div>
-              </div>
+            <div>
+              <span className="wd-card-title">{t('dossier.social_insurances', 'Bảo Hiểm Xã Hội, Y Tế & Chế Độ Phúc Lợi Y Tế')}</span>
+              <div className="text-muted small">Căn cứ chế độ bảo hiểm bắt buộc theo Luật BHXH và BHYT Việt Nam cho cán bộ y tế.</div>
             </div>
           </div>
 
@@ -1205,8 +1188,7 @@ export const PersonalInformation: React.FC = () => {
           <Col lg={6}>
             <div className="wd-card">
               <div className="wd-card-header">
-                <div className="d-flex align-items-center gap-2">
-                  <Star size={18} style={{ color: 'var(--wd-blue)' }} />
+                <div>
                   <span className="wd-card-title">{t('dossier.rewards_disciplines', 'Khen Thưởng & Kỷ Luật')}</span>
                 </div>
               </div>
@@ -1255,8 +1237,7 @@ export const PersonalInformation: React.FC = () => {
           <Col lg={6}>
             <div className="wd-card">
               <div className="wd-card-header">
-                <div className="d-flex align-items-center gap-2">
-                  <Award size={18} style={{ color: 'var(--wd-blue)' }} />
+                <div>
                   <span className="wd-card-title">{t('dossier.monthly_kpi', 'Lịch Sử Đánh Giá KPI Hàng Tháng')}</span>
                 </div>
               </div>
