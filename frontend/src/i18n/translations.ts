@@ -554,6 +554,10 @@ export const translations = {
 
     // Time Off & Leaves
     'timeoff.title': 'Quản Lý Nghỉ Phép',
+    'timeoff.tab_my_leaves': 'Đơn Của Tôi & Hạn Mức',
+    'timeoff.tab_dept_approvals': 'Phê Duyệt Của Khoa',
+    'timeoff.tab_policies': 'Chính Sách & Quy Định',
+    'timeoff.policy_subtitle': 'Quy định chế độ nghỉ phép năm, nghỉ lễ Tết và quy trình bù trực lâm sàng theo chuẩn y tế.',
     'timeoff.subtitle': 'Quản lý phép năm, nghỉ ốm bảo hiểm, nghỉ thai sản và bù trực',
     'timeoff.subtitle_male': 'Quản lý phép năm, nghỉ ốm bảo hiểm và bù trực',
     'timeoff.balance': 'Quỹ Phép Năm Còn Lại',
@@ -2546,6 +2550,10 @@ export const translations = {
 
     // Time Off & Leaves
     'timeoff.title': 'Time Off & Leaves',
+    'timeoff.tab_my_leaves': 'My Leaves & Balances',
+    'timeoff.tab_dept_approvals': 'Department Approvals',
+    'timeoff.tab_policies': 'Policies & Regulations',
+    'timeoff.policy_subtitle': 'Regulations on annual leave, statutory holidays, and clinical compensatory shifts.',
     'timeoff.subtitle': 'Manage annual leaves, social insurance sick leave, maternity leave, and duty comp days',
     'timeoff.subtitle_male': 'Manage annual leaves, social insurance sick leave, and duty comp days',
     'timeoff.balance': 'Remaining Annual Leave',

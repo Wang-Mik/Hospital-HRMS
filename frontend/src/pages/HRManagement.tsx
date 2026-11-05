@@ -54,30 +54,30 @@ export const HRManagement: React.FC = () => {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   const validTabs: Array<
-    | 'leaves'
-    | 'compensation'
-    | 'shifts_handover'
-    | 'licensing'
     | 'contracts'
     | 'insurances'
-    | 'rewards_disciplines'
+    | 'licensing'
+    | 'shifts_handover'
+    | 'leaves'
     | 'monthly_kpis'
+    | 'rewards_disciplines'
+    | 'compensation'
   > = [
-    'leaves',
-    'compensation',
-    'shifts_handover',
-    'licensing',
     'contracts',
     'insurances',
+    'licensing',
+    'shifts_handover',
+    'leaves',
+    'monthly_kpis',
     'rewards_disciplines',
-    'monthly_kpis'
+    'compensation'
   ];
 
   type HRTab = typeof validTabs[number];
 
   const initialTab = searchParams.get('tab') as any;
   const [activeTab, setActiveTab] = useState<HRTab>(
-    validTabs.includes(initialTab) ? initialTab : 'leaves'
+    validTabs.includes(initialTab) ? initialTab : 'contracts'
   );
 
   // Sync tab with search params
@@ -760,47 +760,6 @@ export const HRManagement: React.FC = () => {
         <div className="wd-tabs" ref={tabsContainerRef}>
           <button
             type="button"
-            className={`wd-tab-btn ${activeTab === 'leaves' ? 'active' : ''}`}
-            onClick={() => handleTabChange('leaves')}
-          >
-            <Calendar size={15} className="me-2" />
-            {t('hr_portal.tab_leaves', 'Phê Duyệt Nghỉ Phép')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{leaveRequests.length}</span>
-            {kpis.pending_leaves > 0 && (
-              <Badge bg="warning" text="dark" pill className="ms-2">
-                {kpis.pending_leaves}
-              </Badge>
-            )}
-          </button>
-
-          <button
-            type="button"
-            className={`wd-tab-btn ${activeTab === 'compensation' ? 'active' : ''}`}
-            onClick={() => handleTabChange('compensation')}
-          >
-            <CreditCard size={15} className="me-2" />
-            {t('hr_portal.tab_compensation', 'Định Mức Lương & Kỳ Lương')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{payRates.length}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`wd-tab-btn ${activeTab === 'shifts_handover' ? 'active' : ''}`}
-            onClick={() => handleTabChange('shifts_handover')}
-          >
-            <Clock size={15} className="me-2" />
-            {t('hr_portal.tab_shifts_handover', 'Lịch Trực & Bàn Giao Ca')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{shifts.length}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`wd-tab-btn ${activeTab === 'licensing' ? 'active' : ''}`}
-            onClick={() => handleTabChange('licensing')}
-          >
-            <Award size={15} className="me-2" />
-            {t('hr_portal.tab_licensing', 'Tuân Thủ CCHN')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{licenses.length}</span>
-          </button>
-
-          <button
-            type="button"
             className={`wd-tab-btn ${activeTab === 'contracts' ? 'active' : ''}`}
             onClick={() => handleTabChange('contracts')}
           >
@@ -819,11 +778,34 @@ export const HRManagement: React.FC = () => {
 
           <button
             type="button"
-            className={`wd-tab-btn ${activeTab === 'rewards_disciplines' ? 'active' : ''}`}
-            onClick={() => handleTabChange('rewards_disciplines')}
+            className={`wd-tab-btn ${activeTab === 'licensing' ? 'active' : ''}`}
+            onClick={() => handleTabChange('licensing')}
           >
-            <Star size={15} className="me-2" />
-            <span>Khen Thưởng & Kỷ Luật</span> <span className="badge rounded-pill bg-light text-dark ms-1.5">{commendationsDisciplines.length}</span>
+            <Award size={15} className="me-2" />
+            {t('hr_portal.tab_licensing', 'Tuân Thủ CCHN')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{licenses.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'shifts_handover' ? 'active' : ''}`}
+            onClick={() => handleTabChange('shifts_handover')}
+          >
+            <Clock size={15} className="me-2" />
+            {t('hr_portal.tab_shifts_handover', 'Lịch Trực & Bàn Giao Ca')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{shifts.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'leaves' ? 'active' : ''}`}
+            onClick={() => handleTabChange('leaves')}
+          >
+            <Calendar size={15} className="me-2" />
+            {t('hr_portal.tab_leaves', 'Phê Duyệt Nghỉ Phép')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{leaveRequests.length}</span>
+            {kpis.pending_leaves > 0 && (
+              <Badge bg="warning" text="dark" pill className="ms-2">
+                {kpis.pending_leaves}
+              </Badge>
+            )}
           </button>
 
           <button
@@ -833,6 +815,24 @@ export const HRManagement: React.FC = () => {
           >
             <FileCheck size={15} className="me-2" />
             <span>Đánh Giá KPI Tháng</span> <span className="badge rounded-pill bg-light text-dark ms-1.5">{monthlyKpis.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'rewards_disciplines' ? 'active' : ''}`}
+            onClick={() => handleTabChange('rewards_disciplines')}
+          >
+            <Star size={15} className="me-2" />
+            <span>Khen Thưởng & Kỷ Luật</span> <span className="badge rounded-pill bg-light text-dark ms-1.5">{commendationsDisciplines.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'compensation' ? 'active' : ''}`}
+            onClick={() => handleTabChange('compensation')}
+          >
+            <CreditCard size={15} className="me-2" />
+            {t('hr_portal.tab_compensation', 'Định Mức Lương & Kỳ Lương')} <span className="badge rounded-pill bg-light text-dark ms-1.5">{payRates.length}</span>
           </button>
         </div>
 

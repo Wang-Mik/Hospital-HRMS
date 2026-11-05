@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Row,
   Col,
   Modal,
   Form,
-  Alert
+  Alert,
+  Badge
 } from 'react-bootstrap';
 import {
   Plus,
@@ -14,7 +15,8 @@ import {
   Info,
   Calendar,
   Clock,
-  FileText
+  FileText,
+  AlertTriangle
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leaveApi } from '../api/leaveApi';
@@ -128,6 +130,44 @@ export const TimeOffLeaves: React.FC = () => {
       setSuccessMsg(`Lỗi: ${err.response?.data?.message || err.message}`);
     }
   });
+
+  // Tab & Deep-link State
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTab = searchParams.get('tab') as 'my_leaves' | 'dept_approvals' | 'policies' | null;
+  const pendingDeptCount = deptLeaves.filter((r: any) => r.status === 'PENDING').length;
+
+  const [activeTab, setActiveTab] = useState<'my_leaves' | 'dept_approvals' | 'policies'>(() => {
+    if (queryTab && ['my_leaves', 'dept_approvals', 'policies'].includes(queryTab)) {
+      return queryTab;
+    }
+    return isDeptHead && pendingDeptCount > 0 ? 'dept_approvals' : 'my_leaves';
+  });
+
+  // Sync state with query param
+  useEffect(() => {
+    if (queryTab && ['my_leaves', 'dept_approvals', 'policies'].includes(queryTab) && queryTab !== activeTab) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
+
+  // Reactive switch for Dept Head if pending requests arrive and no explicit queryTab was provided
+  useEffect(() => {
+    if (isDeptHead && !queryTab && pendingDeptCount > 0 && activeTab === 'my_leaves') {
+      setActiveTab('dept_approvals');
+    }
+  }, [isDeptHead, pendingDeptCount, queryTab]);
+
+  const handleTabChange = (newTab: 'my_leaves' | 'dept_approvals' | 'policies') => {
+    setActiveTab(newTab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', newTab);
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   // Helper for displaying day numbers
   const formatDays = (val: number | string) => {
@@ -298,8 +338,216 @@ export const TimeOffLeaves: React.FC = () => {
         </div>
       )}
 
-      {/* DEPARTMENT HEAD APPROVAL PORTAL CARD */}
-      {isDeptHead && (
+      {/* Emergency Sticky Banner for Dept Head */}
+      {isDeptHead && pendingDeptCount > 0 && activeTab !== 'dept_approvals' && (
+        <Alert
+          variant="warning"
+          className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 py-2.5 px-3 mb-4 shadow-xs border-warning"
+        >
+          <div className="d-flex align-items-center gap-2">
+            <AlertTriangle size={18} className="text-warning-emphasis flex-shrink-0" />
+            <span className="fw-medium small">
+              {t('admin.dept_leave_pending_alert', 'Khoa của bạn đang có')} <strong>{pendingDeptCount}</strong> {t('admin.dept_leave_pending_suffix', 'đơn xin nghỉ phép/đổi ca chờ duyệt khẩn cấp.')}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-warning px-3 py-1 fw-semibold text-dark shadow-xs"
+            onClick={() => handleTabChange('dept_approvals')}
+          >
+            {t('admin.review_now', 'Chuyển sang duyệt ngay')} &rarr;
+          </button>
+        </Alert>
+      )}
+
+      {/* Navigation Tabs */}
+      <div className="wd-tabs mb-4">
+        <button
+          type="button"
+          className={`wd-tab-btn ${activeTab === 'my_leaves' ? 'active' : ''}`}
+          onClick={() => handleTabChange('my_leaves')}
+        >
+          <span>{t('timeoff.tab_my_leaves', 'Đơn Của Tôi & Hạn Mức')}</span>
+        </button>
+
+        {isDeptHead && (
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'dept_approvals' ? 'active' : ''}`}
+            onClick={() => handleTabChange('dept_approvals')}
+          >
+            <span>{t('timeoff.tab_dept_approvals', 'Phê Duyệt Của Khoa')}</span>
+            {pendingDeptCount > 0 ? (
+              <Badge bg="danger" pill className="ms-2 font-mono">
+                {pendingDeptCount}
+              </Badge>
+            ) : (
+              <span className="badge rounded-pill bg-light text-dark ms-2">{deptLeaves.length}</span>
+            )}
+          </button>
+        )}
+
+        <button
+          type="button"
+          className={`wd-tab-btn ${activeTab === 'policies' ? 'active' : ''}`}
+          onClick={() => handleTabChange('policies')}
+        >
+          <span>{t('timeoff.tab_policies', 'Chính Sách & Quy Định')}</span>
+        </button>
+      </div>
+
+      {/* TAB 1: MY LEAVES & BALANCES */}
+      {activeTab === 'my_leaves' && (
+        <div>
+          {/* Support Banner (AskHR) */}
+          <div className="wd-support-banner">
+            <div className="wd-support-icon">
+              <Info size={18} />
+            </div>
+            <div className="flex-grow-1">
+              <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
+                {t('timeoff.askhr_title', 'Hỗ Trợ Nhân Sự AskHR')}
+              </div>
+              <div className="text-muted" style={{ fontSize: '12px' }}>
+                {isMale
+                  ? t('timeoff.askhr_desc_male', 'Cần giải đáp về hạn mức phép năm hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')
+                  : t('timeoff.askhr_desc', 'Cần giải đáp về hạn mức phép năm, chế độ thai sản hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="wd-pill-btn-outline d-none d-md-inline-flex"
+              onClick={() => setShowRequestModal(true)}
+            >
+              {t('timeoff.request_leave', 'Tạo Yêu Cầu Mới')}
+            </button>
+          </div>
+
+          {/* 2-Column Layout */}
+          <Row className="g-4">
+            {/* COLUMN 1 (LEFT): AVAILABLE BALANCE */}
+            <Col lg={6}>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
+                  {t('timeoff.available_balance_title', 'Hạn Mức Phép Còn Lại')}
+                </span>
+                <span className="text-muted" style={{ fontSize: '11px' }}>
+                  {t('common.year', 'Năm')} 2026
+                </span>
+              </div>
+
+              <div className="wd-card mb-4">
+                <div className="p-0">
+                  {displayBalances.map((item, idx) => {
+                    const isLast = idx === displayBalances.length - 1;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-3 px-4 d-flex align-items-center justify-content-between ${
+                          !isLast ? 'border-bottom' : ''
+                        }`}
+                        style={{ borderColor: 'var(--wd-border-light)' }}
+                      >
+                        <div>
+                          <div className="fw-semibold text-dark" style={{ fontSize: '14px' }}>
+                            {item.name}
+                          </div>
+                          <div className="text-muted" style={{ fontSize: '12px' }}>
+                            {item.note}
+                          </div>
+                        </div>
+
+                        <div className="text-end ps-3">
+                          <div
+                            className="fw-bold font-mono text-dark"
+                            style={{ fontSize: '1.65rem', lineHeight: 1.1, letterSpacing: '-0.02em' }}
+                          >
+                            {item.availableDays}
+                          </div>
+                          <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
+                            {t('timeoff.available_days_badge', 'Ngày Khả Dụng')}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Col>
+
+            {/* COLUMN 2 (RIGHT): UPCOMING TIME OFF */}
+            <Col lg={6}>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
+                  {t('timeoff.upcoming_title', 'Lịch Nghỉ Sắp Tới')}
+                </span>
+                <span className="wd-badge-neutral" style={{ fontSize: '11px' }}>
+                  {displayRequests.length} {t('timeoff.plans_count', 'Kế Hoạch')}
+                </span>
+              </div>
+
+              {/* Table Card */}
+              <div className="wd-card mb-4">
+                <div className="table-responsive">
+                  <table className="wd-table">
+                    <thead>
+                      <tr>
+                        <th>{t('timeoff.time_range', 'Thời Gian Nghỉ')}</th>
+                        <th>{t('timeoff.leave_type', 'Loại Nghỉ Phép')}</th>
+                        <th>{t('timeoff.duration', 'Thời Lượng')}</th>
+                        <th className="text-end">{t('common.status', 'Trạng Thái')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isRequestsLoading ? (
+                        <TheoryOfNextLoader isTableBody columns={4} rows={3} />
+                      ) : displayRequests.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="text-center py-4 text-muted">
+                            {t('timeoff.no_upcoming', 'Chưa có lịch nghỉ phép nào được lên kế hoạch.')}
+                          </td>
+                        </tr>
+                      ) : (
+                        displayRequests.map((leave) => (
+                          <tr key={leave.id}>
+                            <td className="fw-semibold text-dark">
+                              {leave.dateRange}
+                            </td>
+                            <td className="text-secondary">
+                              {leave.type}
+                            </td>
+                            <td className="fw-bold font-mono text-dark">
+                              {leave.quantity}
+                            </td>
+                            <td className="text-end">
+                              {leave.status === 'APPROVED' ? (
+                                <span className="wd-badge-success">
+                                  {t('common.approved', 'Đã Phê Duyệt')}
+                                </span>
+                              ) : leave.status === 'CANCELLED' ? (
+                                <span className="wd-badge-neutral">
+                                  {t('status.cancelled', 'Đã Hủy')}
+                                </span>
+                              ) : (
+                                <span className="wd-badge-warning">
+                                  {t('common.pending', 'Chờ Duyệt')}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Col>
+          </Row>
+        </div>
+      )}
+
+      {/* TAB 2: DEPARTMENT APPROVALS (FOR DEPT HEAD) */}
+      {activeTab === 'dept_approvals' && isDeptHead && (
         <div className="wd-card p-4 mb-4 border-start border-4 border-primary">
           <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3 pb-3 border-bottom">
             <div>
@@ -407,184 +655,44 @@ export const TimeOffLeaves: React.FC = () => {
         </div>
       )}
 
-      {/* Support Banner (AskHR) */}
-      <div className="wd-support-banner">
-        <div className="wd-support-icon">
-          <Info size={18} />
-        </div>
-        <div className="flex-grow-1">
-          <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
-            {t('timeoff.askhr_title', 'Hỗ Trợ Nhân Sự AskHR')}
-          </div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>
-            {isMale
-              ? t('timeoff.askhr_desc_male', 'Cần giải đáp về hạn mức phép năm hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')
-              : t('timeoff.askhr_desc', 'Cần giải đáp về hạn mức phép năm, chế độ thai sản hoặc ghi nhận trực bù? Liên hệ askhr@hospital.vn hoặc tạo phiếu yêu cầu trực tuyến.')}
-          </div>
-        </div>
-        <button
-          type="button"
-          className="wd-pill-btn-outline d-none d-md-inline-flex"
-          onClick={() => setShowRequestModal(true)}
-        >
-          {t('timeoff.request_leave', 'Tạo Yêu Cầu Mới')}
-        </button>
-      </div>
-
-      {/* 2-Column Layout */}
-      <Row className="g-4">
-        {/* COLUMN 1 (LEFT): AVAILABLE BALANCE */}
-        <Col lg={6}>
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
-              {t('timeoff.available_balance_title', 'Hạn Mức Phép Còn Lại')}
-            </span>
-            <span className="text-muted" style={{ fontSize: '11px' }}>
-              {t('common.year', 'Năm')} 2026
-            </span>
-          </div>
-
-          <div className="wd-card mb-4">
-            <div className="p-0">
-              {displayBalances.map((item, idx) => {
-                const isLast = idx === displayBalances.length - 1;
-                return (
-                  <div
-                    key={item.id}
-                    className={`p-3 px-4 d-flex align-items-center justify-content-between ${
-                      !isLast ? 'border-bottom' : ''
-                    }`}
-                    style={{ borderColor: 'var(--wd-border-light)' }}
-                  >
-                    <div>
-                      <div className="fw-semibold text-dark" style={{ fontSize: '14px' }}>
-                        {item.name}
-                      </div>
-                      <div className="text-muted" style={{ fontSize: '12px' }}>
-                        {item.note}
-                      </div>
-                    </div>
-
-                    <div className="text-end ps-3">
-                      <div
-                        className="fw-bold font-mono text-dark"
-                        style={{ fontSize: '1.65rem', lineHeight: 1.1, letterSpacing: '-0.02em' }}
-                      >
-                        {item.availableDays}
-                      </div>
-                      <div className="text-muted text-uppercase fw-semibold" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
-                        {t('timeoff.available_days_badge', 'Ngày Khả Dụng')}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Col>
-
-        {/* COLUMN 2 (RIGHT): UPCOMING TIME OFF & POLICIES */}
-        <Col lg={6}>
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
-              {t('timeoff.upcoming_title', 'Lịch Nghỉ Sắp Tới')}
-            </span>
-            <span className="wd-badge-neutral" style={{ fontSize: '11px' }}>
-              {displayRequests.length} {t('timeoff.plans_count', 'Kế Hoạch')}
-            </span>
-          </div>
-
-          {/* Table Card */}
-          <div className="wd-card mb-4">
-            <div className="table-responsive">
-              <table className="wd-table">
-                <thead>
-                  <tr>
-                    <th>{t('timeoff.time_range', 'Thời Gian Nghỉ')}</th>
-                    <th>{t('timeoff.leave_type', 'Loại Nghỉ Phép')}</th>
-                    <th>{t('timeoff.duration', 'Thời Lượng')}</th>
-                    <th className="text-end">{t('common.status', 'Trạng Thái')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isRequestsLoading ? (
-                    <TheoryOfNextLoader isTableBody columns={4} rows={3} />
-                  ) : displayRequests.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center py-4 text-muted">
-                        {t('timeoff.no_upcoming', 'Chưa có lịch nghỉ phép nào được lên kế hoạch.')}
-                      </td>
-                    </tr>
-                  ) : (
-                    displayRequests.map((leave) => (
-                      <tr key={leave.id}>
-                        <td className="fw-semibold text-dark">
-                          {leave.dateRange}
-                        </td>
-                        <td className="text-secondary">
-                          {leave.type}
-                        </td>
-                        <td className="fw-bold font-mono text-dark">
-                          {leave.quantity}
-                        </td>
-                        <td className="text-end">
-                          {leave.status === 'APPROVED' ? (
-                            <span className="wd-badge-success">
-                              {t('common.approved', 'Đã Phê Duyệt')}
-                            </span>
-                          ) : leave.status === 'CANCELLED' ? (
-                            <span className="wd-badge-neutral">
-                              {t('status.cancelled', 'Đã Hủy')}
-                            </span>
-                          ) : (
-                            <span className="wd-badge-warning">
-                              {t('common.pending', 'Chờ Duyệt')}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Helpful Links Section */}
-          <div className="mb-2">
-            <span className="text-muted text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
+      {/* TAB 3: POLICIES & REGULATIONS */}
+      {activeTab === 'policies' && (
+        <div className="wd-card p-4 mb-4">
+          <div className="mb-3 pb-2 border-bottom">
+            <h2 className="h6 fw-bold text-dark mb-1">
               {t('timeoff.policy_title', 'Chính Sách & Hướng Dẫn Liên Quan')}
-            </span>
+            </h2>
+            <p className="text-muted small mb-0">
+              {t('timeoff.policy_subtitle', 'Quy định chế độ nghỉ phép năm, nghỉ lễ Tết và quy trình bù trực lâm sàng theo chuẩn y tế.')}
+            </p>
           </div>
 
-          <div className="wd-card">
-            <div className="p-0">
-              {policyLinks.map((link, idx) => {
-                const isLast = idx === policyLinks.length - 1;
-                return (
-                  <div
-                    key={idx}
-                    className={`p-3 px-4 d-flex align-items-center justify-content-between ${
-                      !isLast ? 'border-bottom' : ''
-                    }`}
-                    style={{ borderColor: 'var(--wd-border-light)' }}
-                  >
-                    <div>
-                      <div className="fw-semibold text-dark" style={{ fontSize: '13px' }}>
-                        {link.title}
-                      </div>
-                      <div className="text-muted" style={{ fontSize: '12px' }}>
-                        {link.desc}
-                      </div>
+          <div className="p-0">
+            {policyLinks.map((link, idx) => {
+              const isLast = idx === policyLinks.length - 1;
+              return (
+                <div
+                  key={idx}
+                  className={`p-3 px-4 d-flex align-items-center justify-content-between ${
+                    !isLast ? 'border-bottom' : ''
+                  }`}
+                  style={{ borderColor: 'var(--wd-border-light)' }}
+                >
+                  <div>
+                    <div className="fw-semibold text-dark" style={{ fontSize: '14px' }}>
+                      {link.title}
                     </div>
-                    <ExternalLink size={14} className="text-muted flex-shrink-0 ms-3" />
+                    <div className="text-muted" style={{ fontSize: '12px' }}>
+                      {link.desc}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                  <ExternalLink size={16} className="text-muted flex-shrink-0 ms-3" />
+                </div>
+              );
+            })}
           </div>
-        </Col>
-      </Row>
+        </div>
+      )}
 
       {/* Request Time Off Modal */}
       <Modal show={showRequestModal} onHide={() => setShowRequestModal(false)} centered>

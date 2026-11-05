@@ -64,31 +64,31 @@ export const Sidebar: React.FC = () => {
   // 3. Khối Lâm Sàng & Khám Chữa Bệnh (DOCTOR, NURSE, DEPARTMENT_HEAD...)
   const clinicalRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
-    { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User },
-    { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
     { label: t('nav.shifts', 'Lịch Làm Việc & Trực'), to: '/shifts', icon: CalendarDays },
     { label: t('nav.attendance', 'Chấm Công'), to: '/attendance', icon: Clock },
     { label: t('nav.handovers', 'Giao Ca'), to: '/handovers', icon: ClipboardList },
     { label: t('nav.briefings', 'Giao Ban'), to: '/briefings', icon: BookOpen },
     { label: t('nav.tasks', 'Công Việc'), to: '/tasks', icon: CheckSquare },
+    { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
     { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: Calendar },
     { label: t('nav.payroll', 'Bảng Lương'), to: '/payroll', icon: CreditCard },
-    { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell }
+    { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell },
+    { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
   ];
 
   // 4. Khối Kỹ Thuật Viên Cận Lâm Sàng & Dược (TECHNICIAN, PHARMACIST)
   // Quy chuẩn bệnh viện: Kỹ thuật viên & Dược sĩ không tham gia giao ban viện (/briefings)
   const technicalRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
-    { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User },
-    { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
     { label: t('nav.shifts', 'Lịch Làm Việc & Trực'), to: '/shifts', icon: CalendarDays },
     { label: t('nav.attendance', 'Chấm Công'), to: '/attendance', icon: Clock },
     { label: t('nav.handovers', 'Giao Ca'), to: '/handovers', icon: ClipboardList },
     { label: t('nav.tasks', 'Công Việc'), to: '/tasks', icon: CheckSquare },
+    { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
     { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: Calendar },
     { label: t('nav.payroll', 'Bảng Lương'), to: '/payroll', icon: CreditCard },
-    { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell }
+    { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell },
+    { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
   ];
 
   const isTechnicianOrPharmacist =

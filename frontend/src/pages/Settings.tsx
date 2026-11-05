@@ -160,40 +160,31 @@ export const Settings: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="d-flex flex-wrap gap-2 mb-4 border-bottom pb-3">
+      <div className="wd-tabs mb-4">
         <button
           type="button"
           onClick={() => setActiveTab('display')}
-          className={`btn btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold ${
-            activeTab === 'display' ? 'btn-primary shadow-sm' : 'btn-light text-secondary border'
-          }`}
-          style={activeTab === 'display' ? { backgroundColor: '#0369a1', borderColor: '#0369a1' } : undefined}
+          className={`wd-tab-btn ${activeTab === 'display' ? 'active' : ''}`}
         >
-          <Globe size={16} />
+          <Globe size={15} className="me-2" />
           <span>{t('settings.tab_display')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('notifications')}
-          className={`btn btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold ${
-            activeTab === 'notifications' ? 'btn-primary shadow-sm' : 'btn-light text-secondary border'
-          }`}
-          style={activeTab === 'notifications' ? { backgroundColor: '#0369a1', borderColor: '#0369a1' } : undefined}
+          className={`wd-tab-btn ${activeTab === 'notifications' ? 'active' : ''}`}
         >
-          <Bell size={16} />
+          <Bell size={15} className="me-2" />
           <span>{t('settings.tab_notifications')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('account')}
-          className={`btn btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold ${
-            activeTab === 'account' ? 'btn-primary shadow-sm' : 'btn-light text-secondary border'
-          }`}
-          style={activeTab === 'account' ? { backgroundColor: '#0369a1', borderColor: '#0369a1' } : undefined}
+          className={`wd-tab-btn ${activeTab === 'account' ? 'active' : ''}`}
         >
-          <ShieldCheck size={16} />
+          <ShieldCheck size={15} className="me-2" />
           <span>{t('settings.tab_account')}</span>
         </button>
       </div>

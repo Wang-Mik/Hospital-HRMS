@@ -49,10 +49,35 @@ export const SystemManagement: React.FC = () => {
   // Smooth redirect to dedicated HR Management portal if HR tab requested
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['leaves', 'compensation', 'shifts_handover', 'licensing'].includes(tabParam)) {
+    const hrTabs = [
+      'contracts',
+      'insurances',
+      'licensing',
+      'shifts_handover',
+      'leaves',
+      'monthly_kpis',
+      'rewards_disciplines',
+      'compensation'
+    ];
+    if (tabParam && hrTabs.includes(tabParam)) {
       navigate(`/hr?tab=${tabParam}`, { replace: true });
     }
   }, [searchParams, navigate]);
+
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  const checkOverflow = () => {
+    if (tabsContainerRef.current) {
+      const { scrollWidth, clientWidth } = tabsContainerRef.current;
+      setHasOverflow(scrollWidth > clientWidth + 2);
+    }
+  };
+
+  useEffect(() => {
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, []);
 
   const validTabs: Array<'staff_iam' | 'departments' | 'broadcast' | 'audit_logs'> = [
     'staff_iam',
@@ -514,15 +539,17 @@ export const SystemManagement: React.FC = () => {
 
       {/* Operational Tabs */}
       <div className="wd-tabs-container mb-4">
-        <button
-          type="button"
-          className="wd-tab-scroll-btn d-none d-md-flex"
-          onClick={() => scrollTabs('left')}
-          title={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
-          aria-label={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
-        >
-          <ChevronLeft size={16} />
-        </button>
+        {hasOverflow && (
+          <button
+            type="button"
+            className="wd-tab-scroll-btn d-none d-md-flex"
+            onClick={() => scrollTabs('left')}
+            title={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
+            aria-label={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
 
         <div className="wd-tabs" ref={tabsContainerRef}>
           <button
@@ -562,15 +589,17 @@ export const SystemManagement: React.FC = () => {
           </button>
         </div>
 
-        <button
-          type="button"
-          className="wd-tab-scroll-btn d-none d-md-flex"
-          onClick={() => scrollTabs('right')}
-          title={t('admin.tab_scroll_next', 'Cuộn sang phải')}
-          aria-label={t('admin.tab_scroll_next', 'Cuộn sang phải')}
-        >
-          <ChevronRight size={16} />
-        </button>
+        {hasOverflow && (
+          <button
+            type="button"
+            className="wd-tab-scroll-btn d-none d-md-flex"
+            onClick={() => scrollTabs('right')}
+            title={t('admin.tab_scroll_next', 'Cuộn sang phải')}
+            aria-label={t('admin.tab_scroll_next', 'Cuộn sang phải')}
+          >
+            <ChevronRight size={16} />
+          </button>
+        )}
       </div>
 
       {/* TAB 1: STAFF & IAM */}

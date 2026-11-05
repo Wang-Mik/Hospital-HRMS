@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -17,6 +18,7 @@ import {
   Lock,
   Edit2,
   Camera,
+  ChevronLeft,
   ChevronRight,
   ExternalLink,
   Plus,
@@ -53,8 +55,67 @@ export const PersonalInformation: React.FC = () => {
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
   const isHR = user?.role === 'HR_MANAGER' || user?.role === 'HEAD_OF_HR';
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<DossierTab>('profile');
+  // Active Tab & Deep-link State
+  const validDossierTabs: DossierTab[] = [
+    'profile',
+    'degrees',
+    'licenses',
+    'certs',
+    'kpi_rewards',
+    'contracts_salary',
+    'insurances'
+  ];
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTab = searchParams.get('tab') as DossierTab | null;
+
+  const [activeTab, setActiveTab] = useState<DossierTab>(() => {
+    if (queryTab && validDossierTabs.includes(queryTab)) return queryTab;
+    return 'profile';
+  });
+
+  // Sync tab with search params
+  useEffect(() => {
+    if (queryTab && validDossierTabs.includes(queryTab) && queryTab !== activeTab) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
+
+  const handleTabChange = (newTab: DossierTab) => {
+    setActiveTab(newTab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', newTab);
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  // Scroll Container Ref & Overflow Tracking
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  const checkOverflow = () => {
+    if (tabsContainerRef.current) {
+      const { scrollWidth, clientWidth } = tabsContainerRef.current;
+      setHasOverflow(scrollWidth > clientWidth + 2);
+    }
+  };
+
+  useEffect(() => {
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, []);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      const offset = direction === 'left' ? -220 : 220;
+      tabsContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
 
   // Notification and Modals
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
@@ -438,56 +499,89 @@ export const PersonalInformation: React.FC = () => {
       )}
 
       {/* 7 Tab Navigation Strip */}
-      <div className="wd-tabs mb-4 flex-wrap gap-1">
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setActiveTab('profile')}
+      <div className="wd-tabs-container mb-4">
+        {hasOverflow && (
+          <button
+            type="button"
+            className="wd-tab-scroll-btn d-none d-md-flex"
+            onClick={() => scrollTabs('left')}
+            title={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
+            aria-label={t('admin.tab_scroll_prev', 'Cuộn sang trái')}
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
+
+        <div
+          className="wd-tabs"
+          ref={tabsContainerRef}
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            scrollSnapType: 'x mandatory'
+          }}
         >
-          <span>{t('personal.title', 'Lý Lịch & Liên Hệ')}</span>
-        </button>
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'degrees' ? 'active' : ''}`}
-          onClick={() => setActiveTab('degrees')}
-        >
-          <span>{t('dossier.academic_degrees', 'Văn Bằng & Học Vị')} ({academicDegrees.length})</span>
-        </button>
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'licenses' ? 'active' : ''}`}
-          onClick={() => setActiveTab('licenses')}
-        >
-          <span>{t('dossier.medical_licenses', 'Chứng Chỉ Hành Nghề (CCHN)')} ({medicalLicenses.length})</span>
-        </button>
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'certs' ? 'active' : ''}`}
-          onClick={() => setActiveTab('certs')}
-        >
-          <span>{t('dossier.specialized_certifications', 'Chứng Chỉ Chuyên Môn & CME')} ({specializedCerts.length})</span>
-        </button>
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'contracts_salary' ? 'active' : ''}`}
-          onClick={() => setActiveTab('contracts_salary')}
-        >
-          <span>{t('dossier.employment_contracts', 'Hợp Đồng & Nâng Lương')}</span>
-        </button>
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'insurances' ? 'active' : ''}`}
-          onClick={() => setActiveTab('insurances')}
-        >
-          <span>{t('dossier.social_insurances', 'Bảo Hiểm Xã Hội & Y Tế')}</span>
-        </button>
-        <button
-          type="button"
-          className={`wd-tab-btn ${activeTab === 'kpi_rewards' ? 'active' : ''}`}
-          onClick={() => setActiveTab('kpi_rewards')}
-        >
-          <span>{t('dossier.monthly_kpi', 'KPI Tháng & Khen Thưởng')}</span>
-        </button>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => handleTabChange('profile')}
+          >
+            <span>{t('personal.title', 'Lý Lịch & Liên Hệ')}</span>
+          </button>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'degrees' ? 'active' : ''}`}
+            onClick={() => handleTabChange('degrees')}
+          >
+            <span>{t('dossier.academic_degrees', 'Văn Bằng & Học Vị')} ({academicDegrees.length})</span>
+          </button>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'licenses' ? 'active' : ''}`}
+            onClick={() => handleTabChange('licenses')}
+          >
+            <span>{t('dossier.medical_licenses', 'Chứng Chỉ Hành Nghề (CCHN)')} ({medicalLicenses.length})</span>
+          </button>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'certs' ? 'active' : ''}`}
+            onClick={() => handleTabChange('certs')}
+          >
+            <span>{t('dossier.specialized_certifications', 'Chứng Chỉ Chuyên Môn & CME')} ({specializedCerts.length})</span>
+          </button>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'kpi_rewards' ? 'active' : ''}`}
+            onClick={() => handleTabChange('kpi_rewards')}
+          >
+            <span>{t('dossier.monthly_kpi', 'KPI Tháng & Khen Thưởng')}</span>
+          </button>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'contracts_salary' ? 'active' : ''}`}
+            onClick={() => handleTabChange('contracts_salary')}
+          >
+            <span>{t('dossier.employment_contracts', 'Hợp Đồng & Nâng Lương')}</span>
+          </button>
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'insurances' ? 'active' : ''}`}
+            onClick={() => handleTabChange('insurances')}
+          >
+            <span>{t('dossier.social_insurances', 'Bảo Hiểm Xã Hội & Y Tế')}</span>
+          </button>
+        </div>
+
+        {hasOverflow && (
+          <button
+            type="button"
+            className="wd-tab-scroll-btn d-none d-md-flex"
+            onClick={() => scrollTabs('right')}
+            title={t('admin.tab_scroll_next', 'Cuộn sang phải')}
+            aria-label={t('admin.tab_scroll_next', 'Cuộn sang phải')}
+          >
+            <ChevronRight size={16} />
+          </button>
+        )}
       </div>
 
       {/* ========================================================================= */}

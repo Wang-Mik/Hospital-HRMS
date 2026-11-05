@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -73,14 +74,46 @@ export const PayrollManagement: React.FC = () => {
   const currentDept = user?.department || t('payroll.default_dept', 'Khoa Cấp Cứu & Hồi Sức Tim Mạch');
   const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN';
 
-  const [activeTab, setActiveTab] = useState<'slips' | 'runs' | 'elections'>('slips');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTab = searchParams.get('tab') as 'slips' | 'runs' | 'elections' | null;
+
+  const [activeTab, setActiveTab] = useState<'slips' | 'runs' | 'elections'>(() => {
+    if (queryTab && ['slips', 'runs', 'elections'].includes(queryTab)) return queryTab;
+    return isHR ? 'runs' : 'slips';
+  });
+
+  // Keep state synced with query param
+  useEffect(() => {
+    if (queryTab && ['slips', 'runs', 'elections'].includes(queryTab) && queryTab !== activeTab) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
+
+  // Reactive switch for HR when auth state finishes hydrating if no queryTab was provided
+  useEffect(() => {
+    if (isHR && !queryTab && activeTab === 'slips') {
+      setActiveTab('runs');
+    }
+  }, [isHR, queryTab]);
 
   // Prevent regular employees from landing on hospital-wide runs tab
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isHR && activeTab === 'runs') {
       setActiveTab('slips');
     }
   }, [isHR, activeTab]);
+
+  const handleTabChange = (newTab: 'slips' | 'runs' | 'elections') => {
+    setActiveTab(newTab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', newTab);
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   // Modals
   const [selectedSlip, setSelectedSlip] = useState<PaySlipItem | null>(null);
@@ -324,29 +357,29 @@ export const PayrollManagement: React.FC = () => {
 
       {/* Navigation Tabs */}
       <div className="wd-tabs">
+        {isHR && (
+          <button
+            type="button"
+            className={`wd-tab-btn ${activeTab === 'runs' ? 'active' : ''}`}
+            onClick={() => handleTabChange('runs')}
+          >
+            {t('payroll.tab_hospital_runs', 'Chu Kỳ Quyết Toán Bệnh Viện')} ({runs.length})
+          </button>
+        )}
         <button
           type="button"
           className={`wd-tab-btn ${activeTab === 'slips' ? 'active' : ''}`}
-          onClick={() => setActiveTab('slips')}
+          onClick={() => handleTabChange('slips')}
         >
           {t('payroll.tab_my_slips', 'Phiếu Lương Của Tôi')} ({slips.length})
         </button>
         <button
           type="button"
           className={`wd-tab-btn ${activeTab === 'elections' ? 'active' : ''}`}
-          onClick={() => setActiveTab('elections')}
+          onClick={() => handleTabChange('elections')}
         >
           {t('payroll.tab_bank_elections', 'Tài Khoản Nhận Lương')} ({elections.length})
         </button>
-        {isHR && (
-          <button
-            type="button"
-            className={`wd-tab-btn ${activeTab === 'runs' ? 'active' : ''}`}
-            onClick={() => setActiveTab('runs')}
-          >
-            {t('payroll.tab_hospital_runs', 'Chu Kỳ Quyết Toán Bệnh Viện')} ({runs.length})
-          </button>
-        )}
       </div>
 
       {/* Tab 1: My Pay Slips */}
