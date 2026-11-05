@@ -135,6 +135,61 @@ export const attendanceService = {
         attendanceStatus
       ]);
 
+      // Automatic Surge Dispatch Transition (QĐ 73/2011/QĐ-TTg)
+      let surgeTransition = { is_surge_active: false };
+      try {
+        const queryRes = await connection.query(
+          `SELECT * FROM Surge_Dispatches 
+           WHERE selected_staff_id = ? 
+             AND status = 'IN_PROGRESS' 
+             AND response_status IN ('PENDING', 'ACCEPTED', 'ACCEPTED_15M', 'ACCEPTED_30M')
+           ORDER BY created_at DESC 
+           LIMIT 1`,
+          [staff_id]
+        );
+        const activeSurges = Array.isArray(queryRes) && Array.isArray(queryRes[0]) ? queryRes[0] : (Array.isArray(queryRes) ? queryRes : []);
+
+        if (activeSurges && activeSurges.length > 0) {
+          const surge = activeSurges[0];
+          await connection.execute(
+            `UPDATE Surge_Dispatches SET 
+              actual_clock_in_time = ?,
+              response_status = 'ACCEPTED'
+             WHERE id = ?`,
+            [formattedClockIn, surge.id]
+          );
+
+          if (effectiveShiftId) {
+            await connection.execute(
+              `UPDATE Shifts SET 
+                status = 'EMERGENCY_ACTIVE',
+                shift_type = 'EMERGENCY_COVER'
+               WHERE id = ?`,
+              [effectiveShiftId]
+            );
+          } else {
+            await connection.execute(
+              `UPDATE Shifts SET 
+                status = 'EMERGENCY_ACTIVE',
+                shift_type = 'EMERGENCY_COVER'
+               WHERE staff_id = ? 
+                 AND DATE(start_time) = DATE(?)
+                 AND status IN ('ON_CALL', 'SCHEDULED', 'IN_PROGRESS')
+               LIMIT 1`,
+              [staff_id, formattedClockIn]
+            );
+          }
+          surgeTransition = {
+            is_surge_active: true,
+            dispatch_id: surge.id,
+            alert_level: surge.alert_level,
+            allowance_note: `Huy động khẩn cấp theo QĐ 73/2011/QĐ-TTg (Phiên điều động: ${surge.id})`
+          };
+        }
+      } catch (surgeErr) {
+        console.warn('[attendanceService] Surge transition warning:', surgeErr.message);
+      }
+
       await connection.commit();
 
       return {
@@ -146,7 +201,8 @@ export const attendanceService = {
         clock_in_method,
         attendance_status: attendanceStatus,
         overtime_minutes: 0,
-        handover_notes: null
+        handover_notes: null,
+        surge_dispatch: surgeTransition.is_surge_active ? surgeTransition : null
       };
     } catch (error) {
       await connection.rollback();

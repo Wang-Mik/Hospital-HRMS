@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Row, Col, Card, Badge } from 'react-bootstrap';
 import {
   ClipboardList,
@@ -28,9 +28,12 @@ import { leaveApi } from '../api/leaveApi';
 import { notificationApi } from '../api/notificationApi';
 import { adminApi } from '../api/adminApi';
 import { departmentApi } from '../api/departmentApi';
+import { surgeDispatchApi } from '../api/surgeDispatchApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
+import { SurgeDispatchModal } from '../components/SurgeDispatchModal';
+import { ActiveSurgeAlertBanner } from '../components/ActiveSurgeAlertBanner';
 
 export const Dashboard: React.FC = () => {
   const { t, lang } = useTranslation();
@@ -39,6 +42,15 @@ export const Dashboard: React.FC = () => {
   const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
   const isAdmin = user?.role === 'SUPER_ADMIN';
   const isHR = user?.role === 'HR_MANAGER';
+
+  // Smart Clinical Surge Dispatcher State
+  const [isSurgeModalOpen, setIsSurgeModalOpen] = useState<boolean>(false);
+  const { data: activeSurgeDispatches, refetch: refetchActiveSurges } = useQuery({
+    queryKey: ['activeSurgeDispatches'],
+    queryFn: () => surgeDispatchApi.getActiveDispatches(),
+    refetchInterval: 15000
+  });
+  const activeSurgeSession = activeSurgeDispatches && activeSurgeDispatches.length > 0 ? activeSurgeDispatches[0] : null;
 
   const currentStaffName = user?.name || (isHRorAdmin ? t('dashboard.hr_admin_title', 'Cán Bộ Quản Trị Nhân Sự') : t('dashboard.doctor_default', 'BS. Nguyễn Văn A'));
   const currentStaffCode = user?.employee_code || (isHRorAdmin ? 'EMP-HR-001' : 'EMP-DOC-001');
@@ -133,6 +145,14 @@ export const Dashboard: React.FC = () => {
 
     return (
       <div>
+        {/* Active Emergency Surge Dispatch Banner */}
+        {activeSurgeSession && (
+          <ActiveSurgeAlertBanner
+            session={activeSurgeSession}
+            onOpenCockpit={() => setIsSurgeModalOpen(true)}
+          />
+        )}
+
         {/* 1. Executive Promotional Banner (Tailored strictly to Role: Admin vs HR) */}
         <div
           className="rounded-3 p-4 mb-4 text-white position-relative overflow-hidden shadow-sm"
@@ -489,6 +509,15 @@ export const Dashboard: React.FC = () => {
             </Card>
           </Col>
         </Row>
+
+        {/* Smart Clinical Surge Dispatcher Cockpit Modal */}
+        <SurgeDispatchModal
+          show={isSurgeModalOpen}
+          onHide={() => setIsSurgeModalOpen(false)}
+          departmentCode={activeSurgeSession?.department_code || 'DEP-HSTC'}
+          departmentName={activeSurgeSession?.department_name}
+          onSuccess={() => refetchActiveSurges()}
+        />
       </div>
     );
   }
@@ -505,6 +534,14 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div>
+      {/* Active Emergency Surge Dispatch Banner */}
+      {activeSurgeSession && (
+        <ActiveSurgeAlertBanner
+          session={activeSurgeSession}
+          onOpenCockpit={() => setIsSurgeModalOpen(true)}
+        />
+      )}
+
       {/* 1. Clinical Header Banner */}
       <div
         className="rounded-3 p-4 mb-4 text-white position-relative overflow-hidden shadow-sm"
@@ -909,6 +946,15 @@ export const Dashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Smart Clinical Surge Dispatcher Cockpit Modal */}
+      <SurgeDispatchModal
+        show={isSurgeModalOpen}
+        onHide={() => setIsSurgeModalOpen(false)}
+        departmentCode={activeSurgeSession?.department_code || 'DEP-HSTC'}
+        departmentName={activeSurgeSession?.department_name}
+        onSuccess={() => refetchActiveSurges()}
+      />
     </div>
   );
 };

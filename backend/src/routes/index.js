@@ -14,6 +14,7 @@ import departmentRoutes from './departmentRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import kpiRoutes from './kpiRoutes.js';
 import hrRoutes from './hrRoutes.js';
+import surgeDispatchRoutes from './surgeDispatchRoutes.js';
 import { employeeController } from '../controllers/employeeController.js';
 import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
 
@@ -78,6 +79,10 @@ router.use('/api/v1/kpi', verifyToken, kpiRoutes);
 // Comprehensive HR Operations (Contracts, Insurances, Commendations/Disciplines, Salary Increments)
 router.use('/api/hr', verifyToken, hrRoutes);
 router.use('/api/v1/hr', verifyToken, hrRoutes);
+
+// Smart Clinical Surge Dispatcher & On-Call Fill-Gap Recommender
+router.use('/api/surge-dispatches', surgeDispatchRoutes);
+router.use('/api/v1/surge-dispatches', surgeDispatchRoutes);
 
 // Hospital HR & Enterprise System Admin Routes (Restricted to SUPER_ADMIN)
 router.use('/api/admin', verifyToken, requireRole('SUPER_ADMIN'), adminRoutes);

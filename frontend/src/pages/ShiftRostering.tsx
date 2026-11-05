@@ -27,16 +27,20 @@ import {
   RotateCw,
   CalendarDays,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  ShieldAlert
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { shiftApi } from '../api/shiftApi';
+import { surgeDispatchApi } from '../api/surgeDispatchApi';
 import { employeeApi } from '../api/employeeApi';
 import { departmentApi, Department } from '../api/departmentApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
+import { SurgeDispatchModal } from '../components/SurgeDispatchModal';
+import { ActiveSurgeAlertBanner } from '../components/ActiveSurgeAlertBanner';
 import './ShiftRostering.css';
 
 export interface ShiftItem {
@@ -942,6 +946,18 @@ export const ShiftRostering: React.FC = () => {
   const [overrunSuccessMsg, setOverrunSuccessMsg] = useState<string | null>(null);
   const [overrunErrorMsg, setOverrunErrorMsg] = useState<string | null>(null);
 
+  // Smart Clinical Surge Dispatcher & On-Call Fill-Gap State
+  const [isSurgeModalOpen, setIsSurgeModalOpen] = useState<boolean>(false);
+  const surgeTargetDept = userDeptCode || selectedStaff?.department_code || 'DEP-HSTC';
+
+  const { data: activeSurgeDispatches, refetch: refetchActiveSurges } = useQuery({
+    queryKey: ['activeSurgeDispatches', surgeTargetDept],
+    queryFn: () => surgeDispatchApi.getActiveDispatches(surgeTargetDept),
+    refetchInterval: 15000
+  });
+
+  const activeSurgeSession = activeSurgeDispatches && activeSurgeDispatches.length > 0 ? activeSurgeDispatches[0] : null;
+
   // Sync default fillGapDept when selected staff changes
   useEffect(() => {
     if (selectedStaff?.department_code) {
@@ -1381,17 +1397,17 @@ export const ShiftRostering: React.FC = () => {
             </button>
           </div>
 
-          {/* Emergency Fill-Gap quick button */}
+          {/* Smart Clinical Surge Dispatcher quick button */}
           {(isHR || isDeptHead) && (
             <button
               type="button"
-              className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1.5 rounded-pill px-3 py-1.5"
+              className="btn btn-sm btn-danger text-white d-inline-flex align-items-center gap-1.5 rounded-pill px-3 py-1.5 shadow-xs"
               style={{ fontSize: '13px', fontWeight: 600 }}
-              onClick={() => setIsFillGapModalOpen(true)}
-              title="Tìm nhân sự bù ca & điều động giải tỏa quá tải lâm sàng"
+              onClick={() => setIsSurgeModalOpen(true)}
+              title="Hệ thống điều động tăng cường thảm họa & Báo động cấp cứu lâm sàng (QĐ 1895 & QĐ 73/2011)"
             >
-              <Activity size={14} />
-              <span>Điều Động Khẩn Cấp</span>
+              <ShieldAlert size={14} className="text-warning" />
+              <span>Báo Động Cấp Cứu</span>
             </button>
           )}
 
@@ -1449,13 +1465,13 @@ export const ShiftRostering: React.FC = () => {
               )}
               <button
                 type="button"
-                className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-pill shadow-xs"
-                onClick={() => setIsFillGapModalOpen(true)}
+                className="btn btn-sm btn-danger text-white d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-pill shadow-xs"
+                onClick={() => setIsSurgeModalOpen(true)}
                 style={{ fontSize: '12.5px', fontWeight: 600 }}
-                title="Tìm nhân sự bù ca khẩn cấp & điều động giải tỏa quá tải lâm sàng"
+                title="Báo động quá tải cấp cứu & Điều động tăng cường nhân lực trực thường trú (QĐ 1895 & QĐ 73/2011)"
               >
-                <Activity size={15} />
-                <span>Điều Động Khẩn Cấp</span>
+                <ShieldAlert size={15} className="text-warning" />
+                <span>Báo Động Cấp Cứu</span>
               </button>
             </div>
           )}
@@ -1623,6 +1639,16 @@ export const ShiftRostering: React.FC = () => {
         <main className="gcal-view-area position-relative">
           {(isShiftsLoading || isShiftsFetching) && (
             <TheoryOfNextLoader variant="calendar" />
+          )}
+
+          {/* Active Emergency Surge Dispatch Banner */}
+          {activeSurgeSession && (
+            <div className="mx-3 mt-2 mb-1 z-3 position-relative">
+              <ActiveSurgeAlertBanner
+                session={activeSurgeSession}
+                onOpenCockpit={() => setIsSurgeModalOpen(true)}
+              />
+            </div>
           )}
 
           {/* Ward Approval Banner for Department Head / Leadership */}
@@ -3725,6 +3751,18 @@ export const ShiftRostering: React.FC = () => {
           </Modal.Footer>
         </Form>
       </Modal>
+
+      {/* ===================== SMART CLINICAL SURGE DISPATCH MODAL ===================== */}
+      <SurgeDispatchModal
+        show={isSurgeModalOpen}
+        onHide={() => setIsSurgeModalOpen(false)}
+        departmentCode={surgeTargetDept}
+        departmentName={selectedStaff?.department_name}
+        onSuccess={() => {
+          refetchActiveSurges();
+          queryClient.invalidateQueries({ queryKey: ['shifts'] });
+        }}
+      />
     </div>
   );
 };

@@ -205,7 +205,10 @@ CREATE TABLE IF NOT EXISTS `Shifts` (
     'IN_PROGRESS',
     'COMPLETED',
     'CANCELLED',
-    'SWAPPED'
+    'SWAPPED',
+    'ON_CALL',
+    'EMERGENCY_ACTIVE',
+    'RESTING_POST_NIGHT'
   ) NOT NULL DEFAULT 'SCHEDULED',
   `requires_handover` BOOLEAN NOT NULL DEFAULT TRUE,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1089,4 +1092,39 @@ CREATE TABLE IF NOT EXISTS `Commendations_Disciplines` (
   KEY `idx_records_staff` (`staff_id`),
   KEY `idx_records_type` (`record_type`),
   CONSTRAINT `fk_records_staff` FOREIGN KEY (`staff_id`) REFERENCES `Employees` (`employee_code`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ------------------------------------------------------------------------------
+-- 31. Table: Surge_Dispatches (Phiên Điều Động Tăng Cường Thảm Họa & Bù Đắp Ca Trực)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `Surge_Dispatches` (
+  `id` VARCHAR(36) NOT NULL,
+  `department_code` VARCHAR(50) NOT NULL,
+  `alert_level` ENUM('LEVEL_1_SURGE', 'LEVEL_2_DISASTER', 'CODE_RED') NOT NULL DEFAULT 'LEVEL_1_SURGE',
+  `reason` VARCHAR(255) NOT NULL,
+  `clinical_notes` TEXT NULL,
+  `initiated_by` VARCHAR(50) NOT NULL,
+  `status` ENUM('IN_PROGRESS', 'RESOLVED', 'CANCELLED') NOT NULL DEFAULT 'IN_PROGRESS',
+  `selected_staff_id` VARCHAR(50) NULL,
+  `phone_contact` VARCHAR(20) NULL,
+  `suitability_score` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  `response_status` ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'UNREACHABLE') NOT NULL DEFAULT 'PENDING',
+  `rejection_reason` VARCHAR(255) NULL,
+  `coordinator_notes` VARCHAR(255) NULL,
+  `acknowledged_at` DATETIME NULL,
+  `estimated_arrival_minutes` INT NULL DEFAULT 15,
+  `actual_clock_in_time` DATETIME NULL,
+  `candidates_snapshot` JSON NULL,
+  `resolved_at` DATETIME NULL,
+  `resolved_by` VARCHAR(50) NULL,
+  `resolution_notes` TEXT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_surge_dept_status` (`department_code`, `status`),
+  KEY `idx_surge_staff` (`selected_staff_id`),
+  KEY `idx_surge_created` (`created_at`),
+  CONSTRAINT `fk_surge_dept` FOREIGN KEY (`department_code`) REFERENCES `Departments` (`department_code`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_surge_initiator` FOREIGN KEY (`initiated_by`) REFERENCES `Employees` (`employee_code`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
