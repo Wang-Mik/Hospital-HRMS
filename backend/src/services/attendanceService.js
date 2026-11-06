@@ -75,14 +75,15 @@ export const attendanceService = {
           throw err;
         }
       } else {
-        // Auto-match nearest scheduled shift around clockInTime (+/- 3 hours)
+        // Auto-match nearest scheduled or emergency/on-call shift around clockInTime (+/- 3 hours)
         const [matchedShifts] = await connection.query(
           `SELECT * FROM Shifts 
            WHERE staff_id = ? 
-             AND status IN ('SCHEDULED', 'IN_PROGRESS')
+             AND status IN ('SCHEDULED', 'IN_PROGRESS', 'ON_CALL', 'EMERGENCY_ACTIVE')
              AND start_time <= DATE_ADD(?, INTERVAL 3 HOUR)
              AND end_time >= DATE_SUB(?, INTERVAL 3 HOUR)
-           ORDER BY ABS(TIMESTAMPDIFF(MINUTE, start_time, ?)) ASC
+           ORDER BY FIELD(status, 'EMERGENCY_ACTIVE', 'ON_CALL', 'SCHEDULED', 'IN_PROGRESS') ASC,
+                    ABS(TIMESTAMPDIFF(MINUTE, start_time, ?)) ASC
            LIMIT 1`,
           [staff_id, formattedClockIn, formattedClockIn, formattedClockIn]
         );
@@ -95,13 +96,24 @@ export const attendanceService = {
       if (targetShift) {
         const shiftStartTimestamp = parseTimestamp(targetShift.start_time);
         const lateThresholdMs = 15 * 60 * 1000;
-        if (clockInTimestamp > shiftStartTimestamp + lateThresholdMs) {
+        const isEmergencyOrOnCall =
+          targetShift.shift_type === 'ON_CALL' ||
+          targetShift.shift_type === 'EMERGENCY_COVER' ||
+          targetShift.status === 'ON_CALL' ||
+          targetShift.status === 'EMERGENCY_ACTIVE';
+
+        if (!isEmergencyOrOnCall && clockInTimestamp > shiftStartTimestamp + lateThresholdMs) {
           attendanceStatus = 'LATE';
         }
 
+        const nextShiftStatus =
+          targetShift.status === 'EMERGENCY_ACTIVE' || targetShift.shift_type === 'EMERGENCY_COVER'
+            ? 'EMERGENCY_ACTIVE'
+            : 'IN_PROGRESS';
+
         await connection.execute(
-          'UPDATE Shifts SET status = "IN_PROGRESS", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [targetShift.id]
+          'UPDATE Shifts SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [nextShiftStatus, targetShift.id]
         );
       }
 

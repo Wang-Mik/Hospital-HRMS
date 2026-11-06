@@ -7,11 +7,11 @@ export const surgeDispatchController = {
   async getCandidates(req, res) {
     try {
       const { departmentCode } = req.params;
-      const { target_date, required_role } = req.query;
+      const { target_date, required_role, staff_type } = req.query;
 
       const result = await surgeDispatchService.getCandidatesForSurge(departmentCode, {
         target_date,
-        required_role
+        required_role: required_role || staff_type
       });
 
       return res.status(200).json({

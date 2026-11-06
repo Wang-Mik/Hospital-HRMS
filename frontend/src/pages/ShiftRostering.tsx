@@ -1443,10 +1443,10 @@ export const ShiftRostering: React.FC = () => {
                 className="btn btn-sm btn-danger text-white d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-pill shadow-xs"
                 onClick={() => setIsSurgeModalOpen(true)}
                 style={{ fontSize: '12.5px', fontWeight: 600 }}
-                title="Báo động quá tải cấp cứu & Điều động tăng cường nhân lực trực thường trú (QĐ 1895 & QĐ 73/2011)"
+                title="Hệ Thống Điều Động Tăng Cường & Bù Đắp Nhân Lực (QĐ 1895 & QĐ 73/2011)"
               >
                 <ShieldAlert size={15} className="text-warning" />
-                <span>Báo Động Cấp Cứu</span>
+                <span>Điều Động Tăng Cường</span>
               </button>
             </div>
           )}

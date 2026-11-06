@@ -1,14 +1,15 @@
 -- ==============================================================================
--- Schema Migration: Smart Clinical Surge Dispatcher & On-Call Fill-Gap Recommender
+-- Schema Migration: Hệ Thống Điều Động Tăng Cường & Bù Đắp Nhân Lực
 -- Conforms to: Quy chế Bệnh viện (QĐ 1895/1997/QĐ-BYT), QĐ 73/2011/QĐ-TTg, Luật KBCB 2023
 -- ==============================================================================
 
 USE `hrm_db`;
 
--- 1. Mở rộng ENUM trạng thái bảng Shifts
+-- 1. Mở rộng ENUM trạng thái bảng Shifts (Bảo toàn PENDING_APPROVAL cho Thư ký Y khoa)
 ALTER TABLE `Shifts` 
 MODIFY COLUMN `status` ENUM(
   'SCHEDULED',
+  'PENDING_APPROVAL',
   'IN_PROGRESS',
   'COMPLETED',
   'CANCELLED',

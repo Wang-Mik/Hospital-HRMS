@@ -219,6 +219,13 @@ export const Dashboard: React.FC = () => {
                 <Link to="/employees" className="wd-pill-btn">
                   <Users size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_staff_records', 'Hồ sơ cán bộ')} ({kpis.total_employees})
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setIsSurgeModalOpen(true)}
+                  className="wd-pill-btn text-danger fw-semibold border-danger-subtle"
+                >
+                  <AlertTriangle size={14} aria-hidden="true" className="me-1" /> {t('shifts.surge_btn', 'Điều Động Tăng Cường & Bù Đắp Nhân Lực')}
+                </button>
               </>
             ) : (
               <>
@@ -237,6 +244,13 @@ export const Dashboard: React.FC = () => {
                 <Link to="/licenses" className="wd-pill-btn">
                   <Award size={14} aria-hidden="true" className="me-1" /> {t('dashboard.quick_cchn', 'Giám sát CCHN y tế')}
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setIsSurgeModalOpen(true)}
+                  className="wd-pill-btn text-danger fw-semibold border-danger-subtle"
+                >
+                  <AlertTriangle size={14} aria-hidden="true" className="me-1" /> {t('shifts.surge_btn', 'Điều Động Tăng Cường & Bù Đắp Nhân Lực')}
+                </button>
               </>
             )}
           </div>
@@ -600,6 +614,16 @@ export const Dashboard: React.FC = () => {
           <Link to="/payroll" className="wd-pill-btn">
             {t('dashboard.action_my_payroll', 'Phiếu lương của tôi')}
           </Link>
+          {(user?.role === 'DEPARTMENT_HEAD' || user?.role === 'DOCTOR') && (
+            <button
+              type="button"
+              onClick={() => setIsSurgeModalOpen(true)}
+              className="wd-pill-btn text-danger fw-semibold border-danger-subtle d-inline-flex align-items-center gap-1.5"
+            >
+              <AlertTriangle size={13} className="text-danger" />
+              <span>{t('shifts.surge_btn', 'Điều Động Tăng Cường & Bù Đắp Nhân Lực')}</span>
+            </button>
+          )}
         </div>
       </div>
 
