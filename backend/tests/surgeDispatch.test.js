@@ -275,6 +275,22 @@ describe('Hệ Thống Điều Động Tăng Cường & Bù Đắp Nhân Lực T
       expect(res.body.success).toBe(false);
       expect(res.body.message).toContain('đang có một phiên điều động khẩn cấp');
     });
+
+    it('should reject with 403 Forbidden if a DEPARTMENT_HEAD tries to dispatch for a different department', async () => {
+      const token = generateAuthToken({ role: 'DEPARTMENT_HEAD', department_code: 'DEP-KHB' });
+      const res = await request(app)
+        .post('/api/surge-dispatches')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          department_code: 'DEP-HSTC',
+          alert_level: 'LEVEL_1_SURGE',
+          reason: 'Điều động trái thẩm quyền sang khoa khác'
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('không có thẩm quyền tự ý điều động nhân lực cho khoa khác');
+    });
   });
 
   describe('POST /api/surge-dispatches/:id/log-call (Dispatcher Call Logging & Multi-Step Auto-Fallback)', () => {

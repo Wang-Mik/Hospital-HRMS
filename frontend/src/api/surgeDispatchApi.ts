@@ -33,6 +33,7 @@ export interface SurgeCandidate {
   license_status?: string;
   department_code?: string;
   department_name?: string;
+  is_cross_department?: boolean;
   has_on_call_today?: boolean;
   month_hours?: number;
   eta_minutes: number;
@@ -118,10 +119,25 @@ export const surgeDispatchApi = {
   /**
    * Scan and rank available on-call clinical candidates in real-time
    */
-  getCandidates: async (departmentCode: string, staffType?: string): Promise<SurgeCandidateResponse> => {
-    const res = await axiosClient.get(`/surge-dispatches/candidates/${encodeURIComponent(departmentCode)}`, {
-      params: staffType ? { staff_type: staffType, required_role: staffType } : undefined
-    });
+  getCandidates: async (
+    departmentCode: string,
+    staffType?: string,
+    alertLevel?: AlertLevel
+  ): Promise<SurgeCandidateResponse> => {
+    const params: Record<string, string> = {};
+    if (staffType) {
+      params.staff_type = staffType;
+      params.required_role = staffType;
+    }
+    if (alertLevel) {
+      params.alert_level = alertLevel;
+    }
+    const res = await axiosClient.get(
+      `/surge-dispatches/candidates/${encodeURIComponent(departmentCode)}`,
+      {
+        params: Object.keys(params).length > 0 ? params : undefined
+      }
+    );
     return res.data?.data;
   },
 

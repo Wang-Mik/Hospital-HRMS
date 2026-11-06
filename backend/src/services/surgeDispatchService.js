@@ -100,6 +100,9 @@ export const surgeDispatchService = {
   async getCandidatesForSurge(departmentCode, options = {}) {
     const target_date = options.target_date || null;
     const roleFilter = options.required_role || options.staff_type || null;
+    const alertLevel = options.alert_level || 'LEVEL_1_SURGE';
+    const allowCrossDepartment =
+      alertLevel === 'LEVEL_2_DISASTER' || alertLevel === 'CODE_RED';
     const dateStr = target_date || new Date().toISOString().slice(0, 10);
 
     // 1. Query staff who have an ON_CALL shift today or active clinical staff in department
@@ -130,8 +133,14 @@ export const surgeDispatchService = {
     const params = [dateStr];
 
     if (departmentCode && departmentCode !== 'ALL') {
-      sql += ` AND (e.department_code = ? OR e.department_code IN ('DEP-KHB', 'DEP-CC-HSTC', 'DEP-HSTC', 'DEP-NOI', 'DEP-NGOAI'))`;
-      params.push(departmentCode);
+      if (allowCrossDepartment) {
+        sql += ` AND (e.department_code = ? OR e.department_code IN ('DEP-KHB', 'DEP-CC-HSTC', 'DEP-HSTC', 'DEP-NOI', 'DEP-NGOAI'))`;
+        params.push(departmentCode);
+      } else {
+        // Mức 1 (Tăng cường & Bù đắp ca trực tại khoa): Tuyệt đối chỉ lấy nhân sự thuộc đúng khoa đó
+        sql += ` AND e.department_code = ?`;
+        params.push(departmentCode);
+      }
     }
 
     if (roleFilter && roleFilter !== 'ALL' && roleFilter !== 'ANY') {
@@ -301,7 +310,10 @@ export const surgeDispatchService = {
       const roleTitle = ROLE_TITLE_MAP[emp.role] || emp.role;
       const jobTitle = emp.specialty ? `${roleTitle} — ${emp.specialty}` : roleTitle;
       const hasOnCall = Boolean(emp.on_call_shift_id);
-      const etaMinutes = hasOnCall ? 15 : 20;
+      const isCrossDept = Boolean(
+        departmentCode && departmentCode !== 'ALL' && emp.department_code !== departmentCode
+      );
+      const etaMinutes = hasOnCall ? 15 : isCrossDept ? 25 : 20;
 
       eligibleCandidates.push({
         staff_id: staffCode,
@@ -314,6 +326,7 @@ export const surgeDispatchService = {
         license_number: license?.license_number || 'CCHN-HỢP-LỆ',
         department_code: emp.department_code,
         department_name: emp.department_name,
+        is_cross_department: isCrossDept,
         has_on_call_today: hasOnCall,
         on_call_shift_id: emp.on_call_shift_id || null,
         month_hours: monthHours,
@@ -324,17 +337,17 @@ export const surgeDispatchService = {
     }
 
     // Sort eligible candidates by:
-    // 1. Has on-call shift today first
-    // 2. Same department as requested first
+    // 1. Same department as requested first (nhân sự nội bộ khoa luôn ưu tiên trước chi viện liên khoa)
+    // 2. Has on-call shift today first
     // 3. Suitability score DESC
     eligibleCandidates.sort((a, b) => {
-      if (a.has_on_call_today !== b.has_on_call_today) {
-        return a.has_on_call_today ? -1 : 1;
-      }
       const aSameDept = a.department_code === departmentCode;
       const bSameDept = b.department_code === departmentCode;
       if (aSameDept !== bSameDept) {
         return aSameDept ? -1 : 1;
+      }
+      if (a.has_on_call_today !== b.has_on_call_today) {
+        return a.has_on_call_today ? -1 : 1;
       }
       return b.suitability_score - a.suitability_score;
     });
@@ -377,6 +390,21 @@ export const surgeDispatchService = {
       throw err;
     }
 
+    // RBAC Guard: Trưởng khoa / Bác sĩ chỉ được phép phát lệnh điều động cho chính khoa mình
+    const isHospitalCoordinator =
+      actor.role === 'SUPER_ADMIN' || actor.role === 'HR_MANAGER';
+    if (
+      !isHospitalCoordinator &&
+      actor.department_code &&
+      department_code !== actor.department_code
+    ) {
+      const err = new Error(
+        `Trưởng khoa / Cán bộ khoa ${actor.department_code} không có thẩm quyền tự ý điều động nhân lực cho khoa khác (${department_code}). Chỉ Ban Giám Đốc / Trực Lãnh Đạo Viện hoặc Phòng Nhân Sự mới được điều phối liên khoa.`
+      );
+      err.statusCode = 403;
+      throw err;
+    }
+
     const connection = await pool.getConnection();
 
     try {
@@ -398,9 +426,11 @@ export const surgeDispatchService = {
         throw err;
       }
 
-      // Get candidates snapshot
+      // Get candidates snapshot (Mức 1: chỉ lấy nhân sự nội bộ khoa; Mức 2 / Code Red do cấp Viện kích hoạt mới mở rộng liên khoa)
+      const effectiveAlertScope = isHospitalCoordinator ? alert_level : 'LEVEL_1_SURGE';
       const candidatesResult = await this.getCandidatesForSurge(department_code, {
-        required_role: roleFilter
+        required_role: roleFilter,
+        alert_level: effectiveAlertScope
       });
       const topCandidates = candidatesResult.top_candidates || [];
 

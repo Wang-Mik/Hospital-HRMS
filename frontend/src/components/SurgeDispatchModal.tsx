@@ -17,6 +17,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
+import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import {
   surgeDispatchApi,
@@ -42,11 +43,20 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+
+  // Quyền điều phối toàn viện (Ban Giám Đốc / Phòng Nhân Sự - KHTH) vs Quyền Trưởng Khoa (Chỉ điều động nội bộ khoa)
+  const isHospitalCoordinator =
+    user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
+  const enforcedDeptCode =
+    !isHospitalCoordinator && user?.department_code
+      ? user.department_code
+      : departmentCode && departmentCode !== 'ALL'
+        ? departmentCode
+        : 'DEP-CC-HSTC';
 
   // Department & Form State
-  const [targetDeptCode, setTargetDeptCode] = useState<string>(
-    departmentCode && departmentCode !== 'ALL' ? departmentCode : 'DEP-CC-HSTC'
-  );
+  const [targetDeptCode, setTargetDeptCode] = useState<string>(enforcedDeptCode);
   const [alertLevel, setAlertLevel] = useState<AlertLevel>('LEVEL_1_SURGE');
   const [reason, setReason] = useState<string>(
     'Bổ sung nhân lực trực tăng cường & bù đắp thiếu hụt ca trực lâm sàng'
@@ -66,10 +76,13 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (departmentCode && departmentCode !== 'ALL') {
+    if (!isHospitalCoordinator && user?.department_code) {
+      setTargetDeptCode(user.department_code);
+      setAlertLevel('LEVEL_1_SURGE');
+    } else if (departmentCode && departmentCode !== 'ALL') {
       setTargetDeptCode(departmentCode);
     }
-  }, [departmentCode]);
+  }, [departmentCode, isHospitalCoordinator, user?.department_code]);
 
   // 0. Fetch Departments list so coordinator can switch target department
   const { data: departmentsList = [] } = useQuery({
@@ -96,16 +109,17 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
     }
   }, [activeDispatches]);
 
-  // 2. Fetch candidates recommendation pool
+  // 2. Fetch candidates recommendation pool (Mức 1: chỉ lấy nhân sự thuộc đúng khoa; Mức 2 / Code Red: mở rộng liên khoa)
   const {
     data: candidatesData,
     isLoading: isCandidatesLoading
   } = useQuery({
-    queryKey: ['surgeCandidates', targetDeptCode, staffType],
+    queryKey: ['surgeCandidates', targetDeptCode, staffType, alertLevel],
     queryFn: () =>
       surgeDispatchApi.getCandidates(
         targetDeptCode,
-        staffType === 'ANY' ? undefined : staffType
+        staffType === 'ANY' ? undefined : staffType,
+        alertLevel
       ),
     enabled: show && !!targetDeptCode && !activeSession
   });
@@ -616,6 +630,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                   <Form.Select
                     size="sm"
                     value={targetDeptCode}
+                    disabled={!isHospitalCoordinator}
                     onChange={(e) => {
                       setTargetDeptCode(e.target.value);
                       setSelectedCandidateId('');
@@ -632,22 +647,39 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                       <option value={targetDeptCode}>{displayDeptName}</option>
                     )}
                   </Form.Select>
+                  {!isHospitalCoordinator && (
+                    <div className="text-muted mt-1" style={{ fontSize: '11px' }}>
+                      Trưởng khoa chỉ điều động nhân sự thuộc khoa mình.
+                    </div>
+                  )}
                 </Form.Group>
               </div>
 
               <div className="col-md-4">
                 <Form.Group>
-                  <Form.Label className="fw-bold fs-7 text-dark">Mức Độ Điều Động</Form.Label>
+                  <Form.Label className="fw-bold fs-7 text-dark">Mức Độ & Phạm Vi Điều Động</Form.Label>
                   <Form.Select
                     size="sm"
                     value={alertLevel}
-                    onChange={(e) => setAlertLevel(e.target.value as AlertLevel)}
+                    onChange={(e) => {
+                      setAlertLevel(e.target.value as AlertLevel);
+                      setSelectedCandidateId('');
+                    }}
                     className="fw-semibold"
                   >
                     <option value="LEVEL_1_SURGE">{t('shifts.surge_level_level_1')}</option>
-                    <option value="LEVEL_2_DISASTER">{t('shifts.surge_level_level_2')}</option>
-                    <option value="CODE_RED">{t('shifts.surge_level_code_red')}</option>
+                    {isHospitalCoordinator && (
+                      <>
+                        <option value="LEVEL_2_DISASTER">{t('shifts.surge_level_level_2')}</option>
+                        <option value="CODE_RED">{t('shifts.surge_level_code_red')}</option>
+                      </>
+                    )}
                   </Form.Select>
+                  <div className="text-muted mt-1" style={{ fontSize: '11px' }}>
+                    {alertLevel === 'LEVEL_1_SURGE'
+                      ? 'Phạm vi: Chỉ điều động bác sĩ / điều dưỡng nội bộ khoa.'
+                      : 'Phạm vi cấp Viện: Cho phép huy động chi viện liên chuyên khoa.'}
+                  </div>
                 </Form.Group>
               </div>
 
@@ -744,8 +776,17 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                               />
                             </td>
                             <td>
-                              <div className="fw-bold text-dark d-flex align-items-center gap-1.5">
+                              <div className="fw-bold text-dark d-flex align-items-center flex-wrap gap-1.5">
                                 <span>{displayName}</span>
+                                {cand.is_cross_department ? (
+                                  <span className="badge bg-warning text-dark border border-warning fs-8">
+                                    Chi viện từ: {cand.department_name || cand.department_code}
+                                  </span>
+                                ) : (
+                                  <span className="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fs-8">
+                                    Nhân sự tại khoa
+                                  </span>
+                                )}
                                 {cand.has_on_call_today && (
                                   <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle fs-8">
                                     Đang trực thường trú
