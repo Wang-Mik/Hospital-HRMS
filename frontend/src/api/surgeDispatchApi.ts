@@ -17,6 +17,18 @@ export type CallOutcome =
   | 'UNREACHABLE'
   | 'REJECTED';
 
+export interface PriorityScoreBreakdown {
+  standby_score: number;
+  competence_score: number;
+  fatigue_score: number;
+  seniority_score: number;
+  total_score: number;
+  month_hours: number;
+  has_on_call: boolean;
+  is_cross_dept: boolean;
+  justification?: string;
+}
+
 export interface SurgeCandidate {
   rank: number;
   rank_order?: number;
@@ -39,6 +51,8 @@ export interface SurgeCandidate {
   eta_minutes: number;
   estimated_arrival_minutes?: number;
   suitability_score: number;
+  priority_score?: number;
+  score_breakdown?: PriorityScoreBreakdown;
   attempted?: boolean;
   call_status?: string;
 }
@@ -90,6 +104,8 @@ export interface SurgeDispatchSession {
   responder_specialty?: string;
   phone_contact?: string;
   suitability_score?: number;
+  priority_score?: number;
+  score_breakdown?: PriorityScoreBreakdown;
   response_status: SurgeResponseStatus;
   estimated_arrival_minutes?: number;
   acknowledged_at?: string;

@@ -111,7 +111,64 @@ describe('Hệ Thống Điều Động Tăng Cường & Bù Đắp Nhân Lực T
       expect(res.body.data.candidates[0].eta_minutes).toBe(15);
       expect(res.body.data.candidates[0].has_on_call_today).toBe(true);
       expect(res.body.data.candidates[0].suitability_score).toBeGreaterThan(80);
+      expect(res.body.data.candidates[0].priority_score).toBe(res.body.data.candidates[0].suitability_score);
+      expect(res.body.data.candidates[0].score_breakdown).toBeDefined();
+      expect(res.body.data.candidates[0].score_breakdown.standby_score).toBe(30);
+      expect(res.body.data.candidates[0].score_breakdown.competence_score).toBe(30);
+      expect(res.body.data.candidates[0].score_breakdown.fatigue_score).toBe(25);
+      expect(res.body.data.candidates[0].score_breakdown.seniority_score).toBe(15);
+      expect(res.body.data.candidates[0].score_breakdown.total_score).toBe(100);
+      expect(res.body.data.candidates[0].score_breakdown.justification).toContain('Lê Văn Khang');
       expect(res.body.data.candidates[0].phone_contact).toBe('0908123456');
+    });
+
+    it('should calculate priority score using 4-pillar formula and penalize high monthly workload', async () => {
+      const mockStaff = [
+        {
+          emp_id: 10,
+          employee_code: 'EMP-DOC-OVERWORK',
+          first_name: 'Minh',
+          last_name: 'Đặng',
+          role: 'DOCTOR',
+          specialty: 'Khám Bệnh',
+          phone: '0908111222',
+          department_code: 'DEP-KHB',
+          department_name: 'Khoa Khám Bệnh',
+          on_call_shift_id: null
+        }
+      ];
+
+      const mockLicenses = [
+        { employee_id: 10, license_number: 'CCHN-100', verification_status: 'VERIFIED', expiration_date: '2028-12-31' }
+      ];
+
+      // 180 hours = 10800 minutes
+      const mockMonthlyAttendances = [
+        { staff_id: 'EMP-DOC-OVERWORK', total_minutes: 10800 }
+      ];
+
+      pool.query.mockResolvedValueOnce([mockStaff]);
+      pool.query.mockResolvedValueOnce([mockLicenses]);
+      pool.query.mockResolvedValueOnce([[]]);
+      pool.query.mockResolvedValueOnce([[]]);
+      pool.query.mockResolvedValueOnce([mockMonthlyAttendances]);
+
+      const token = generateAuthToken();
+      const res = await request(app)
+        .get('/api/surge-dispatches/candidates/DEP-KHB?staff_type=DOCTOR')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.candidates).toHaveLength(1);
+      const cand = res.body.data.candidates[0];
+      expect(cand.score_breakdown.month_hours).toBe(180);
+      // At 180h (in 160-200h tier), fatigue score is 14.0 (penalized from 25.0 max)
+      expect(cand.score_breakdown.fatigue_score).toBe(14);
+      expect(cand.score_breakdown.standby_score).toBe(18); // Off-duty internal
+      expect(cand.score_breakdown.competence_score).toBe(30); // Internal dept
+      expect(cand.score_breakdown.seniority_score).toBe(12); // Doctor 7 + 5 reliability
+      expect(cand.priority_score).toBe(74);
+      expect(cand.score_breakdown.justification).toContain('Tải giờ làm 180h/tháng');
     });
 
     it('should strictly exclude staff in 24h rest interval after a 14h night shift (RESTING_POST_NIGHT)', async () => {

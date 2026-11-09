@@ -64,6 +64,14 @@ export const surgeDispatchService = {
       matchedCandidate?.job_title ||
       'Lâm sàng cấp cứu';
 
+    const priorityScore = Number(
+      row.priority_score ??
+      row.suitability_score ??
+      matchedCandidate?.priority_score ??
+      matchedCandidate?.suitability_score ??
+      0
+    );
+
     return {
       ...row,
       id: row.id,
@@ -79,9 +87,9 @@ export const surgeDispatchService = {
       responder_role: responderRole,
       responder_specialty: responderSpecialty,
       phone_contact: row.phone_contact || matchedCandidate?.phone_contact || '0908123456',
-      suitability_score: Number(
-        row.suitability_score ?? matchedCandidate?.suitability_score ?? 0
-      ),
+      suitability_score: priorityScore,
+      priority_score: priorityScore,
+      score_breakdown: row.score_breakdown || matchedCandidate?.score_breakdown || null,
       response_status: row.response_status || 'PENDING',
       estimated_arrival_minutes: Number(row.estimated_arrival_minutes ?? 15),
       acknowledged_at: row.acknowledged_at || null,
@@ -94,8 +102,8 @@ export const surgeDispatchService = {
   },
 
   /**
-   * Quét danh sách nhân sự trực thường trú (On-Call) & nhân sự lâm sàng đủ điều kiện
-   * Tính điểm đa mục tiêu (Multi-Objective Suitability Score) và loại trừ vi phạm an toàn
+   * Quét danh sách nhân sự và tính điểm theo Công Thức Chọn Mục Tiêu Ưu Tiên (Priority Target Selection)
+   * Căn cứ: QĐ 1895/1997/QĐ-BYT, QĐ 73/2011/QĐ-TTg, Luật Khám bệnh chữa bệnh 2023, Bộ luật Lao động 2019
    */
   async getCandidatesForSurge(departmentCode, options = {}) {
     const target_date = options.target_date || null;
@@ -271,48 +279,115 @@ export const surgeDispatchService = {
         continue;
       }
 
-      // MULTI-OBJECTIVE SOFT SCORING (Thang điểm 100)
-      let scoreSpecialty = 20.0;
-      const spec = (emp.specialty || '').toLowerCase();
-      if (emp.department_code === departmentCode) {
-        scoreSpecialty = 35.0;
-      } else if (
-        spec.includes('cấp cứu') ||
-        spec.includes('hồi sức') ||
-        spec.includes('ngoại') ||
-        spec.includes('phẫu thuật')
-      ) {
-        scoreSpecialty = 33.0;
-      } else if (spec.includes('nội') || spec.includes('chăm sóc')) {
-        scoreSpecialty = 28.0;
-      }
-
-      let scoreSeniority = 20.0;
-      if (emp.role === 'DEPARTMENT_HEAD' || (emp.specialty || '').includes('CKII')) {
-        scoreSeniority = 30.0;
-      } else if (emp.role === 'DOCTOR' || emp.role === 'CHIEF_NURSE') {
-        scoreSeniority = 25.0;
-      } else {
-        scoreSeniority = 20.0;
-      }
-
-      // Workload Balancing: Càng ít giờ trực tích lũy thì điểm càng cao (tránh kiệt sức)
-      const scoreWorkload = Math.max(
-        10.0,
-        Math.min(35.0, Math.round(35.0 * (1 - Math.min(monthHours, 200) / 220) * 10) / 10)
-      );
-
-      const totalScore = Math.min(
-        100.0,
-        Math.round((scoreSpecialty + scoreSeniority + scoreWorkload) * 10) / 10
-      );
-
-      const roleTitle = ROLE_TITLE_MAP[emp.role] || emp.role;
-      const jobTitle = emp.specialty ? `${roleTitle} — ${emp.specialty}` : roleTitle;
+      // =========================================================================
+      // CÔNG THỨC CHỌN MỤC TIÊU ƯU TIÊN (PRIORITY TARGET SELECTION FORMULA)
+      // Thang chuẩn 100 điểm với 4 Trụ Cột Đánh Giá Trọng Số dựa trên:
+      // - Trụ cột 1: Trạng thái Thường trực & Sẵn sàng (W_standby - Max 30đ, QĐ 1895 & QĐ 73)
+      // - Trụ cột 2: Năng lực Chuyên môn & Độ phù hợp khoa (W_competence - Max 30đ, Luật KBCB 2023)
+      // - Trụ cột 3: Chỉ số Chống quá tải & Kiệt sức (W_fatigue - Max 25đ, BLLĐ 2019)
+      // - Trụ cột 4: Thâm niên Chức danh & Độ tin cậy (W_seniority - Max 15đ, TTLT 10/2015)
+      // =========================================================================
       const hasOnCall = Boolean(emp.on_call_shift_id);
       const isCrossDept = Boolean(
         departmentCode && departmentCode !== 'ALL' && emp.department_code !== departmentCode
       );
+
+      // 1. TRỤ CỘT 1: TRẠNG THÁI THƯỜNG TRỰC & SẴN SÀNG (W_standby - Max 30đ)
+      let scoreStandby = 18.0;
+      if (hasOnCall) {
+        const tier = emp.on_call_tier || '';
+        if (
+          tier === 'CLINICAL' ||
+          tier === 'LEADERSHIP' ||
+          (!tier && (emp.role === 'DOCTOR' || emp.role === 'DEPARTMENT_HEAD'))
+        ) {
+          scoreStandby = 30.0;
+        } else if (tier === 'PARACLINICAL') {
+          scoreStandby = 28.0;
+        } else {
+          scoreStandby = 26.0;
+        }
+      } else {
+        scoreStandby = isCrossDept ? 12.0 : 18.0;
+      }
+
+      // 2. TRỤ CỘT 2: NĂNG LỰC CHUYÊN MÔN & ĐỘ TƯƠNG THÍCH KHOA (W_competence - Max 30đ)
+      let scoreCompetence = 20.0;
+      const spec = (emp.specialty || '').toLowerCase();
+      if (!isCrossDept) {
+        scoreCompetence = 30.0; // Đúng khoa sở tại: Am hiểu phác đồ và người bệnh tối đa
+      } else {
+        if (
+          spec.includes('cấp cứu') ||
+          spec.includes('hồi sức') ||
+          spec.includes('ngoại') ||
+          spec.includes('phẫu thuật') ||
+          spec.includes('gây mê')
+        ) {
+          scoreCompetence = 26.0; // Khoa trọng yếu can thiệp cấp cứu khẩn cấp
+        } else if (
+          spec.includes('nội') ||
+          spec.includes('chăm sóc') ||
+          spec.includes('tim mạch') ||
+          spec.includes('nhi')
+        ) {
+          scoreCompetence = 20.0;
+        } else {
+          scoreCompetence = 15.0;
+        }
+      }
+
+      // 3. TRỤ CỘT 3: CHỈ SỐ CHỐNG QUÁ TẢI, KIỆT SỨC & GIỜ TRỰC (W_fatigue - Max 25đ)
+      let scoreFatigue = 25.0;
+      if (monthHours <= 120) {
+        scoreFatigue = 25.0;
+      } else if (monthHours <= 160) {
+        scoreFatigue = Math.round((25.0 - ((monthHours - 120) / 40.0) * 7.0) * 10) / 10;
+      } else if (monthHours <= 200) {
+        scoreFatigue = Math.round((18.0 - ((monthHours - 160) / 40.0) * 8.0) * 10) / 10;
+      } else {
+        scoreFatigue = 8.0;
+      }
+
+      // 4. TRỤ CỘT 4: THÂM NIÊN CHỨC DANH & ĐỘ TIN CẬY LÂM SÀNG (W_seniority - Max 15đ)
+      let scoreRank = 7.0;
+      if (emp.role === 'DEPARTMENT_HEAD' || spec.includes('ckii') || spec.includes('tiến sĩ')) {
+        scoreRank = 10.0;
+      } else if (spec.includes('cki') || spec.includes('thạc sĩ') || emp.role === 'CHIEF_NURSE') {
+        scoreRank = 8.5;
+      } else if (emp.role === 'DOCTOR' || emp.role === 'NURSE') {
+        scoreRank = 7.0;
+      } else {
+        scoreRank = 5.5;
+      }
+      const scoreReliability = 5.0;
+      const scoreSeniority = Math.min(15.0, Math.round((scoreRank + scoreReliability) * 10) / 10);
+
+      // TỔNG ĐIỂM CHỌN MỤC TIÊU ƯU TIÊN (P_total in [0, 100])
+      const totalPriorityScore = Math.min(
+        100.0,
+        Math.round((scoreStandby + scoreCompetence + scoreFatigue + scoreSeniority) * 10) / 10
+      );
+
+      const roleTitle = ROLE_TITLE_MAP[emp.role] || emp.role;
+      const jobTitle = emp.specialty ? `${roleTitle} — ${emp.specialty}` : roleTitle;
+      const standbyDesc = hasOnCall ? 'Trực thường trú tại khoa' : (!isCrossDept ? 'Nội bộ khoa sẵn sàng' : 'Chi viện ngoại khoa');
+      const compDesc = !isCrossDept ? 'Chuyên môn tại khoa' : 'Chi viện liên khoa khẩn cấp';
+      const fatigueDesc = `Tải giờ làm ${monthHours}h/tháng`;
+      const justification = `${fullName}: ${standbyDesc} (${scoreStandby}đ); ${compDesc} (${scoreCompetence}đ); ${fatigueDesc} (${scoreFatigue}đ); ${roleTitle} (${scoreSeniority}đ) -> Điểm chọn ưu tiên: ${totalPriorityScore}/100đ.`;
+
+      const scoreBreakdown = {
+        standby_score: scoreStandby,
+        competence_score: scoreCompetence,
+        fatigue_score: scoreFatigue,
+        seniority_score: scoreSeniority,
+        total_score: totalPriorityScore,
+        month_hours: monthHours,
+        has_on_call: hasOnCall,
+        is_cross_dept: isCrossDept,
+        justification: justification
+      };
+
       const etaMinutes = hasOnCall ? 15 : isCrossDept ? 25 : 20;
 
       eligibleCandidates.push({
@@ -330,7 +405,9 @@ export const surgeDispatchService = {
         has_on_call_today: hasOnCall,
         on_call_shift_id: emp.on_call_shift_id || null,
         month_hours: monthHours,
-        suitability_score: totalScore,
+        suitability_score: totalPriorityScore,
+        priority_score: totalPriorityScore,
+        score_breakdown: scoreBreakdown,
         eta_minutes: etaMinutes,
         estimated_arrival_minutes: etaMinutes
       });
@@ -339,7 +416,7 @@ export const surgeDispatchService = {
     // Sort eligible candidates by:
     // 1. Same department as requested first (nhân sự nội bộ khoa luôn ưu tiên trước chi viện liên khoa)
     // 2. Has on-call shift today first
-    // 3. Suitability score DESC
+    // 3. Priority score DESC
     eligibleCandidates.sort((a, b) => {
       const aSameDept = a.department_code === departmentCode;
       const bSameDept = b.department_code === departmentCode;
@@ -349,7 +426,7 @@ export const surgeDispatchService = {
       if (a.has_on_call_today !== b.has_on_call_today) {
         return a.has_on_call_today ? -1 : 1;
       }
-      return b.suitability_score - a.suitability_score;
+      return b.priority_score - a.priority_score;
     });
 
     const topCandidates = eligibleCandidates.slice(0, 5).map((c, idx) => ({
@@ -445,6 +522,8 @@ export const surgeDispatchService = {
           role: roleFilter && roleFilter !== 'ALL' ? roleFilter : 'DOCTOR',
           phone_contact: '0908123456',
           suitability_score: 90.0,
+          priority_score: 90.0,
+          score_breakdown: null,
           eta_minutes: 15,
           estimated_arrival_minutes: 15
         };

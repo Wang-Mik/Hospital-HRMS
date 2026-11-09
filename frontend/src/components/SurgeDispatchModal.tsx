@@ -14,7 +14,8 @@ import {
   XCircle,
   PhoneForwarded,
   Building2,
-  UserCheck
+  UserCheck,
+  Info
 } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import { useAuthStore } from '../store/authStore';
@@ -126,6 +127,8 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
 
   const candidateList = candidatesData?.candidates || candidatesData?.top_candidates || [];
   const excludedList = candidatesData?.excluded_candidates || [];
+  const selectedCandidate =
+    candidateList.find((c) => c.staff_id === selectedCandidateId) || candidateList[0];
 
   // Default selection to candidate rank #1 when department or list changes
   useEffect(() => {
@@ -815,7 +818,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                             </td>
                             <td className="text-center">
                               <span className="badge bg-primary px-2 py-1 fs-7">
-                                {cand.suitability_score} / 100
+                                {cand.priority_score ?? cand.suitability_score} / 100
                               </span>
                             </td>
                           </tr>
@@ -828,6 +831,78 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                 <div className="p-3 text-center rounded-2 bg-light border text-muted fs-7">
                   <AlertTriangle size={20} className="text-warning mb-1 d-block mx-auto" />
                   <span>{t('shifts.surge_no_candidates')}</span>
+                </div>
+              )}
+
+              {/* Selected Candidate Score Breakdown & Justification */}
+              {selectedCandidate && (
+                <div className="mt-2.5 p-2.5 rounded-2 bg-light border">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <div className="fw-bold fs-8 text-primary d-flex align-items-center gap-1.5">
+                      <Info size={14} />
+                      <span>
+                        {t('shifts.surge_score_breakdown_title')}:{' '}
+                        <strong>{selectedCandidate.full_name || selectedCandidate.staff_name}</strong>
+                      </span>
+                    </div>
+                    <Badge bg="primary" className="fs-8">
+                      {selectedCandidate.priority_score ?? selectedCandidate.suitability_score} / 100 điểm
+                    </Badge>
+                  </div>
+
+                  {selectedCandidate.score_breakdown ? (
+                    <>
+                      <div className="row g-2 mb-2">
+                        <div className="col-6 col-md-3">
+                          <div className="p-2 bg-white border rounded text-center">
+                            <div className="text-muted fs-8">{t('shifts.surge_pillar_standby')}</div>
+                            <div className="fw-bold fs-7 text-dark mt-1">
+                              {selectedCandidate.score_breakdown.standby_score}{' '}
+                              <span className="text-muted fs-8">/ 30đ</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-md-3">
+                          <div className="p-2 bg-white border rounded text-center">
+                            <div className="text-muted fs-8">{t('shifts.surge_pillar_competence')}</div>
+                            <div className="fw-bold fs-7 text-dark mt-1">
+                              {selectedCandidate.score_breakdown.competence_score}{' '}
+                              <span className="text-muted fs-8">/ 30đ</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-md-3">
+                          <div className="p-2 bg-white border rounded text-center">
+                            <div className="text-muted fs-8">{t('shifts.surge_pillar_fatigue')}</div>
+                            <div className="fw-bold fs-7 text-dark mt-1">
+                              {selectedCandidate.score_breakdown.fatigue_score}{' '}
+                              <span className="text-muted fs-8">/ 25đ</span>
+                              <span className="d-block fs-8 text-muted">
+                                ({selectedCandidate.score_breakdown.month_hours}h/tháng)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="col-6 col-md-3">
+                          <div className="p-2 bg-white border rounded text-center">
+                            <div className="text-muted fs-8">{t('shifts.surge_pillar_seniority')}</div>
+                            <div className="fw-bold fs-7 text-dark mt-1">
+                              {selectedCandidate.score_breakdown.seniority_score}{' '}
+                              <span className="text-muted fs-8">/ 15đ</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {selectedCandidate.score_breakdown.justification && (
+                        <div className="p-2 bg-white rounded border fs-8 text-secondary">
+                          <span className="fw-semibold text-dark">
+                            {t('shifts.surge_justification_title')}:
+                          </span>{' '}
+                          {selectedCandidate.score_breakdown.justification}
+                        </div>
+                      )}
+                    </>
+                  ) : null}
                 </div>
               )}
 
