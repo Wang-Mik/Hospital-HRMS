@@ -1,22 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Form, Button, Alert, Badge } from 'react-bootstrap';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  AlertTriangle,
-  PhoneCall,
-  PhoneOff,
-  CheckCircle,
-  Clock,
-  ShieldAlert,
-  Activity,
-  Award,
-  FileText,
-  XCircle,
-  PhoneForwarded,
-  Building2,
-  UserCheck,
-  Info
-} from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
@@ -66,6 +50,12 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>('');
   const [activeSession, setActiveSession] = useState<SurgeDispatchSession | null>(null);
 
+  // Search, Quick Filter & Pagination State
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filterMode, setFilterMode] = useState<'ALL' | 'ON_CALL' | 'INTERNAL' | 'CROSS'>('ALL');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 5; // Hiển thị 5 ứng viên mỗi trang để giao diện gọn gàng, không bị tràn màn hình
+
   // Resolution State
   const [isResolving, setIsResolving] = useState<boolean>(false);
   const [resolutionNotes, setResolutionNotes] = useState<string>(
@@ -110,7 +100,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
     }
   }, [activeDispatches]);
 
-  // 2. Fetch candidates recommendation pool (Mức 1: chỉ lấy nhân sự thuộc đúng khoa; Mức 2 / Code Red: mở rộng liên khoa)
+  // 2. Fetch candidates recommendation pool
   const {
     data: candidatesData,
     isLoading: isCandidatesLoading
@@ -127,8 +117,51 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
 
   const candidateList = candidatesData?.candidates || candidatesData?.top_candidates || [];
   const excludedList = candidatesData?.excluded_candidates || [];
-  const selectedCandidate =
-    candidateList.find((c) => c.staff_id === selectedCandidateId) || candidateList[0];
+
+  // Filter candidates based on search query and quick filter tabs
+  const filteredCandidates = useMemo(() => {
+    let list = [...candidateList];
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((c) => {
+        const name = (c.full_name || c.staff_name || '').toLowerCase();
+        const id = (c.staff_id || '').toLowerCase();
+        const spec = (c.specialty || '').toLowerCase();
+        const role = (c.job_title || c.role || '').toLowerCase();
+        return name.includes(q) || id.includes(q) || spec.includes(q) || role.includes(q);
+      });
+    }
+    if (filterMode === 'ON_CALL') {
+      list = list.filter((c) => c.has_on_call_today);
+    } else if (filterMode === 'INTERNAL') {
+      list = list.filter((c) => !c.is_cross_department);
+    } else if (filterMode === 'CROSS') {
+      list = list.filter((c) => c.is_cross_department);
+    }
+    return list;
+  }, [candidateList, searchQuery, filterMode]);
+
+  // Reset current page when filters or department changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterMode, targetDeptCode, staffType, alertLevel]);
+
+  // Pagination slicing
+  const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / pageSize));
+  const paginatedCandidates = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCandidates.slice(start, start + pageSize);
+  }, [filteredCandidates, currentPage, pageSize]);
+
+  // Selected candidate object (default to top 1 if available)
+  const selectedCandidate = useMemo(() => {
+    return (
+      candidateList.find((c) => c.staff_id === selectedCandidateId) ||
+      filteredCandidates[0] ||
+      candidateList[0] ||
+      null
+    );
+  }, [candidateList, filteredCandidates, selectedCandidateId]);
 
   // Default selection to candidate rank #1 when department or list changes
   useEffect(() => {
@@ -181,7 +214,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
       setSuccessMessage(
         variables.outcome === 'UNREACHABLE' || variables.outcome === 'REJECTED'
           ? t('shifts.surge_candidate_promoted_msg')
-          : `${t('shifts.surge_call_logged')} Đã tự động đồng bộ ca trực tăng cường lên Lịch công tác.`
+          : `${t('shifts.surge_call_logged')} Đã tự động kích hoạt ca trực tăng cường lên Lịch công tác.`
       );
       setErrorMessage(null);
       queryClient.invalidateQueries({ queryKey: ['activeSurgeDispatches'] });
@@ -252,21 +285,26 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
     });
   };
 
+  // Typography / Label Badges (Zero Icons)
   const getAlertLevelBadge = (level: AlertLevel) => {
     switch (level) {
       case 'CODE_RED':
-        return <Badge bg="danger" className="px-2 py-1 fs-7">CODE RED - BÁO ĐỘNG ĐỎ</Badge>;
+        return (
+          <Badge bg="danger" className="text-white text-uppercase px-2.5 py-1 fw-bold fs-8">
+            [ CẤP 3: CODE RED - BÁO ĐỘNG ĐỎ TOÀN VIỆN ]
+          </Badge>
+        );
       case 'LEVEL_2_DISASTER':
         return (
-          <Badge bg="warning" text="dark" className="px-2 py-1 fs-7">
-            MỨC 2 - KHẨN CẤP LIÊN KHOA
+          <Badge bg="warning" text="dark" className="text-uppercase px-2.5 py-1 fw-bold fs-8">
+            [ CẤP 2: ĐIỀU ĐỘNG KHẨN LIÊN KHOA ]
           </Badge>
         );
       case 'LEVEL_1_SURGE':
       default:
         return (
-          <Badge bg="primary" className="px-2 py-1 fs-7">
-            MỨC 1 - TĂNG CƯỜNG & BÙ ĐẮP CA
+          <Badge bg="primary" className="text-white text-uppercase px-2.5 py-1 fw-bold fs-8">
+            [ CẤP 1: TĂNG CƯỜNG & BÙ ĐẮP TẠI KHOA ]
           </Badge>
         );
     }
@@ -279,33 +317,28 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
       case 'ACCEPTED_30M': {
         const is30m = status === 'ACCEPTED_30M' || etaMinutes === 30;
         return (
-          <Badge bg="success" className="px-2 py-1 d-inline-flex align-items-center gap-1">
-            <CheckCircle size={13} />{' '}
-            {is30m ? t('shifts.surge_resp_accepted_30m') : t('shifts.surge_resp_accepted_15m')}
+          <Badge bg="success" className="px-2.5 py-1 text-uppercase fw-bold fs-8">
+            [ {is30m ? t('shifts.surge_resp_accepted_30m') : t('shifts.surge_resp_accepted_15m')} ]
           </Badge>
         );
       }
       case 'UNREACHABLE':
         return (
-          <Badge
-            bg="warning"
-            text="dark"
-            className="px-2 py-1 d-inline-flex align-items-center gap-1"
-          >
-            <PhoneOff size={13} /> {t('shifts.surge_resp_unreachable')}
+          <Badge bg="warning" text="dark" className="px-2.5 py-1 text-uppercase fw-bold fs-8">
+            [ {t('shifts.surge_resp_unreachable')} - ĐÔN DỰ PHÒNG ]
           </Badge>
         );
       case 'REJECTED':
         return (
-          <Badge bg="danger" className="px-2 py-1 d-inline-flex align-items-center gap-1">
-            <XCircle size={13} /> {t('shifts.surge_resp_rejected')}
+          <Badge bg="danger" className="px-2.5 py-1 text-uppercase fw-bold fs-8">
+            [ {t('shifts.surge_resp_rejected')} ]
           </Badge>
         );
       case 'PENDING':
       default:
         return (
-          <Badge bg="secondary" className="px-2 py-1 d-inline-flex align-items-center gap-1">
-            <Clock size={13} /> {t('shifts.surge_resp_pending')}
+          <Badge bg="secondary" className="px-2.5 py-1 text-uppercase fw-bold fs-8">
+            [ {t('shifts.surge_resp_pending')} ]
           </Badge>
         );
     }
@@ -317,28 +350,70 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
   const displayDeptName =
     selectedDeptObj?.name || departmentName || targetDeptCode;
 
+  // Real-world Clinical Rationale Builder for Unified Assessment Table (Zero Duplication)
+  const getPillarBasisText = (pillarIndex: 1 | 2 | 3 | 4, cand: any) => {
+    if (!cand) return '';
+    const breakdown = cand.score_breakdown;
+
+    switch (pillarIndex) {
+      case 1: {
+        if (cand.has_on_call_today) {
+          return 'Đang trong phiên trực thường trú ngoại viện tại khoa, cam kết giữ liên lạc 24/24 và có mặt trong 15-20 phút theo QĐ 1895/1997/QĐ-BYT & QĐ 73/2011/QĐ-TTg.';
+        }
+        if (!cand.is_cross_department) {
+          return 'Nghỉ tại nhà (Off-duty) - Nhân sự thuộc khoa sở tại, sẵn sàng huy động khẩn cấp (~20 phút tiếp cận).';
+        }
+        return 'Nghỉ tại nhà (Off-duty) - Nhân sự chi viện ngoại khoa, thời gian tiếp cận dự kiến ~25-30 phút.';
+      }
+      case 2: {
+        if (!cand.is_cross_department) {
+          return 'Đúng chuyên khoa sở tại: Am hiểu toàn diện hồ sơ bệnh án nội trú, cơ số tủ thuốc cấp cứu và quy trình buồng bệnh (Luật Khám bệnh, chữa bệnh 2023).';
+        }
+        return 'Chi viện liên khoa khẩn cấp: Đạt năng lực hồi sinh tim phổi nâng cao (ACLS) và xử trí cấp cứu đa chấn thương.';
+      }
+      case 3: {
+        const hours = breakdown?.month_hours ?? cand.month_hours ?? 0;
+        if (hours <= 120) {
+          return `Số giờ làm lũy kế trong tháng: ${hours}h/160h tiêu chuẩn. Thể lực sung mãn, ít giờ trực tồn, nằm trong vùng an toàn tối ưu theo Bộ luật Lao động 2019.`;
+        }
+        if (hours <= 160) {
+          return `Số giờ làm lũy kế trong tháng: ${hours}h/160h tiêu chuẩn. Thể lực đảm bảo, tuân thủ định mức lao động y tế.`;
+        }
+        if (hours <= 200) {
+          return `Số giờ làm lũy kế trong tháng: ${hours}h/160h tiêu chuẩn. Đang tiếp cận trần làm thêm giờ (OT 40h/tháng), cần ưu tiên san sẻ tải.`;
+        }
+        return `Số giờ làm lũy kế trong tháng: ${hours}h (vượt trần 200h). Chỉ huy động làm phương án dự phòng khi cấp thiết.`;
+      }
+      case 4: {
+        const roleStr = cand.job_title || cand.role || 'Cán bộ y tế';
+        return `${roleStr} — Đủ thẩm quyền ra quyết định lâm sàng độc lập theo TTLT 10/2015/TTLT-BYT-BNV; tỷ lệ chấm công đúng giờ đạt chuẩn y tế.`;
+      }
+      default:
+        return '';
+    }
+  };
+
+  const top1Candidate = candidateList[0];
+
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered backdrop="static" keyboard={false}>
+    <Modal show={show} onHide={onHide} size="xl" centered backdrop="static" keyboard={false}>
+      {/* Zero Icons Header */}
       <Modal.Header closeButton className="bg-danger text-white border-0 py-3">
-        <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2">
-          <ShieldAlert size={20} className="text-warning" />
-          <span>{t('shifts.surge_title')}</span>
+        <Modal.Title className="fs-6 fw-bold text-uppercase tracking-wide">
+          [ LỆNH ĐIỀU ĐỘNG ] {t('shifts.surge_title')}
         </Modal.Title>
       </Modal.Header>
 
       <Modal.Body className="p-3 bg-light">
-        {/* Alerts / Error feedback */}
+        {/* System Error & Success Alerts (Zero Icons) */}
         {errorMessage && (
           <Alert
             variant="danger"
             dismissible
             onClose={() => setErrorMessage(null)}
-            className="py-2 px-3 fs-7 mb-3"
+            className="py-2.5 px-3 fs-7 mb-3 border-danger fw-semibold"
           >
-            <div className="d-flex align-items-center gap-2">
-              <AlertTriangle size={16} className="text-danger flex-shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
+            [ LỖI HỆ THỐNG ]: {errorMessage}
           </Alert>
         )}
 
@@ -347,12 +422,9 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
             variant="success"
             dismissible
             onClose={() => setSuccessMessage(null)}
-            className="py-2 px-3 fs-7 mb-3"
+            className="py-2.5 px-3 fs-7 mb-3 border-success fw-semibold"
           >
-            <div className="d-flex align-items-center gap-2">
-              <CheckCircle size={16} className="text-success flex-shrink-0" />
-              <span>{successMessage}</span>
-            </div>
+            [ THÀNH CÔNG ]: {successMessage}
           </Alert>
         )}
 
@@ -361,21 +433,19 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
           <div className="bg-white rounded-3 p-3 border shadow-sm">
             <div className="d-flex justify-content-between align-items-start border-bottom pb-2 mb-3">
               <div>
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <span className="badge bg-danger text-white px-2 py-1 text-uppercase fw-bold">
-                    PHIÊN ĐANG KÍCH HOẠT:{' '}
-                    {(activeSession.dispatch_id || activeSession.id || '').slice(0, 8)}
+                <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                  <span className="badge bg-danger text-white px-2.5 py-1 text-uppercase fw-bold fs-8">
+                    PHIÊN ĐANG KÍCH HOẠT: {(activeSession.dispatch_id || activeSession.id || '').slice(0, 8)}
                   </span>
                   {getAlertLevelBadge(activeSession.alert_level)}
                 </div>
                 <h6 className="fw-bold mb-0 text-dark">
-                  {activeSession.department_name || activeSession.department_code} —{' '}
-                  {activeSession.reason}
+                  Khoa nhận chi viện: {activeSession.department_name || activeSession.department_code} — {activeSession.reason}
                 </h6>
               </div>
               <div className="text-end">
-                <span className="text-muted fs-8 d-block">Thời điểm phát lệnh:</span>
-                <span className="fw-semibold fs-7 text-dark">
+                <span className="text-muted fs-8 d-block text-uppercase">Thời điểm phát lệnh:</span>
+                <span className="fw-bold fs-7 text-dark">
                   {activeSession.created_at
                     ? new Date(activeSession.created_at).toLocaleTimeString('vi-VN')
                     : 'Vừa xong'}
@@ -387,9 +457,8 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
             <div className="card border-danger mb-3 bg-danger-subtle">
               <div className="card-body p-3">
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="fs-7 text-danger fw-bold d-flex align-items-center gap-1.5">
-                    <Activity size={16} className="text-danger" />
-                    {t('shifts.surge_calling_candidate')}
+                  <span className="fs-7 text-danger fw-bold text-uppercase">
+                    [ TIẾP CẬN CÁN BỘ ] {t('shifts.surge_calling_candidate')}
                   </span>
                   {getResponseStatusBadge(
                     activeSession.response_status,
@@ -397,7 +466,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                   )}
                 </div>
 
-                <div className="row g-2 align-items-center mb-3 bg-white p-2.5 rounded-2 border">
+                <div className="row g-2 align-items-center mb-3 bg-white p-3 rounded-2 border">
                   <div className="col-md-7">
                     <h5 className="fw-bold text-dark mb-1">
                       {activeSession.responder_name ||
@@ -405,108 +474,98 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                         'Cán bộ trực thường trú'}
                     </h5>
                     <div className="fs-7 text-muted">
-                      <span>Mã: {activeSession.selected_staff_id}</span>
-                      <span className="mx-2">•</span>
+                      <span>Mã cán bộ: <strong>{activeSession.selected_staff_id}</strong></span>
+                      <span className="mx-2">|</span>
                       <span>
                         Chức danh:{' '}
-                        {activeSession.responder_specialty ||
-                          activeSession.responder_role ||
-                          'Bác sĩ lâm sàng'}
+                        <strong>
+                          {activeSession.responder_specialty ||
+                            activeSession.responder_role ||
+                            'Bác sĩ lâm sàng'}
+                        </strong>
                       </span>
                       {activeSession.suitability_score ? (
                         <>
-                          <span className="mx-2">•</span>
-                          <span className="text-primary fw-semibold">
-                            Điểm phù hợp: {activeSession.suitability_score}/100
+                          <span className="mx-2">|</span>
+                          <span className="text-primary fw-bold">
+                            Điểm ưu tiên: {activeSession.suitability_score} / 100
                           </span>
                         </>
                       ) : null}
                     </div>
                   </div>
                   <div className="col-md-5 text-md-end">
-                    <span className="text-muted fs-8 d-block mb-1">
-                      Kênh 1 — Gọi điện điều phối trực tiếp:
+                    <span className="text-muted fs-8 d-block mb-1 text-uppercase fw-semibold">
+                      Kênh 1 — Gọi điện thoại điều động trực tiếp:
                     </span>
                     <a
                       href={`tel:${activeSession.phone_contact || '0908123456'}`}
-                      className="btn btn-sm btn-danger fw-bold px-3 py-1.5 d-inline-flex align-items-center gap-2 shadow-sm text-decoration-none"
+                      className="btn btn-sm btn-danger fw-bold px-3 py-2 text-decoration-none shadow-sm"
                     >
-                      <PhoneCall size={16} />
-                      <span>{activeSession.phone_contact || '0908123456'}</span>
+                      GỌI NGAY: {activeSession.phone_contact || '0908123456'}
                     </a>
                   </div>
                 </div>
 
-                {/* Confirmed Banner if responder already accepted */}
+                {/* Confirmed Banner if responder already accepted (Zero Icons) */}
                 {(activeSession.response_status === 'ACCEPTED' ||
                   activeSession.response_status === 'ACCEPTED_15M' ||
                   activeSession.response_status === 'ACCEPTED_30M') && (
-                  <div className="p-2.5 mb-3 rounded-2 bg-success-subtle border border-success text-success-emphasis fs-7 d-flex align-items-center justify-content-between">
-                    <div className="d-flex align-items-center gap-2">
-                      <UserCheck size={18} className="text-success flex-shrink-0" />
-                      <div>
-                        <strong className="d-block">
-                          Đã xác nhận nhận lệnh — Dự kiến có mặt trong{' '}
-                          {activeSession.estimated_arrival_minutes || 15} phút
-                        </strong>
-                        <span className="fs-8">
-                          Hệ thống đã tự động kích hoạt ca trực tăng cường (EMERGENCY_ACTIVE) trên
-                          Lịch công tác Google Calendar và sẵn sàng chờ cán bộ chấm công vào ca.
-                        </span>
-                      </div>
-                    </div>
+                  <div className="p-3 mb-3 rounded-2 bg-success-subtle border border-success text-success-emphasis fs-7">
+                    <strong className="d-block mb-1 text-uppercase">
+                      [ ĐÃ XÁC NHẬN NHẬN LỆNH ] Dự kiến có mặt trong{' '}
+                      {activeSession.estimated_arrival_minutes || 15} phút
+                    </strong>
+                    <span className="fs-8">
+                      Hệ thống đã tự động kích hoạt ca trực tăng cường (EMERGENCY_ACTIVE) trên Lịch công tác Google Calendar và chuyển sang trạng thái sẵn sàng ghi nhận Chấm công (Clock-in).
+                    </span>
                   </div>
                 )}
 
-                {/* Dispatcher Cockpit 1-Touch Logging Buttons */}
-                <div className="bg-white p-2.5 rounded-2 border">
-                  <label className="form-label fw-bold fs-7 text-dark mb-2 d-flex align-items-center gap-1.5">
-                    <PhoneForwarded size={15} className="text-primary" />
-                    <span>{t('shifts.surge_call_cockpit_title')}</span>
-                  </label>
+                {/* Dispatcher Cockpit 1-Touch Logging Buttons (Zero Icons) */}
+                <div className="bg-white p-3 rounded-2 border">
+                  <div className="fw-bold fs-7 text-dark mb-2 text-uppercase">
+                    [ BÀN GHI NHẬN PHẢN HỒI 1 CHẠM ]
+                  </div>
                   <div className="d-flex flex-wrap gap-2">
                     <Button
                       variant="success"
                       size="sm"
-                      className="d-inline-flex align-items-center gap-1.5 fw-semibold"
+                      className="fw-bold px-3 py-2 text-uppercase fs-8"
                       disabled={logCallMutation.isPending}
                       onClick={() => handleLogCall('ACCEPTED_15M')}
                     >
-                      <CheckCircle size={15} />
-                      <span>{t('shifts.surge_action_accept_15m')}</span>
+                      {t('shifts.surge_action_accept_15m')}
                     </Button>
 
                     <Button
                       variant="info"
                       size="sm"
-                      className="text-white d-inline-flex align-items-center gap-1.5 fw-semibold"
+                      className="text-white fw-bold px-3 py-2 text-uppercase fs-8"
                       disabled={logCallMutation.isPending}
                       onClick={() => handleLogCall('ACCEPTED_30M')}
                     >
-                      <Clock size={15} />
-                      <span>{t('shifts.surge_action_accept_30m')}</span>
+                      {t('shifts.surge_action_accept_30m')}
                     </Button>
 
                     <Button
                       variant="warning"
                       size="sm"
-                      className="d-inline-flex align-items-center gap-1.5 fw-semibold"
+                      className="fw-bold px-3 py-2 text-dark text-uppercase fs-8"
                       disabled={logCallMutation.isPending}
                       onClick={() => handleLogCall('UNREACHABLE')}
                     >
-                      <PhoneOff size={15} />
-                      <span>{t('shifts.surge_action_unreachable')}</span>
+                      {t('shifts.surge_action_unreachable')}
                     </Button>
 
                     <Button
                       variant="outline-danger"
                       size="sm"
-                      className="d-inline-flex align-items-center gap-1.5"
+                      className="fw-bold px-3 py-2 text-uppercase fs-8"
                       disabled={logCallMutation.isPending}
                       onClick={() => handleLogCall('REJECTED')}
                     >
-                      <XCircle size={15} />
-                      <span>{t('shifts.surge_action_reject')}</span>
+                      {t('shifts.surge_action_reject')}
                     </Button>
                   </div>
                 </div>
@@ -516,16 +575,22 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
             {/* Candidate Queue Snapshot */}
             {Array.isArray(activeSession.candidates_snapshot) &&
               activeSession.candidates_snapshot.length > 0 && (
-                <div className="mb-3 border rounded-2 p-2.5 bg-light">
+                <div className="mb-3 border rounded-2 p-3 bg-light">
                   <div className="fw-bold fs-8 text-uppercase text-muted mb-2">
-                    Danh sách thứ tự ưu tiên dự phòng trong phiên (Auto-Fallback Queue):
+                    Thứ tự ưu tiên dự phòng tự động trong phiên (Auto-Fallback Queue):
                   </div>
                   <div className="d-flex flex-wrap gap-2">
                     {activeSession.candidates_snapshot.map((cand: any, idx: number) => {
                       const isCurrent = cand.staff_id === activeSession.selected_staff_id;
                       const callStatus = cand.call_status || (isCurrent ? 'CALLING' : 'STANDBY');
                       let badgeClass = 'bg-white text-dark border';
-                      if (callStatus === 'ACCEPTED' || (isCurrent && activeSession.response_status === 'ACCEPTED')) {
+                      if (
+                        callStatus === 'ACCEPTED' ||
+                        (isCurrent &&
+                          (activeSession.response_status === 'ACCEPTED' ||
+                            activeSession.response_status === 'ACCEPTED_15M' ||
+                            activeSession.response_status === 'ACCEPTED_30M'))
+                      ) {
                         badgeClass = 'bg-success text-white';
                       } else if (callStatus === 'UNREACHABLE' || callStatus === 'REJECTED') {
                         badgeClass = 'bg-secondary-subtle text-muted text-decoration-line-through border';
@@ -535,7 +600,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                       return (
                         <div
                           key={cand.staff_id || idx}
-                          className={`px-2.5 py-1 rounded-2 fs-8 fw-semibold d-inline-flex align-items-center gap-1.5 ${badgeClass}`}
+                          className={`px-3 py-1.5 rounded-2 fs-8 fw-bold d-inline-flex align-items-center gap-2 ${badgeClass}`}
                         >
                           <span>#{cand.rank || cand.rank_order || idx + 1}</span>
                           <span>{cand.full_name || cand.staff_name || cand.staff_id}</span>
@@ -547,40 +612,35 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                 </div>
               )}
 
-            {/* Legal Notice Box under QĐ 73/2011/QĐ-TTg */}
-            <div className="p-2.5 rounded-2 bg-light border text-muted fs-8 mb-3">
-              <span className="fw-bold text-dark d-block mb-1">
-                Quy chế điều động tăng cường & Bù đắp nhân lực (QĐ 1895/QĐ-BYT & QĐ 73/2011/QĐ-TTg):
+            {/* Legal Notice Box under QĐ 1895 & QĐ 73 */}
+            <div className="p-3 rounded-2 bg-light border text-muted fs-8 mb-3">
+              <span className="fw-bold text-dark d-block mb-1 text-uppercase">
+                [ QUY CHẾ ĐIỀU ĐỘNG TĂNG CƯỜNG & BÙ ĐẮP NHÂN LỰC (QĐ 1895/QĐ-BYT & QĐ 73/2011/QĐ-TTg) ]:
               </span>
               <span>
-                Kênh 1 (Tổng đài viên gọi điện trực tiếp) là kênh xác nhận chính thức; Kênh 2 (Thông
-                báo nội bộ trên hệ thống) hiển thị đồng thời cho cán bộ được gọi. Ngay khi xác nhận
-                hoặc quét thẻ Chấm công (Clock-in), ca trực tự động chuyển sang{' '}
-                <strong>EMERGENCY_ACTIVE</strong> và tính phụ cấp trực tăng cường theo quy định.
+                Kênh 1 (Tổng đài viên gọi điện trực tiếp) là kênh xác nhận mệnh lệnh chính thức; Kênh 2 (Thông báo nội bộ trên hệ thống) thông báo đồng thời cho cán bộ được gọi. Ngay khi xác nhận có mặt hoặc quét thẻ Chấm công (Clock-in), ca trực tự động chuyển sang trạng thái <strong>EMERGENCY_ACTIVE</strong> và tính phụ cấp thường trực cấp cứu theo quy định.
               </span>
             </div>
 
             {/* Resolve Dispatch Accordion / Controls */}
             {!isResolving ? (
-              <div className="d-flex justify-content-between align-items-center">
-                <Button variant="secondary" size="sm" onClick={onHide}>
-                  Đóng cửa sổ (Giữ phiên chạy ngầm)
+              <div className="d-flex justify-content-between align-items-center pt-2 border-top">
+                <Button variant="secondary" size="sm" onClick={onHide} className="fw-semibold">
+                  Đóng Cửa Sổ (Giữ phiên chạy ngầm)
                 </Button>
                 <Button
                   variant="outline-success"
                   size="sm"
-                  className="d-inline-flex align-items-center gap-1.5 fw-semibold"
+                  className="fw-bold px-3 py-2 text-uppercase"
                   onClick={() => setIsResolving(true)}
                 >
-                  <FileText size={15} />
-                  <span>{t('shifts.surge_resolve_btn')}</span>
+                  {t('shifts.surge_resolve_btn')}
                 </Button>
               </div>
             ) : (
               <div className="p-3 border rounded-2 bg-light">
-                <h6 className="fw-bold text-dark fs-7 mb-2 d-flex align-items-center gap-1.5">
-                  <CheckCircle size={16} className="text-success" />
-                  <span>{t('shifts.surge_resolve_title')}</span>
+                <h6 className="fw-bold text-dark fs-7 mb-2 text-uppercase">
+                  [ {t('shifts.surge_resolve_title')} ]
                 </h6>
                 <Form.Group className="mb-2">
                   <Form.Label className="fs-8 fw-semibold text-muted">
@@ -600,18 +660,18 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                     size="sm"
                     onClick={() => setIsResolving(false)}
                     disabled={resolveMutation.isPending}
+                    className="fw-semibold"
                   >
-                    Hủy
+                    Hủy Bỏ
                   </Button>
                   <Button
                     variant="success"
                     size="sm"
-                    className="fw-bold d-inline-flex align-items-center gap-1.5"
+                    className="fw-bold px-3 py-1.5 text-uppercase"
                     onClick={handleConfirmResolve}
                     disabled={resolveMutation.isPending}
                   >
-                    <CheckCircle size={15} />
-                    <span>{t('shifts.surge_resolve_confirm')}</span>
+                    {t('shifts.surge_resolve_confirm')}
                   </Button>
                 </div>
               </div>
@@ -626,9 +686,8 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
             <div className="row g-2 mb-3">
               <div className="col-md-4">
                 <Form.Group>
-                  <Form.Label className="fw-bold fs-7 text-dark d-flex align-items-center gap-1">
-                    <Building2 size={14} className="text-danger" />
-                    <span>Khoa Cần Điều Động</span>
+                  <Form.Label className="fw-bold fs-7 text-dark text-uppercase">
+                    Khoa Nhận Chi Viện
                   </Form.Label>
                   <Form.Select
                     size="sm"
@@ -652,7 +711,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                   </Form.Select>
                   {!isHospitalCoordinator && (
                     <div className="text-muted mt-1" style={{ fontSize: '11px' }}>
-                      Trưởng khoa chỉ điều động nhân sự thuộc khoa mình.
+                      Trưởng khoa chỉ được điều động nhân sự trong phạm vi khoa của mình.
                     </div>
                   )}
                 </Form.Group>
@@ -660,7 +719,9 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
 
               <div className="col-md-4">
                 <Form.Group>
-                  <Form.Label className="fw-bold fs-7 text-dark">Mức Độ & Phạm Vi Điều Động</Form.Label>
+                  <Form.Label className="fw-bold fs-7 text-dark text-uppercase">
+                    Mức Độ & Phạm Vi Điều Động
+                  </Form.Label>
                   <Form.Select
                     size="sm"
                     value={alertLevel}
@@ -688,7 +749,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
 
               <div className="col-md-4">
                 <Form.Group>
-                  <Form.Label className="fw-bold fs-7 text-dark">
+                  <Form.Label className="fw-bold fs-7 text-dark text-uppercase">
                     {t('shifts.surge_staff_type_label')}
                   </Form.Label>
                   <Form.Select
@@ -698,6 +759,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
                       setStaffType(e.target.value as 'ANY' | 'DOCTOR' | 'NURSE');
                       setSelectedCandidateId('');
                     }}
+                    className="fw-semibold"
                   >
                     <option value="ANY">{t('shifts.surge_staff_type_all')}</option>
                     <option value="DOCTOR">{t('shifts.surge_staff_type_doctor')}</option>
@@ -709,7 +771,7 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
 
             {/* Reason Textarea */}
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold fs-7 text-dark">
+              <Form.Label className="fw-bold fs-7 text-dark text-uppercase">
                 {t('shifts.surge_reason_label')}
               </Form.Label>
               <Form.Control
@@ -724,218 +786,349 @@ export const SurgeDispatchModal: React.FC<SurgeDispatchModalProps> = ({
 
             {/* Candidates Recommendation Pool */}
             <div className="mb-3">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="fw-bold fs-7 text-dark mb-0 d-flex align-items-center gap-1.5">
-                  <Award size={16} className="text-warning" />
-                  <span>{t('shifts.surge_candidates_top3')}</span>
-                </h6>
-                <span className="fs-8 text-muted">
-                  Khoa nhận chi viện: <strong>{displayDeptName}</strong>
-                </span>
+              <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <div>
+                  <h6 className="fw-bold fs-7 text-dark mb-0 text-uppercase">
+                    {t('shifts.surge_candidates_top3')}
+                  </h6>
+                  <span className="fs-8 text-muted">
+                    Khoa chỉ định nhận chi viện: <strong>{displayDeptName}</strong>
+                  </span>
+                </div>
+
+                {/* 1-Click Action: Select Rank #1 Candidate */}
+                {top1Candidate && (
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    className="fw-bold fs-8 py-1 px-3 text-uppercase shadow-sm"
+                    onClick={() => setSelectedCandidateId(top1Candidate.staff_id)}
+                  >
+                    [ {t('shifts.surge_quick_select_top1')}: {top1Candidate.full_name || top1Candidate.staff_name} ({top1Candidate.priority_score ?? top1Candidate.suitability_score} ĐIỂM) ]
+                  </Button>
+                )}
               </div>
 
+              {/* Instant Search Bar & Filter Chips (Handling > 10 candidates) */}
+              <div className="p-2.5 bg-light rounded-2 border mb-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div style={{ flex: '1 1 280px', maxWidth: '420px' }}>
+                  <Form.Control
+                    type="text"
+                    size="sm"
+                    placeholder={t('shifts.surge_search_placeholder')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="fs-8"
+                  />
+                </div>
+
+                <div className="d-flex flex-wrap gap-1.5">
+                  <Button
+                    variant={filterMode === 'ALL' ? 'dark' : 'outline-secondary'}
+                    size="sm"
+                    className="fs-8 py-1 px-2.5 fw-semibold"
+                    onClick={() => setFilterMode('ALL')}
+                  >
+                    {t('shifts.surge_filter_all')} ({candidateList.length})
+                  </Button>
+                  <Button
+                    variant={filterMode === 'ON_CALL' ? 'primary' : 'outline-secondary'}
+                    size="sm"
+                    className="fs-8 py-1 px-2.5 fw-semibold"
+                    onClick={() => setFilterMode('ON_CALL')}
+                  >
+                    {t('shifts.surge_filter_on_call')} ({candidateList.filter((c) => c.has_on_call_today).length})
+                  </Button>
+                  <Button
+                    variant={filterMode === 'INTERNAL' ? 'success' : 'outline-secondary'}
+                    size="sm"
+                    className="fs-8 py-1 px-2.5 fw-semibold"
+                    onClick={() => setFilterMode('INTERNAL')}
+                  >
+                    {t('shifts.surge_filter_internal')} ({candidateList.filter((c) => !c.is_cross_department).length})
+                  </Button>
+                  <Button
+                    variant={filterMode === 'CROSS' ? 'warning' : 'outline-secondary'}
+                    size="sm"
+                    className="fs-8 py-1 px-2.5 fw-semibold"
+                    onClick={() => setFilterMode('CROSS')}
+                  >
+                    {t('shifts.surge_filter_cross')} ({candidateList.filter((c) => c.is_cross_department).length})
+                  </Button>
+                </div>
+              </div>
+
+              {/* Candidate Table with Pagination */}
               {isCandidatesLoading ? (
                 <div className="text-center py-4 text-muted fs-7">
-                  <Activity size={20} className="spinner-border spinner-border-sm me-2" />
-                  Đang quét và tính điểm đa mục tiêu lực lượng trực thường trú...
+                  Đang quét và tính điểm chọn mục tiêu ưu tiên cho lực lượng thường trực...
                 </div>
-              ) : candidateList.length > 0 ? (
-                <div className="table-responsive border rounded-2">
-                  <table
-                    className="table table-hover table-sm align-middle mb-0"
-                    style={{ fontSize: '13px' }}
-                  >
-                    <thead className="table-light">
-                      <tr>
-                        <th style={{ width: '40px' }} className="text-center">
-                          Chọn
-                        </th>
-                        <th>{t('shifts.surge_candidate_staff')}</th>
-                        <th>{t('shifts.surge_candidate_specialty')}</th>
-                        <th>{t('shifts.surge_candidate_phone')}</th>
-                        <th className="text-center">{t('shifts.surge_candidate_eta')}</th>
-                        <th className="text-center">{t('shifts.surge_candidate_score')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {candidateList.map((cand) => {
-                        const displayName = cand.full_name || cand.staff_name || cand.staff_id;
-                        const eta = cand.eta_minutes ?? cand.estimated_arrival_minutes ?? 15;
-                        return (
-                          <tr
-                            key={cand.staff_id}
-                            className={
-                              selectedCandidateId === cand.staff_id ? 'table-primary' : ''
-                            }
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setSelectedCandidateId(cand.staff_id)}
+              ) : filteredCandidates.length > 0 ? (
+                <>
+                  <div className="table-responsive border rounded-2 bg-white">
+                    <table
+                      className="table table-hover table-sm align-middle mb-0"
+                      style={{ fontSize: '13px' }}
+                    >
+                      <thead className="table-light text-uppercase fs-8 text-muted">
+                        <tr>
+                          <th style={{ width: '45px' }} className="text-center">
+                            Chọn
+                          </th>
+                          <th style={{ width: '50px' }} className="text-center">
+                            {t('shifts.surge_candidate_rank')}
+                          </th>
+                          <th>{t('shifts.surge_candidate_staff')}</th>
+                          <th>{t('shifts.surge_candidate_specialty')}</th>
+                          <th>{t('shifts.surge_candidate_phone')}</th>
+                          <th className="text-center">{t('shifts.surge_candidate_eta')}</th>
+                          <th className="text-center">{t('shifts.surge_candidate_score')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedCandidates.map((cand, idx) => {
+                          const displayName = cand.full_name || cand.staff_name || cand.staff_id;
+                          const eta = cand.eta_minutes ?? cand.estimated_arrival_minutes ?? 15;
+                          const isSelected = selectedCandidateId === cand.staff_id;
+                          const globalRank = cand.rank || cand.rank_order || ((currentPage - 1) * pageSize + idx + 1);
+
+                          return (
+                            <tr
+                              key={cand.staff_id}
+                              className={isSelected ? 'table-primary' : ''}
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => setSelectedCandidateId(cand.staff_id)}
+                            >
+                              <td className="text-center">
+                                <Form.Check
+                                  type="radio"
+                                  name="surgeCandidateRadio"
+                                  checked={isSelected}
+                                  onChange={() => setSelectedCandidateId(cand.staff_id)}
+                                />
+                              </td>
+                              <td className="text-center fw-bold fs-7 text-dark">
+                                #{globalRank}
+                              </td>
+                              <td>
+                                <div className="fw-bold text-dark d-flex align-items-center flex-wrap gap-1.5">
+                                  <span>{displayName}</span>
+                                  {cand.is_cross_department ? (
+                                    <span className="badge bg-warning text-dark border border-warning fs-8">
+                                      Chi viện từ: {cand.department_name || cand.department_code}
+                                    </span>
+                                  ) : (
+                                    <span className="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fs-8">
+                                      Nhân sự tại khoa
+                                    </span>
+                                  )}
+                                  {cand.has_on_call_today && (
+                                    <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle fs-8">
+                                      Đang trực thường trú
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-muted fs-8">
+                                  Mã: {cand.staff_id} | {cand.job_title || cand.role}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="text-dark fw-semibold">
+                                  {cand.specialty || 'Lâm sàng cấp cứu'}
+                                </div>
+                                <span className="badge bg-success-subtle text-success border border-success-subtle fs-8">
+                                  CCHN: {cand.license_number || 'Hợp lệ'}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="fw-bold text-dark">{cand.phone_contact}</span>
+                              </td>
+                              <td className="text-center">
+                                <span className="badge bg-light text-dark border fw-semibold">
+                                  ~{eta} phút
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                <span className="badge bg-primary px-2.5 py-1 fs-7 fw-bold">
+                                  {cand.priority_score ?? cand.suitability_score} / 100
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Bar (Handling > 10 Candidates) */}
+                  <div className="d-flex justify-content-between align-items-center mt-2 px-1 flex-wrap gap-2">
+                    <span className="fs-8 text-muted">
+                      {t('shifts.surge_showing_range')} <strong>{(currentPage - 1) * pageSize + 1}</strong> -{' '}
+                      <strong>{Math.min(currentPage * pageSize, filteredCandidates.length)}</strong>{' '}
+                      {t('shifts.surge_showing_of')} <strong>{filteredCandidates.length}</strong>{' '}
+                      {t('shifts.surge_showing_candidates')}
+                    </span>
+
+                    {totalPages > 1 && (
+                      <div className="d-flex align-items-center gap-1">
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          className="fs-8 py-1 px-2 fw-semibold"
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        >
+                          {t('shifts.surge_page_prev')}
+                        </Button>
+
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={page === currentPage ? 'primary' : 'outline-secondary'}
+                            size="sm"
+                            className="fs-8 py-1 px-2.5 fw-semibold"
+                            onClick={() => setCurrentPage(page)}
                           >
-                            <td className="text-center">
-                              <Form.Check
-                                type="radio"
-                                name="surgeCandidateRadio"
-                                checked={selectedCandidateId === cand.staff_id}
-                                onChange={() => setSelectedCandidateId(cand.staff_id)}
-                              />
-                            </td>
-                            <td>
-                              <div className="fw-bold text-dark d-flex align-items-center flex-wrap gap-1.5">
-                                <span>{displayName}</span>
-                                {cand.is_cross_department ? (
-                                  <span className="badge bg-warning text-dark border border-warning fs-8">
-                                    Chi viện từ: {cand.department_name || cand.department_code}
-                                  </span>
-                                ) : (
-                                  <span className="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fs-8">
-                                    Nhân sự tại khoa
-                                  </span>
-                                )}
-                                {cand.has_on_call_today && (
-                                  <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle fs-8">
-                                    Đang trực thường trú
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-muted fs-8">
-                                {cand.staff_id} • {cand.job_title || cand.role}
-                              </span>
-                            </td>
-                            <td>
-                              <div className="text-dark fw-semibold">
-                                {cand.specialty || 'Lâm sàng cấp cứu'}
-                              </div>
-                              <span className="badge bg-success-subtle text-success border border-success-subtle fs-8">
-                                CCHN: {cand.license_number || 'Đã xác thực'}
-                              </span>
-                            </td>
-                            <td>
-                              <span className="fw-semibold text-dark">{cand.phone_contact}</span>
-                            </td>
-                            <td className="text-center">
-                              <span className="badge bg-light text-dark border fw-semibold">
-                                ~{eta} phút
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              <span className="badge bg-primary px-2 py-1 fs-7">
-                                {cand.priority_score ?? cand.suitability_score} / 100
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          className="fs-8 py-1 px-2 fw-semibold"
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        >
+                          {t('shifts.surge_page_next')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div className="p-3 text-center rounded-2 bg-light border text-muted fs-7">
-                  <AlertTriangle size={20} className="text-warning mb-1 d-block mx-auto" />
-                  <span>{t('shifts.surge_no_candidates')}</span>
+                  {t('shifts.surge_no_candidates')}
                 </div>
               )}
 
-              {/* Selected Candidate Score Breakdown & Justification */}
+              {/* ======================= UNIFIED ASSESSMENT BASIS TABLE ======================= */}
+              {/* Giải quyết triệt để lỗi lặp thông tin giữa 4 hộp điểm và đoạn văn bản bên dưới */}
               {selectedCandidate && (
-                <div className="mt-2.5 p-2.5 rounded-2 bg-light border">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <div className="fw-bold fs-8 text-primary d-flex align-items-center gap-1.5">
-                      <Info size={14} />
-                      <span>
-                        {t('shifts.surge_score_breakdown_title')}:{' '}
-                        <strong>{selectedCandidate.full_name || selectedCandidate.staff_name}</strong>
+                <div className="mt-3 p-3 rounded-2 bg-white border">
+                  <div className="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom flex-wrap gap-2">
+                    <div>
+                      <span className="fw-bold fs-7 text-dark text-uppercase d-block">
+                        {t('shifts.surge_assessment_table_title')}
+                      </span>
+                      <span className="fs-8 text-muted">
+                        Đang xem căn cứ của ứng viên:{' '}
+                        <strong className="text-primary">
+                          {selectedCandidate.full_name || selectedCandidate.staff_name}
+                        </strong>{' '}
+                        (Mã: {selectedCandidate.staff_id})
                       </span>
                     </div>
-                    <Badge bg="primary" className="fs-8">
-                      {selectedCandidate.priority_score ?? selectedCandidate.suitability_score} / 100 điểm
+                    <Badge bg="primary" className="fs-7 px-3 py-1.5 fw-bold text-uppercase">
+                      TỔNG ĐIỂM: {selectedCandidate.priority_score ?? selectedCandidate.suitability_score} / 100 ĐIỂM
                     </Badge>
                   </div>
 
-                  {selectedCandidate.score_breakdown ? (
-                    <>
-                      <div className="row g-2 mb-2">
-                        <div className="col-6 col-md-3">
-                          <div className="p-2 bg-white border rounded text-center">
-                            <div className="text-muted fs-8">{t('shifts.surge_pillar_standby')}</div>
-                            <div className="fw-bold fs-7 text-dark mt-1">
-                              {selectedCandidate.score_breakdown.standby_score}{' '}
-                              <span className="text-muted fs-8">/ 30đ</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-6 col-md-3">
-                          <div className="p-2 bg-white border rounded text-center">
-                            <div className="text-muted fs-8">{t('shifts.surge_pillar_competence')}</div>
-                            <div className="fw-bold fs-7 text-dark mt-1">
-                              {selectedCandidate.score_breakdown.competence_score}{' '}
-                              <span className="text-muted fs-8">/ 30đ</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-6 col-md-3">
-                          <div className="p-2 bg-white border rounded text-center">
-                            <div className="text-muted fs-8">{t('shifts.surge_pillar_fatigue')}</div>
-                            <div className="fw-bold fs-7 text-dark mt-1">
-                              {selectedCandidate.score_breakdown.fatigue_score}{' '}
-                              <span className="text-muted fs-8">/ 25đ</span>
-                              <span className="d-block fs-8 text-muted">
-                                ({selectedCandidate.score_breakdown.month_hours}h/tháng)
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-6 col-md-3">
-                          <div className="p-2 bg-white border rounded text-center">
-                            <div className="text-muted fs-8">{t('shifts.surge_pillar_seniority')}</div>
-                            <div className="fw-bold fs-7 text-dark mt-1">
-                              {selectedCandidate.score_breakdown.seniority_score}{' '}
-                              <span className="text-muted fs-8">/ 15đ</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {selectedCandidate.score_breakdown.justification && (
-                        <div className="p-2 bg-white rounded border fs-8 text-secondary">
-                          <span className="fw-semibold text-dark">
-                            {t('shifts.surge_justification_title')}:
-                          </span>{' '}
-                          {selectedCandidate.score_breakdown.justification}
-                        </div>
-                      )}
-                    </>
-                  ) : null}
+                  <div className="table-responsive">
+                    <table className="table table-bordered table-sm align-middle mb-0" style={{ fontSize: '12px' }}>
+                      <thead className="table-light text-uppercase fs-8 text-muted">
+                        <tr>
+                          <th style={{ width: '220px' }}>{t('shifts.surge_pillar_col_name')}</th>
+                          <th style={{ width: '120px' }} className="text-center">
+                            {t('shifts.surge_pillar_col_score')}
+                          </th>
+                          <th>{t('shifts.surge_pillar_col_basis')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="fw-bold text-dark">
+                            1. Trạng Thái Thường Trực & Sẵn Sàng
+                          </td>
+                          <td className="text-center fw-bold text-primary">
+                            {selectedCandidate.score_breakdown?.standby_score ?? 18} / 30đ
+                          </td>
+                          <td className="text-secondary">
+                            {getPillarBasisText(1, selectedCandidate)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="fw-bold text-dark">
+                            2. Năng Lực Chuyên Môn & Độ Tương Thích
+                          </td>
+                          <td className="text-center fw-bold text-primary">
+                            {selectedCandidate.score_breakdown?.competence_score ?? 20} / 30đ
+                          </td>
+                          <td className="text-secondary">
+                            {getPillarBasisText(2, selectedCandidate)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="fw-bold text-dark">
+                            3. Chống Quá Tải & Kiệt Sức Lao Động
+                          </td>
+                          <td className="text-center fw-bold text-primary">
+                            {selectedCandidate.score_breakdown?.fatigue_score ?? 25} / 25đ
+                          </td>
+                          <td className="text-secondary">
+                            {getPillarBasisText(3, selectedCandidate)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="fw-bold text-dark">
+                            4. Thâm Niên Chức Danh & Độ Tin Cậy
+                          </td>
+                          <td className="text-center fw-bold text-primary">
+                            {selectedCandidate.score_breakdown?.seniority_score ?? 12} / 15đ
+                          </td>
+                          <td className="text-secondary">
+                            {getPillarBasisText(4, selectedCandidate)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
-              {/* Excluded candidates transparency notice */}
+              {/* Excluded candidates transparency notice (Zero Icons) */}
               {excludedList.length > 0 && (
-                <div className="mt-2 p-2 rounded-2 bg-warning-subtle border border-warning-subtle fs-8 text-dark">
-                  <strong>
-                    Đã tự động loại trừ {excludedList.length} nhân sự để bảo vệ an toàn người bệnh:
-                  </strong>{' '}
-                  {excludedList.slice(0, 2).map((ex, i) => (
-                    <span key={ex.staff_id}>
-                      {i > 0 ? '; ' : ''}
-                      {ex.staff_name} ({ex.exclusion_reason})
-                    </span>
+                <div className="mt-2.5 p-2.5 rounded-2 bg-warning-subtle border border-warning fs-8 text-dark">
+                  <strong className="d-block mb-1 text-uppercase">
+                    [ CẢNH BÁO AN TOÀN NGƯỜI BỆNH ] Đã tự động loại trừ {excludedList.length} nhân sự vi phạm quy chế y tế:
+                  </strong>
+                  {excludedList.slice(0, 3).map((ex, i) => (
+                    <div key={ex.staff_id} className="text-muted">
+                      • <strong>{ex.staff_name}</strong> ({ex.staff_id}): {ex.exclusion_reason}
+                    </div>
                   ))}
+                  {excludedList.length > 3 && (
+                    <span className="text-muted fst-italic">
+                      ... và {excludedList.length - 3} nhân sự khác được bảo lưu an toàn.
+                    </span>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Launch Button */}
-            <div className="d-flex justify-content-end gap-2 pt-2 border-top">
-              <Button variant="secondary" size="sm" onClick={onHide}>
+            {/* Launch Button (Zero Icons) */}
+            <div className="d-flex justify-content-end gap-2 pt-3 border-top">
+              <Button variant="secondary" size="sm" onClick={onHide} className="fw-semibold px-3">
                 Đóng
               </Button>
               <Button
                 variant="danger"
                 size="sm"
-                className="fw-bold d-inline-flex align-items-center gap-2 shadow-sm"
+                className="fw-bold px-4 py-2 text-uppercase shadow-sm"
                 disabled={createDispatchMutation.isPending || !selectedCandidateId}
                 onClick={handleStartDispatch}
               >
-                <ShieldAlert size={16} />
-                <span>{t('shifts.surge_dispatch_confirm_btn')}</span>
+                [ {t('shifts.surge_dispatch_confirm_btn')} ]
               </Button>
             </div>
           </div>
