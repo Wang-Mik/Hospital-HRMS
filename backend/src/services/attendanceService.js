@@ -226,9 +226,16 @@ export const attendanceService = {
 
   /**
    * Record clock-out, calculate overtime, and update shift
+   * Tuân thủ: Elastic Overrun State Machine, bảo toàn overtime_minutes, và lưu clinical_case_ref.
    */
   async clockOut(id, data = {}) {
-    const { clock_out_time = null, handover_notes = null } = data;
+    const {
+      clock_out_time = null,
+      handover_notes = null,
+      overtime_minutes = null,
+      overrun_reason = null,
+      clinical_case_ref = null
+    } = data;
     const formattedClockOut = normalizeDateTime(clock_out_time);
     const clockOutTimestamp = parseTimestamp(clock_out_time || formattedClockOut);
 
@@ -238,10 +245,17 @@ export const attendanceService = {
       await connection.beginTransaction();
 
       const [rows] = await connection.query(
-        `SELECT a.*, s.end_time AS shift_end_time 
+        `SELECT a.*, 
+                s.end_time AS shift_end_time,
+                s.scheduled_end_time,
+                s.is_overrun AS shift_is_overrun,
+                s.overrun_minutes AS shift_overrun_minutes,
+                s.overrun_reason AS shift_overrun_reason,
+                s.clinical_case_ref AS shift_case_ref,
+                s.overrun_approval_status AS shift_overrun_approval
          FROM Attendances a 
          LEFT JOIN Shifts s ON a.shift_id = s.id 
-         WHERE a.id = ? LIMIT 1`,
+         WHERE a.id = ? FOR UPDATE`,
         [id]
       );
 
@@ -261,18 +275,56 @@ export const attendanceService = {
         throw err;
       }
 
-      let overtimeMinutes = 0;
+      // 1. Tính toán số phút làm thêm lâm sàng bảo toàn mốc scheduled_end_time gốc
+      let diffOvertime = 0;
       let finalStatus = attendance.attendance_status;
 
-      if (attendance.shift_end_time) {
-        const shiftEndTimestamp = parseTimestamp(attendance.shift_end_time);
-        if (clockOutTimestamp > shiftEndTimestamp) {
-          const diffMs = clockOutTimestamp - shiftEndTimestamp;
-          overtimeMinutes = Math.floor(diffMs / (1000 * 60));
-          if (overtimeMinutes >= 30 && finalStatus === 'PRESENT') {
-            finalStatus = 'OVERTIME';
-          }
+      const baselineEndStr = attendance.scheduled_end_time || attendance.shift_end_time;
+      if (baselineEndStr) {
+        const baselineEndTimestamp = parseTimestamp(baselineEndStr);
+        if (clockOutTimestamp > baselineEndTimestamp) {
+          const diffMs = clockOutTimestamp - baselineEndTimestamp;
+          diffOvertime = Math.floor(diffMs / (1000 * 60));
         }
+      }
+
+      // Bảo toàn overtime_minutes: lấy giá trị lớn nhất, không bao giờ bị reset về 0
+      const declaredOvertime = overtime_minutes !== null ? Number(overtime_minutes) : 0;
+      const priorOvertime = Number(attendance.overtime_minutes || 0);
+      const shiftPriorOvertime = Number(attendance.shift_overrun_minutes || 0);
+      let effectiveOvertime = Math.max(diffOvertime, declaredOvertime, priorOvertime, shiftPriorOvertime);
+
+      // Cảnh báo nếu vượt quá trần tối đa 6 giờ (360 phút) do quên quẹt thẻ
+      const MAX_OVERRUN_MINUTES = 360;
+      let isIrregular = false;
+      if (effectiveOvertime > MAX_OVERRUN_MINUTES) {
+        isIrregular = true;
+      }
+
+      if (effectiveOvertime >= 30 && finalStatus === 'PRESENT') {
+        finalStatus = 'OVERTIME';
+      }
+
+      // Xác định lý do chuyên môn và mã bệnh án
+      const effectiveReason = overrun_reason || attendance.overrun_reason || attendance.shift_overrun_reason || (effectiveOvertime > 0 ? 'Kíp trực hoàn tất cấp cứu / phẫu thuật ngoài giờ' : null);
+      const effectiveCaseRef = clinical_case_ref || attendance.clinical_case_ref || attendance.shift_case_ref || null;
+
+      // Xác định trạng thái phê duyệt (<= 30p auto, > 30p pending)
+      let approvalStatus = 'NOT_APPLICABLE';
+      if (effectiveOvertime > 0) {
+        if (attendance.shift_overrun_approval === 'APPROVED') {
+          approvalStatus = 'APPROVED';
+        } else if (effectiveOvertime <= 30 && !isIrregular) {
+          approvalStatus = 'AUTO_APPROVED';
+        } else {
+          approvalStatus = 'PENDING_APPROVAL';
+        }
+      }
+
+      let mergedHandoverNotes = handover_notes || attendance.handover_notes;
+      if (isIrregular) {
+        const warningText = `[CẢNH BÁO BẤT THƯỜNG]: Ra ca trễ ${effectiveOvertime} phút (>6h), cần Trưởng khoa đối chiếu sổ trực xác nhận.`;
+        mergedHandoverNotes = mergedHandoverNotes ? `${mergedHandoverNotes}\n${warningText}` : warningText;
       }
 
       const updateSql = `
@@ -280,6 +332,9 @@ export const attendanceService = {
         SET clock_out_time = ?, 
             attendance_status = ?, 
             overtime_minutes = ?, 
+            overrun_reason = ?,
+            clinical_case_ref = ?,
+            overrun_approval_status = ?,
             handover_notes = ?, 
             updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
@@ -288,15 +343,36 @@ export const attendanceService = {
       await connection.execute(updateSql, [
         formattedClockOut,
         finalStatus,
-        overtimeMinutes,
-        handover_notes || attendance.handover_notes,
+        effectiveOvertime,
+        effectiveReason,
+        effectiveCaseRef,
+        approvalStatus,
+        mergedHandoverNotes,
         id
       ]);
 
+      // 2. Đồng bộ sang bảng Shifts
       if (attendance.shift_id) {
         await connection.execute(
-          'UPDATE Shifts SET status = "COMPLETED", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          [attendance.shift_id]
+          `UPDATE Shifts 
+           SET status = "COMPLETED", 
+               end_time = ?,
+               is_overrun = ?,
+               overrun_minutes = ?,
+               overrun_reason = COALESCE(?, overrun_reason),
+               clinical_case_ref = COALESCE(?, clinical_case_ref),
+               overrun_approval_status = ?,
+               updated_at = CURRENT_TIMESTAMP 
+           WHERE id = ?`,
+          [
+            formattedClockOut,
+            effectiveOvertime > 0,
+            effectiveOvertime,
+            effectiveReason,
+            effectiveCaseRef,
+            approvalStatus,
+            attendance.shift_id
+          ]
         );
       }
 
@@ -309,8 +385,11 @@ export const attendanceService = {
         clock_in_time: attendance.clock_in_time,
         clock_out_time: formattedClockOut,
         attendance_status: finalStatus,
-        overtime_minutes: overtimeMinutes,
-        handover_notes: handover_notes || attendance.handover_notes
+        overtime_minutes: effectiveOvertime,
+        overrun_reason: effectiveReason,
+        clinical_case_ref: effectiveCaseRef,
+        overrun_approval_status: approvalStatus,
+        handover_notes: mergedHandoverNotes
       };
     } catch (error) {
       await connection.rollback();

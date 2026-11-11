@@ -50,6 +50,9 @@ export interface AttendanceRecord {
   clock_in_method: 'BIOMETRIC' | 'RFID_CARD' | 'KIOSK_TERMINAL' | 'MOBILE_GEOFENCE';
   attendance_status: 'PRESENT' | 'LATE' | 'OVERTIME' | 'EARLY_DEPARTURE' | 'HALF_DAY';
   overtime_minutes: number;
+  overrun_reason?: string | null;
+  clinical_case_ref?: string | null;
+  overrun_approval_status?: 'NOT_APPLICABLE' | 'AUTO_APPROVED' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   handover_notes: string | null;
 }
 
@@ -152,6 +155,8 @@ export const AttendanceClock: React.FC = () => {
   const [selectedRecordToOut, setSelectedRecordToOut] = useState<AttendanceRecord | null>(null);
   const [handoverNotes, setHandoverNotes] = useState<string>('');
   const [overtimeExtra, setOvertimeExtra] = useState<number>(0);
+  const [clockOutReason, setClockOutReason] = useState<string>('Bàn giao buồng bệnh Bedside SBAR cho ca sau');
+  const [clockOutCaseRef, setClockOutCaseRef] = useState<string>('');
 
   // Table options: Hide past shifts, Hide colleagues, Search query
   const [hidePastShifts, setHidePastShifts] = useState<boolean>(false);
@@ -227,6 +232,9 @@ export const AttendanceClock: React.FC = () => {
           clock_in_method: r.clock_in_method || 'BIOMETRIC',
           attendance_status: r.attendance_status || 'PRESENT',
           overtime_minutes: r.overtime_minutes || 0,
+          overrun_reason: r.overrun_reason || null,
+          clinical_case_ref: r.clinical_case_ref || null,
+          overrun_approval_status: r.overrun_approval_status || 'NOT_APPLICABLE',
           handover_notes: r.handover_notes
         };
       })
@@ -285,7 +293,9 @@ export const AttendanceClock: React.FC = () => {
       payload: {
         clock_out_method: 'KIOSK_TERMINAL',
         handover_notes: handoverNotes,
-        overtime_minutes: overtimeExtra
+        overtime_minutes: overtimeExtra,
+        overrun_reason: clockOutReason,
+        clinical_case_ref: clockOutCaseRef
       }
     });
   };
@@ -783,7 +793,24 @@ export const AttendanceClock: React.FC = () => {
                       <td>{getStatusBadge(r.attendance_status)}</td>
                       <td>
                         {r.overtime_minutes > 0 ? (
-                          <span className="wd-badge-blue">+{r.overtime_minutes}m</span>
+                          <div className="d-flex flex-column align-items-start gap-1">
+                            <span className="wd-badge-blue font-mono">+{r.overtime_minutes}m</span>
+                            {r.overrun_approval_status === 'APPROVED' && (
+                              <span className="badge bg-success-subtle text-success border border-success" style={{ fontSize: '9px', fontWeight: 600 }}>
+                                Đã duyệt
+                              </span>
+                            )}
+                            {r.overrun_approval_status === 'AUTO_APPROVED' && (
+                              <span className="badge bg-info-subtle text-info border border-info" style={{ fontSize: '9px', fontWeight: 600 }}>
+                                Tự động
+                              </span>
+                            )}
+                            {r.overrun_approval_status === 'PENDING_APPROVAL' && (
+                              <span className="badge bg-warning-subtle text-warning-emphasis border border-warning" style={{ fontSize: '9px', fontWeight: 600 }}>
+                                Chờ duyệt
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-muted">—</span>
                         )}
@@ -833,19 +860,43 @@ export const AttendanceClock: React.FC = () => {
       </div>
 
       {/* Clock Out Modal */}
-      <Modal show={showClockOutModal} onHide={() => setShowClockOutModal(false)} centered>
+      <Modal show={showClockOutModal} onHide={() => setShowClockOutModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
-          <Modal.Title className="fw-bold fs-6 text-dark">
-            {t('attendance.modal_out_title', 'Ghi Nhận Ra Ca & Bàn Giao Trực Lâm Sàng')}
+          <Modal.Title className="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
+            <Clock size={18} className="text-warning" />
+            <span>{t('attendance.modal_out_title', 'Ghi Nhận Ra Ca & Bàn Giao Trực Lâm Sàng')}</span>
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-4">
           <p className="text-muted small mb-3">
-            {t('attendance.modal_out_desc', 'Vui lòng ghi nhận biên bản bàn giao hoặc số phút trực tăng cường khẩn cấp trước khi kết thúc ca trực.')}
+            {t('attendance.modal_out_desc', 'Theo chuẩn y tế QĐ 1895, số phút vượt trực do cấp cứu hoặc phẫu thuật kéo dài sẽ được tự động tích lũy và chuyển phê duyệt theo chế độ QĐ 73/2011/QĐ-TTg.')}
           </p>
 
-          <Form.Group className="mb-3">
-            <label className="wd-label">{t('attendance.modal_ot_label', 'Số Phút Trực Tăng Ca Lâm Sàng')}</label>
+          <div className="bg-light-subtle border rounded-2 p-3 mb-3">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <label className="wd-label mb-0">{t('attendance.modal_ot_label', 'Số Phút Trực Tăng Ca / Vượt Trực Lâm Sàng')}</label>
+              <span
+                className={`badge ${overtimeExtra <= 30 ? 'bg-success-subtle text-success border border-success' : 'bg-warning-subtle text-warning-emphasis border border-warning'}`}
+                style={{ fontSize: '11px' }}
+              >
+                {overtimeExtra <= 30
+                  ? 'Tự động phê duyệt (<= 30 phút)'
+                  : 'Chờ Trưởng khoa duyệt (> 30 phút)'}
+              </span>
+            </div>
+            <div className="d-flex gap-1 mb-2 flex-wrap">
+              {[0, 15, 30, 45, 60, 90, 120].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={`btn btn-sm ${overtimeExtra === m ? 'btn-primary' : 'btn-outline-secondary'} py-0.5 px-2`}
+                  style={{ fontSize: '11.5px' }}
+                  onClick={() => setOvertimeExtra(m)}
+                >
+                  +{m} phút
+                </button>
+              ))}
+            </div>
             <input
               type="number"
               min="0"
@@ -853,6 +904,46 @@ export const AttendanceClock: React.FC = () => {
               value={overtimeExtra}
               onChange={(e) => setOvertimeExtra(Number(e.target.value))}
               className="wd-input w-100 font-mono"
+            />
+          </div>
+
+          <Form.Group className="mb-3">
+            <label className="wd-label">Lý Do Chuyên Môn Lâm Sàng</label>
+            <div className="d-flex gap-1 mb-2 flex-wrap">
+              {[
+                { label: 'CPR Ngừng Tuần Hoàn', full: 'Cấp cứu CPR / Ngừng tuần hoàn hô hấp' },
+                { label: 'Phẫu Thuật Kéo Dài', full: 'Phẫu thuật cấp cứu kéo dài ngoài giờ' },
+                { label: 'Bệnh Nhân Nguy Kịch', full: 'Bệnh nhân nặng nguy kịch đột xuất' },
+                { label: 'Bàn Giao Bedside SBAR', full: 'Bàn giao buồng bệnh Bedside SBAR cho ca sau' }
+              ].map((r) => (
+                <button
+                  key={r.label}
+                  type="button"
+                  className={`btn btn-xs ${clockOutReason === r.full ? 'btn-secondary text-white' : 'btn-outline-secondary'} py-1 px-2`}
+                  style={{ fontSize: '11px' }}
+                  onClick={() => setClockOutReason(r.full)}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={clockOutReason}
+              onChange={(e) => setClockOutReason(e.target.value)}
+              className="wd-input w-100"
+              placeholder="Nhập chi tiết lý do lâm sàng..."
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <label className="wd-label">Mã Bệnh Án / Ca Mổ (Đối chiếu BHYT & Giám Định)</label>
+            <input
+              type="text"
+              value={clockOutCaseRef}
+              onChange={(e) => setClockOutCaseRef(e.target.value)}
+              className="wd-input w-100 font-mono"
+              placeholder="VD: BA-2026-0812 hoặc PT-ICU-04"
             />
           </Form.Group>
 
@@ -867,7 +958,7 @@ export const AttendanceClock: React.FC = () => {
             />
           </Form.Group>
         </Modal.Body>
-        <Modal.Footer className="border-top py-2.5" style={{ borderColor: 'var(--wd-border)' }}>
+        <Modal.Footer className="border-top py-2.5 d-flex justify-content-between" style={{ borderColor: 'var(--wd-border)' }}>
           <button
             type="button"
             className="wd-pill-btn-outline"
@@ -877,10 +968,10 @@ export const AttendanceClock: React.FC = () => {
           </button>
           <button
             type="button"
-            className="wd-pill-btn-primary"
+            className="wd-pill-btn-primary px-4 py-2 fw-bold"
             onClick={handleClockOutSubmit}
           >
-            {t('attendance.modal_confirm_out', 'Xác Nhận Ra Ca')}
+            {t('attendance.modal_confirm_out', 'Xác Nhận Ra Ca & Đóng Phiên Trực')}
           </button>
         </Modal.Footer>
       </Modal>

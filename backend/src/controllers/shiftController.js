@@ -468,11 +468,16 @@ export const shiftController = {
   async recordShiftOverrun(req, res) {
     try {
       const { id } = req.params;
-      const { overrun_minutes = 60, reason } = req.body;
+      const {
+        overrun_minutes = 60,
+        reason,
+        clinical_case_ref = null,
+        overrun_notes = null
+      } = req.body;
 
       const result = await shiftService.recordShiftOverrun(
         id,
-        { overrun_minutes, reason },
+        { overrun_minutes, reason, clinical_case_ref, overrun_notes },
         req.user
       );
 
@@ -486,6 +491,62 @@ export const shiftController = {
       return res.status(error.statusCode || 500).json({
         success: false,
         message: error.message || 'Không thể ghi nhận ca trực kéo dài.'
+      });
+    }
+  },
+
+  /**
+   * POST /api/shifts/:id/overrun/approve
+   * Trưởng khoa / Quản lý ký duyệt giờ vượt trực
+   */
+  async approveShiftOverrun(req, res) {
+    try {
+      const { id } = req.params;
+      const { decision = 'APPROVED', adjusted_minutes = null, notes = null } = req.body;
+
+      const result = await shiftService.approveShiftOverrun(
+        id,
+        { decision, adjusted_minutes, notes },
+        req.user
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: decision === 'REJECTED' ? 'Đã từ chối giờ vượt trực của ca.' : 'Đã phê duyệt giờ vượt trực thành công.',
+        data: result
+      });
+    } catch (error) {
+      console.error('[shiftController.approveShiftOverrun Error]:', error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Không thể phê duyệt giờ vượt trực.'
+      });
+    }
+  },
+
+  /**
+   * GET /api/shifts/overrun/pending
+   * Lấy danh sách ca vượt trực chờ duyệt
+   */
+  async getPendingOverrunShifts(req, res) {
+    try {
+      const { department_code } = req.query;
+      const effectiveDept = (req.user?.role === 'DEPARTMENT_HEAD' && req.user?.department_code)
+        ? req.user.department_code
+        : department_code;
+
+      const result = await shiftService.getPendingOverrunShifts(effectiveDept);
+
+      return res.status(200).json({
+        success: true,
+        count: result.length,
+        data: result
+      });
+    } catch (error) {
+      console.error('[shiftController.getPendingOverrunShifts Error]:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi tải danh sách ca vượt trực chờ duyệt.'
       });
     }
   },

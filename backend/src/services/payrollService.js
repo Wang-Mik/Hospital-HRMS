@@ -203,10 +203,19 @@ export const payrollService = {
       const baseHourly = Number(emp.base_rate);
 
       // Query actual attendance records during this payroll period
+      // Elastic Overrun Duty: Tích hợp chuẩn xác số phút làm thêm từ các ca AUTO_APPROVED hoặc APPROVED
       const [attStats] = await pool.query(`
         SELECT 
           COALESCE(SUM(work_duration_hours), 0) AS total_hours,
-          COALESCE(SUM(CASE WHEN attendance_status = 'OVERTIME' THEN 2.0 ELSE 0 END), 0) AS ot_hours,
+          COALESCE(SUM(
+            CASE 
+              WHEN a.overrun_approval_status IN ('AUTO_APPROVED', 'APPROVED') AND a.overtime_minutes > 0 THEN (a.overtime_minutes / 60.0)
+              WHEN a.overrun_approval_status = 'REJECTED' THEN 0
+              WHEN a.attendance_status = 'OVERTIME' AND a.overtime_minutes > 0 THEN (a.overtime_minutes / 60.0)
+              WHEN a.attendance_status = 'OVERTIME' THEN 2.0
+              ELSE 0 
+            END
+          ), 0) AS ot_hours,
           COALESCE(SUM(CASE WHEN s.shift_type = 'NIGHT' THEN 8.0 ELSE 0 END), 0) AS night_hours
         FROM Attendances a
         LEFT JOIN Shifts s ON a.shift_id = s.id

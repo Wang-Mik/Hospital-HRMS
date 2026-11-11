@@ -74,6 +74,14 @@ export interface SurgeDispatchPayload {
 export interface ShiftOverrunPayload {
   overrun_minutes: number;
   reason?: string;
+  clinical_case_ref?: string;
+  overrun_notes?: string;
+}
+
+export interface ShiftApproveOverrunPayload {
+  decision: 'APPROVED' | 'REJECTED';
+  adjusted_minutes?: number;
+  notes?: string;
 }
 
 export interface ShiftFilters {
@@ -162,6 +170,18 @@ export const shiftApi = {
     return res.data;
   },
 
+  approveShiftOverrun: async (shiftId: string, payload: ShiftApproveOverrunPayload) => {
+    const res = await axiosClient.post(`/shifts/${shiftId}/overrun/approve`, payload);
+    return res.data;
+  },
+
+  getPendingOverrunShifts: async (departmentCode?: string) => {
+    const res = await axiosClient.get('/shifts/overrun/pending', {
+      params: departmentCode ? { department_code: departmentCode } : undefined
+    });
+    return res.data?.data || [];
+  },
+
   // Attendance
   getAttendance: async (filters?: { staff_id?: string; shift_id?: string; status?: string }) => {
     const res = await axiosClient.get('/attendance', { params: filters });
@@ -182,6 +202,10 @@ export const shiftApi = {
     payload: {
       clock_out_time?: string;
       handover_notes?: string;
+      clock_out_method?: string;
+      overtime_minutes?: number;
+      overrun_reason?: string;
+      clinical_case_ref?: string;
     }
   ) => {
     const res = await axiosClient.post(`/attendance/${id}/clock-out`, payload);

@@ -59,6 +59,14 @@ export interface ShiftItem {
   end_time: string;
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'SWAPPED';
   requires_handover: boolean;
+  scheduled_end_time?: string;
+  is_overrun?: boolean;
+  overrun_minutes?: number;
+  overrun_reason?: string;
+  clinical_case_ref?: string;
+  overrun_notes?: string;
+  overrun_approval_status?: 'NOT_APPLICABLE' | 'AUTO_APPROVED' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  overrun_approved_by?: string;
   approval_status?: 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED';
   submitted_by?: string;
   approved_by?: string;
@@ -942,9 +950,36 @@ export const ShiftRostering: React.FC = () => {
   const [isOverrunExpanded, setIsOverrunExpanded] = useState<boolean>(false);
   const [overrunMinutes, setOverrunMinutes] = useState<number>(60);
   const [overrunReason, setOverrunReason] = useState<string>('Cấp cứu người bệnh nặng kéo dài sau giờ trực');
+  const [overrunCaseRef, setOverrunCaseRef] = useState<string>('');
   const [isSubmittingOverrun, setIsSubmittingOverrun] = useState<boolean>(false);
   const [overrunSuccessMsg, setOverrunSuccessMsg] = useState<string | null>(null);
   const [overrunErrorMsg, setOverrunErrorMsg] = useState<string | null>(null);
+  const [circadianWarningInfo, setCircadianWarningInfo] = useState<any>(null);
+
+  // Pending Overruns for Approval (Trưởng khoa & HR)
+  const [isPendingOverrunsModalOpen, setIsPendingOverrunsModalOpen] = useState<boolean>(false);
+  const [approvingShiftId, setApprovingShiftId] = useState<string | null>(null);
+
+  const { data: pendingOverrunsData, refetch: refetchPendingOverruns } = useQuery({
+    queryKey: ['pendingOverrunShifts', selectedStaff?.department_code],
+    queryFn: () => shiftApi.getPendingOverrunShifts(selectedStaff?.department_code),
+    enabled: isDeptHead || isHR
+  });
+
+  const pendingOverrunsList = Array.isArray(pendingOverrunsData) ? pendingOverrunsData : [];
+
+  const handleApproveOverrun = async (shiftId: string, decision: 'APPROVED' | 'REJECTED') => {
+    try {
+      setApprovingShiftId(shiftId);
+      await shiftApi.approveShiftOverrun(shiftId, { decision });
+      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      await refetchPendingOverruns();
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Lỗi khi phê duyệt giờ vượt trực');
+    } finally {
+      setApprovingShiftId(null);
+    }
+  };
 
   // Smart Clinical Surge Dispatcher & On-Call Fill-Gap State
   const [isSurgeModalOpen, setIsSurgeModalOpen] = useState<boolean>(false);
@@ -1012,15 +1047,21 @@ export const ShiftRostering: React.FC = () => {
     setIsSubmittingOverrun(true);
     setOverrunErrorMsg(null);
     setOverrunSuccessMsg(null);
+    setCircadianWarningInfo(null);
     try {
       const res = await shiftApi.recordShiftOverrun(selectedShiftDetail.id, {
         overrun_minutes: overrunMinutes,
-        reason: overrunReason
+        reason: overrunReason,
+        clinical_case_ref: overrunCaseRef
       });
       await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      await refetchPendingOverruns();
       setOverrunSuccessMsg(res.message || `Đã ghi nhận kéo dài ca thêm ${overrunMinutes} phút!`);
       if (res.data?.end_time) {
-        setSelectedShiftDetail((prev) => (prev ? { ...prev, end_time: res.data.end_time } : null));
+        setSelectedShiftDetail((prev) => (prev ? { ...prev, end_time: res.data.end_time, is_overrun: true, overrun_minutes: overrunMinutes, overrun_approval_status: res.data?.overrun_approval_status } : null));
+      }
+      if (res.data?.circadian_warning?.has_violation) {
+        setCircadianWarningInfo(res.data.circadian_warning);
       }
     } catch (err: any) {
       setOverrunErrorMsg(err.response?.data?.message || err.message || 'Không thể ghi nhận kéo dài ca');
@@ -1626,6 +1667,27 @@ export const ShiftRostering: React.FC = () => {
             </div>
           )}
 
+          {/* Overrun Pending Approval Banner for Department Head / Leadership */}
+          {pendingOverrunsList.length > 0 && (isDeptHead || isHR) && (
+            <div className="alert alert-warning py-2 px-3 mx-3 mt-2 mb-1 d-flex align-items-center justify-content-between rounded-2 shadow-xs z-3 position-relative" style={{ borderLeft: '4px solid #d97706', backgroundColor: '#fffbeb' }}>
+              <div className="d-flex align-items-center gap-2">
+                <Clock size={16} className="text-warning flex-shrink-0" />
+                <span style={{ fontSize: '13px' }}>
+                  Có <strong>{pendingOverrunsList.length}</strong> ca vượt trực cấp cứu (&gt; 30 phút) đang chờ Trưởng khoa xác nhận chi trả chế độ.
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-warning text-dark fw-semibold px-3 py-1 rounded-pill d-inline-flex align-items-center gap-1 shadow-xs"
+                style={{ fontSize: '12px' }}
+                onClick={() => setIsPendingOverrunsModalOpen(true)}
+              >
+                <Clock size={13} />
+                Duyệt Giờ Vượt Trực ({pendingOverrunsList.length})
+              </button>
+            </div>
+          )}
+
           {/* Ward Approval Banner for Department Head / Leadership */}
           {pendingShifts.length > 0 && (isDeptHead || isHR) && (
             <div className="alert alert-warning py-2 px-3 mx-3 mt-2 mb-1 d-flex align-items-center justify-content-between rounded-2 shadow-xs z-3 position-relative">
@@ -2162,6 +2224,11 @@ export const ShiftRostering: React.FC = () => {
                         <span className="fw-semibold text-dark" style={{ fontSize: '13px' }}>
                           {t('shifts.overrun_title', 'Kéo Dài Ca / Quá Tải Cấp Cứu (Overrun)')}
                         </span>
+                        {selectedShiftDetail?.is_overrun && (
+                          <span className="badge bg-warning text-dark font-mono" style={{ fontSize: '11px' }}>
+                            +{selectedShiftDetail.overrun_minutes}m ({selectedShiftDetail.overrun_approval_status === 'APPROVED' ? 'Đã duyệt' : selectedShiftDetail.overrun_approval_status === 'AUTO_APPROVED' ? 'Tự động duyệt' : 'Chờ duyệt'})
+                          </span>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -2187,12 +2254,45 @@ export const ShiftRostering: React.FC = () => {
                           </Alert>
                         )}
 
+                        {circadianWarningInfo && (
+                          <div className="alert alert-danger py-2 px-2.5 small mb-2 rounded-2">
+                            <div className="d-flex align-items-center gap-1.5 fw-bold text-danger mb-1">
+                              <ShieldAlert size={14} />
+                              <span>{t('shifts.overrun_circadian_warning', 'Cảnh Báo An Toàn Nhịp Sinh Học')}</span>
+                            </div>
+                            <div className="text-dark mb-1.5" style={{ fontSize: '11.5px' }}>
+                              {circadianWarningInfo.message}
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-outline-danger py-0.5 px-2 fw-semibold rounded-pill"
+                              style={{ fontSize: '11px' }}
+                              onClick={() => {
+                                setFillGapDate(circadianWarningInfo.next_shift_start.slice(0, 10));
+                                setIsFillGapModalOpen(true);
+                              }}
+                            >
+                              + Kích Hoạt Tìm Người Trực Thay (Fill-Gap)
+                            </button>
+                          </div>
+                        )}
+
                         <div className="mb-2">
-                          <label className="form-label text-muted small mb-1">
-                            {t('shifts.overrun_minutes', 'Thời gian kéo dài thêm')}:
-                          </label>
-                          <div className="d-flex gap-1 mb-1.5">
-                            {[30, 60, 90, 120].map((m) => (
+                          <div className="d-flex justify-content-between align-items-center mb-1">
+                            <label className="form-label text-muted small mb-0">
+                              {t('shifts.overrun_minutes_label', 'Thời gian kéo dài thêm (phút):')}
+                            </label>
+                            <span
+                              className={`badge ${overrunMinutes <= 30 ? 'bg-success-subtle text-success border border-success' : 'bg-warning-subtle text-warning-emphasis border border-warning'}`}
+                              style={{ fontSize: '10.5px' }}
+                            >
+                              {overrunMinutes <= 30
+                                ? t('shifts.overrun_auto_approved', 'Tự động phê duyệt (<= 30 phút)')
+                                : t('shifts.overrun_pending', 'Chờ Trưởng khoa duyệt (> 30 phút)')}
+                            </span>
+                          </div>
+                          <div className="d-flex gap-1 mb-1.5 flex-wrap">
+                            {[15, 30, 45, 60, 90, 120].map((m) => (
                               <button
                                 key={m}
                                 type="button"
@@ -2209,7 +2309,7 @@ export const ShiftRostering: React.FC = () => {
                             min="5"
                             max="720"
                             step="5"
-                            className="form-control form-control-sm"
+                            className="form-control form-control-sm font-mono"
                             value={overrunMinutes}
                             onChange={(e) => setOverrunMinutes(Number(e.target.value))}
                             style={{ fontSize: '12px' }}
@@ -2218,14 +2318,47 @@ export const ShiftRostering: React.FC = () => {
 
                         <div className="mb-2">
                           <label className="form-label text-muted small mb-1">
-                            {t('shifts.overrun_reason', 'Lý do kéo dài ca')}:
+                            {t('shifts.overrun_reason_label', 'Lý do chuyên môn lâm sàng:')}
                           </label>
+                          <div className="d-flex gap-1 mb-1.5 flex-wrap">
+                            {[
+                              { key: 'CPR', label: 'CPR Ngừng Tuần Hoàn', full: 'Cấp cứu CPR / Ngừng tuần hoàn hô hấp' },
+                              { key: 'SURGERY', label: 'Phẫu Thuật Kéo Dài', full: 'Phẫu thuật cấp cứu kéo dài ngoài giờ' },
+                              { key: 'CRITICAL', label: 'Bệnh Nhân Nguy Kịch', full: 'Bệnh nhân nặng nguy kịch đột xuất' },
+                              { key: 'SBAR', label: 'Bàn Giao SBAR', full: 'Bàn giao buồng bệnh Bedside SBAR cho ca sau' },
+                              { key: 'MASS', label: 'Cấp Cứu Thảm Họa', full: 'Cấp cứu thảm họa / Tai nạn liên hoàn' }
+                            ].map((r) => (
+                              <button
+                                key={r.key}
+                                type="button"
+                                className={`btn btn-xs ${overrunReason.includes(r.label) || overrunReason.includes(r.key) ? 'btn-secondary text-white' : 'btn-outline-secondary'} py-0.5 px-1.5`}
+                                style={{ fontSize: '10.5px' }}
+                                onClick={() => setOverrunReason(r.full)}
+                              >
+                                {r.label}
+                              </button>
+                            ))}
+                          </div>
                           <input
                             type="text"
                             className="form-control form-control-sm"
                             value={overrunReason}
                             onChange={(e) => setOverrunReason(e.target.value)}
-                            placeholder="Cấp cứu người bệnh nặng kéo dài sau giờ trực"
+                            placeholder="Nhập chi tiết diễn biến cấp cứu..."
+                            style={{ fontSize: '12px' }}
+                          />
+                        </div>
+
+                        <div className="mb-2">
+                          <label className="form-label text-muted small mb-1">
+                            {t('shifts.overrun_case_ref_label', 'Mã Bệnh Án / Phiếu Mổ (Đối chiếu BHYT):')}
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm font-mono"
+                            value={overrunCaseRef}
+                            onChange={(e) => setOverrunCaseRef(e.target.value)}
+                            placeholder={t('shifts.overrun_case_ref_placeholder', 'VD: BA-2026-0812 hoặc PT-ICU-04')}
                             style={{ fontSize: '12px' }}
                           />
                         </div>
@@ -3727,6 +3860,109 @@ export const ShiftRostering: React.FC = () => {
             </button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* ===================== MODAL DUYỆT GIỜ VƯỢT TRỰC LÂM SÀNG ===================== */}
+      <Modal
+        show={isPendingOverrunsModalOpen}
+        onHide={() => setIsPendingOverrunsModalOpen(false)}
+        centered
+        size="lg"
+      >
+        <Modal.Header closeButton className="border-bottom py-2.5">
+          <Modal.Title className="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
+            <Clock size={18} className="text-warning" />
+            <span>Duyệt Giờ Vượt Trực Lâm Sàng ({pendingOverrunsList.length} ca chờ duyệt)</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-3">
+          <p className="text-muted small mb-3">
+            Theo Quy chế Bệnh viện (QĐ 1895) và QĐ 73/2011/QĐ-TTg, các ca vượt trực trên 30 phút vì cấp cứu/phẫu thuật kéo dài cần được Trưởng khoa hoặc Lãnh đạo viện phê duyệt để hạch toán phụ cấp và làm thêm giờ.
+          </p>
+          {pendingOverrunsList.length === 0 ? (
+            <div className="alert alert-secondary text-center py-4 rounded-2">
+              <Check size={24} className="text-success mb-2" />
+              <div className="fw-semibold">Không có ca vượt trực nào đang chờ duyệt.</div>
+              <div className="text-muted small">Mọi ca vượt trực của khoa đã được xử lý hoàn tất.</div>
+            </div>
+          ) : (
+            <div className="table-responsive border rounded-2">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: '12px' }}>
+                <thead className="table-light">
+                  <tr>
+                    <th>Cán bộ y tế</th>
+                    <th>Thời gian ca</th>
+                    <th>Vượt trực</th>
+                    <th>Lý do & Mã BA</th>
+                    <th className="text-end">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingOverrunsList.map((item: any) => (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="fw-semibold text-dark">{item.staff_name}</div>
+                        <span className="badge bg-light text-secondary border font-mono" style={{ fontSize: '10px' }}>
+                          {item.staff_id} - {item.staff_role}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="text-muted">{item.start_time?.slice(0, 10)}</div>
+                        <div className="font-mono text-dark">
+                          {item.start_time?.slice(11, 16)} – {item.end_time?.slice(11, 16)}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge bg-warning-subtle text-warning-emphasis border border-warning font-mono" style={{ fontSize: '11px' }}>
+                          +{item.overrun_minutes} phút
+                        </span>
+                      </td>
+                      <td>
+                        <div className="text-dark fw-medium">{item.overrun_reason || 'Cấp cứu ngoài giờ'}</div>
+                        {item.clinical_case_ref && (
+                          <div className="text-muted font-mono" style={{ fontSize: '10.5px' }}>
+                            Mã BA: <strong className="text-primary">{item.clinical_case_ref}</strong>
+                          </div>
+                        )}
+                      </td>
+                      <td className="text-end">
+                        <div className="d-flex justify-content-end gap-1.5">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger py-0.5 px-2"
+                            style={{ fontSize: '11px', borderRadius: '12px' }}
+                            disabled={approvingShiftId === item.id}
+                            onClick={() => handleApproveOverrun(item.id, 'REJECTED')}
+                          >
+                            Từ chối
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-success py-0.5 px-2.5 fw-semibold"
+                            style={{ fontSize: '11px', borderRadius: '12px' }}
+                            disabled={approvingShiftId === item.id}
+                            onClick={() => handleApproveOverrun(item.id, 'APPROVED')}
+                          >
+                            {approvingShiftId === item.id ? 'Đang duyệt...' : 'Duyệt Giờ'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-top py-2">
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary rounded-pill px-3"
+            onClick={() => setIsPendingOverrunsModalOpen(false)}
+          >
+            Đóng
+          </button>
+        </Modal.Footer>
       </Modal>
 
       {/* ===================== SMART CLINICAL SURGE DISPATCH MODAL ===================== */}

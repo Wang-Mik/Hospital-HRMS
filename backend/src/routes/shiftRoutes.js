@@ -72,7 +72,9 @@ router.post('/departments/:code/delegate', verifyToken, requireRole('DEPARTMENT_
 router.post('/approve-batch', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'HEAD_OF_HR'), shiftController.approveDepartmentShifts);
 router.get('/fill-gap/candidates', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.getFillGapCandidates);
 router.post('/fill-gap/dispatch', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.dispatchSurgeCover);
-router.post('/:id/overrun', verifyToken, requireRole('DOCTOR', 'NURSE', 'DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.recordShiftOverrun);
+router.get('/overrun/pending', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'CHIEF_NURSE'), shiftController.getPendingOverrunShifts);
+router.post('/:id/overrun/approve', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'CHIEF_NURSE'), shiftController.approveShiftOverrun);
+router.post('/:id/overrun', verifyToken, requireRole('DOCTOR', 'NURSE', 'DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'CHIEF_NURSE', 'TECHNICIAN'), shiftController.recordShiftOverrun);
 router.post('/', verifyToken, shiftController.scheduleShift);
 router.get('/', verifyToken, shiftController.getAllShifts);
 

@@ -311,6 +311,28 @@ async function run() {
       WHERE \`staff_id\` = 'EMP-NUR-001'
     `);
 
+    // 8. Elastic Overrun Duty (Ca Trực Co Giãn & Ghi Nhận Giờ Vượt Trực)
+    console.log('[Migration] Adding columns for Elastic Shift Overrun & Clinical Case Reference...');
+    await addColumnIfNotExists(conn, 'Shifts', 'scheduled_end_time', 'DATETIME NULL');
+    await addColumnIfNotExists(conn, 'Shifts', 'is_overrun', 'BOOLEAN NOT NULL DEFAULT FALSE');
+    await addColumnIfNotExists(conn, 'Shifts', 'overrun_minutes', 'INT NOT NULL DEFAULT 0');
+    await addColumnIfNotExists(conn, 'Shifts', 'overrun_reason', 'VARCHAR(100) NULL');
+    await addColumnIfNotExists(conn, 'Shifts', 'clinical_case_ref', 'VARCHAR(100) NULL');
+    await addColumnIfNotExists(conn, 'Shifts', 'overrun_notes', 'TEXT NULL');
+    await addColumnIfNotExists(conn, 'Shifts', 'overrun_approval_status', "ENUM('NOT_APPLICABLE', 'AUTO_APPROVED', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'NOT_APPLICABLE'");
+    await addColumnIfNotExists(conn, 'Shifts', 'overrun_approved_by', 'VARCHAR(50) NULL');
+    await addColumnIfNotExists(conn, 'Shifts', 'overrun_approved_at', 'DATETIME NULL');
+
+    await addColumnIfNotExists(conn, 'Attendances', 'overrun_reason', 'VARCHAR(100) NULL');
+    await addColumnIfNotExists(conn, 'Attendances', 'clinical_case_ref', 'VARCHAR(100) NULL');
+    await addColumnIfNotExists(conn, 'Attendances', 'overrun_approval_status', "ENUM('NOT_APPLICABLE', 'AUTO_APPROVED', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'NOT_APPLICABLE'");
+    await addColumnIfNotExists(conn, 'Attendances', 'overrun_approved_by', 'VARCHAR(50) NULL');
+    await addColumnIfNotExists(conn, 'Attendances', 'overrun_approved_at', 'DATETIME NULL');
+
+    // Backfill scheduled_end_time with end_time for existing shifts
+    console.log('[Migration] Backfilling Shifts.scheduled_end_time...');
+    await conn.query('UPDATE `Shifts` SET `scheduled_end_time` = `end_time` WHERE `scheduled_end_time` IS NULL');
+
     console.log('[Migration] ALL MIGRATIONS AND SEEDING COMPLETED 100%!');
   } catch (err) {
     console.error('[Migration Error]:', err);

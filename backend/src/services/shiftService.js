@@ -287,10 +287,10 @@ export const shiftService = {
     const shiftId = randomUUID();
     const insertSql = `
       INSERT INTO Shifts (
-        id, staff_id, department_code, start_time, end_time, shift_type,
+        id, staff_id, department_code, start_time, end_time, scheduled_end_time, shift_type,
         on_call_tier, team_code, is_24h_on_call, status, requires_handover,
         approval_status, submitted_by, approved_by, approved_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     await pool.execute(insertSql, [
@@ -298,6 +298,7 @@ export const shiftService = {
       staff_id,
       resolvedDeptCode,
       formattedStart,
+      formattedEnd,
       formattedEnd,
       shift_type,
       on_call_tier,
@@ -1286,75 +1287,369 @@ export const shiftService = {
   },
 
   /**
-   * Record shift overrun (ca trực kéo dài vì cấp cứu/phẫu thuật chưa kết thúc)
+   * Record shift overrun (ca trực co giãn lâm sàng & ghi nhận giờ vượt trực)
+   * Tuân thủ: Strict Lock Hierarchy, Cascading Circadian Offset, và Phân tầng duyệt y tế.
    */
   async recordShiftOverrun(shiftId, payload, actor = {}) {
-    const { overrun_minutes = 60, reason = 'Kíp trực ở lại hồi sinh cấp cứu / hoàn tất phẫu thuật người bệnh nặng' } = payload;
+    const {
+      overrun_minutes = 60,
+      reason = 'Kíp trực ở lại hồi sinh cấp cứu / hoàn tất phẫu thuật người bệnh nặng',
+      clinical_case_ref = null,
+      overrun_notes = null
+    } = payload;
 
-    const [shiftRows] = await pool.query('SELECT * FROM Shifts WHERE id = ? LIMIT 1', [shiftId]);
-    if (!shiftRows || shiftRows.length === 0) {
-      const err = new Error(`Ca trực với ID "${shiftId}" không tồn tại.`);
-      err.statusCode = 404;
-      throw err;
+    let connection = pool;
+    let isDedicated = false;
+    if (typeof pool.getConnection === 'function') {
+      try {
+        const conn = await pool.getConnection();
+        if (conn) {
+          connection = conn;
+          isDedicated = true;
+        }
+      } catch (connErr) {
+        connection = pool;
+      }
     }
 
-    const shift = shiftRows[0];
-    const prevEndStr = typeof shift.end_time === 'string' ? shift.end_time : normalizeDateTime(shift.end_time);
-    const prevEnd = new Date(prevEndStr.replace(' ', 'T'));
-    const newEndMs = prevEnd.getTime() + Number(overrun_minutes) * 60 * 1000;
-    const newEndStr = normalizeDateTime(new Date(newEndMs));
-
-    // Update Shifts end_time
-    await pool.execute('UPDATE Shifts SET end_time = ? WHERE id = ?', [newEndStr, shiftId]);
-
-    // Update Attendances if clock-in exists
     try {
-      await pool.execute(
-        `UPDATE Attendances 
-         SET overtime_minutes = overtime_minutes + ?,
-             attendance_status = 'OVERTIME',
-             handover_notes = CONCAT(COALESCE(handover_notes, ''), '\n[OVERRUN]: Kéo dài thêm ', ?, ' phút. Lý do: ', ?)
-         WHERE shift_id = ?`,
-        [overrun_minutes, overrun_minutes, reason, shiftId]
+      if (isDedicated && typeof connection.beginTransaction === 'function') {
+        await connection.beginTransaction();
+      }
+
+      // STRICT LOCK HIERARCHY: Khóa dòng Shifts trước
+      const [shiftRows] = await connection.query(
+        'SELECT * FROM Shifts WHERE id = ? FOR UPDATE',
+        [shiftId]
       );
-    } catch (attErr) {
-      console.warn('[recordShiftOverrun] Failed to update attendance:', attErr.message);
-    }
 
-    // Log audit
-    try {
-      const auditId = randomUUID();
-      await pool.execute(
-        `INSERT INTO Audit_Logs (id, actor_id, actor_name, action, resource_type, resource_id, new_values) 
-         VALUES (?, ?, ?, 'SHIFT_OVERRUN', 'Shifts', ?, ?)`,
+      if (!shiftRows || shiftRows.length === 0) {
+        const err = new Error(`Ca trực với ID "${shiftId}" không tồn tại.`);
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const shift = shiftRows[0];
+
+      // Mốc scheduled_end gốc
+      const scheduledEndStr = shift.scheduled_end_time
+        ? (typeof shift.scheduled_end_time === 'string' ? shift.scheduled_end_time : normalizeDateTime(shift.scheduled_end_time))
+        : (typeof shift.end_time === 'string' ? shift.end_time : normalizeDateTime(shift.end_time));
+
+      const scheduledEnd = new Date(scheduledEndStr.replace(' ', 'T'));
+      const parsedOverrunMinutes = Number(overrun_minutes);
+
+      // Cập nhật mốc kết thúc mới
+      const newEndMs = scheduledEnd.getTime() + parsedOverrunMinutes * 60 * 1000;
+      const newEndStr = normalizeDateTime(new Date(newEndMs));
+
+      // Phân cấp duyệt: <= 30 phút là AUTO_APPROVED, > 30 phút là PENDING_APPROVAL
+      const overrunApprovalStatus = parsedOverrunMinutes <= 30 ? 'AUTO_APPROVED' : 'PENDING_APPROVAL';
+      const overrunApprovedBy = parsedOverrunMinutes <= 30 ? 'SYSTEM_AUTO' : null;
+      const overrunApprovedAt = parsedOverrunMinutes <= 30 ? new Date() : null;
+
+      // 1. Cập nhật Shifts
+      await connection.execute(
+        `UPDATE Shifts SET 
+           scheduled_end_time = ?,
+           end_time = ?,
+           is_overrun = TRUE,
+           overrun_minutes = ?,
+           overrun_reason = ?,
+           clinical_case_ref = ?,
+           overrun_notes = ?,
+           overrun_approval_status = ?,
+           overrun_approved_by = ?,
+           overrun_approved_at = ?,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
         [
-          auditId,
-          actor?.employee_code || actor?.id || shift.staff_id,
-          actor?.name || 'Bác sĩ / Kíp trực lâm sàng',
-          shiftId,
-          JSON.stringify({
-            previous_end_time: shift.end_time,
-            new_end_time: newEndStr,
-            overrun_minutes,
-            reason
-          })
+          scheduledEndStr,
+          newEndStr,
+          parsedOverrunMinutes,
+          reason,
+          clinical_case_ref,
+          overrun_notes,
+          overrunApprovalStatus,
+          overrunApprovedBy,
+          overrunApprovedAt,
+          shiftId
         ]
       );
-    } catch (auditErr) {
-      console.warn('[recordShiftOverrun] Failed to log audit:', auditErr.message);
+
+      // 2. STRICT LOCK HIERARCHY: Khóa dòng Attendances sau
+      let attRows = [];
+      try {
+        const attQueryResult = await connection.query(
+          'SELECT * FROM Attendances WHERE shift_id = ? FOR UPDATE',
+          [shiftId]
+        );
+        if (Array.isArray(attQueryResult) && Array.isArray(attQueryResult[0])) {
+          attRows = attQueryResult[0];
+        }
+      } catch (attQueryErr) {
+        console.warn('[recordShiftOverrun] Attendance lock query warning:', attQueryErr.message);
+      }
+
+      if (attRows && attRows.length > 0) {
+        const att = attRows[0];
+        await connection.execute(
+          `UPDATE Attendances 
+           SET overtime_minutes = ?,
+               attendance_status = 'OVERTIME',
+               overrun_reason = ?,
+               clinical_case_ref = ?,
+               overrun_approval_status = ?,
+               overrun_approved_by = ?,
+               overrun_approved_at = ?,
+               handover_notes = CONCAT(COALESCE(handover_notes, ''), '\n[OVERRUN]: Kéo dài thêm ', ?, ' phút. Lý do: ', ?, COALESCE(CONCAT(' (Mã BA/Ca: ', ?, ')'), ''))
+           WHERE id = ?`,
+          [
+            parsedOverrunMinutes,
+            reason,
+            clinical_case_ref,
+            overrunApprovalStatus,
+            overrunApprovedBy,
+            overrunApprovedAt,
+            parsedOverrunMinutes,
+            reason,
+            clinical_case_ref,
+            att.id
+          ]
+        );
+      }
+
+      // 3. CASCADING CIRCADIAN OFFSET CHECK: Quét ca kế tiếp trong 48h để phát hiện vi phạm nhịp sinh học
+      let circadianWarning = null;
+      try {
+        const nextQueryResult = await connection.query(
+          `SELECT * FROM Shifts 
+           WHERE staff_id = ? AND start_time > ? 
+           ORDER BY start_time ASC LIMIT 1`,
+          [shift.staff_id, shift.end_time]
+        );
+
+        const nextShifts = Array.isArray(nextQueryResult) && Array.isArray(nextQueryResult[0])
+          ? nextQueryResult[0]
+          : [];
+
+        if (nextShifts && nextShifts.length > 0) {
+          const nextShift = nextShifts[0];
+          const nextStartStr = typeof nextShift.start_time === 'string' ? nextShift.start_time : normalizeDateTime(nextShift.start_time);
+          const nextStartMs = new Date(nextStartStr.replace(' ', 'T')).getTime();
+          const restHours = (nextStartMs - newEndMs) / (1000 * 60 * 60);
+
+          if (restHours < 24.0) {
+            circadianWarning = {
+              has_violation: true,
+              next_shift_id: nextShift.id,
+              next_shift_start: nextStartStr,
+              actual_rest_hours: Number(restHours.toFixed(1)),
+              required_rest_hours: 24,
+              message: `Cảnh báo an toàn sinh học: Ca trực kéo dài làm khoảng nghỉ trước ca tiếp theo (${nextStartStr}) chỉ còn ${restHours.toFixed(1)}h (yêu cầu tối thiểu 24h). Khuyến nghị điều động tăng cường bù đắp (Fill-gap).`
+            };
+          }
+        }
+      } catch (circadianErr) {
+        console.warn('[recordShiftOverrun] Circadian check warning:', circadianErr.message);
+      }
+
+      // 4. Log Audit Trail
+      try {
+        const auditId = randomUUID();
+        await connection.execute(
+          `INSERT INTO Audit_Logs (id, actor_id, actor_name, action, resource_type, resource_id, new_values) 
+           VALUES (?, ?, ?, 'CLINICAL_SHIFT_OVERRUN', 'Shifts', ?, ?)`,
+          [
+            auditId,
+            actor?.employee_code || actor?.id || shift.staff_id,
+            actor?.name || 'Bác sĩ / Kíp trực lâm sàng',
+            shiftId,
+            JSON.stringify({
+              scheduled_end_time: scheduledEndStr,
+              new_end_time: newEndStr,
+              overrun_minutes: parsedOverrunMinutes,
+              reason,
+              clinical_case_ref,
+              approval_status: overrunApprovalStatus,
+              circadian_warning: circadianWarning
+            })
+          ]
+        );
+      } catch (auditErr) {
+        console.warn('[recordShiftOverrun] Failed to log audit:', auditErr.message);
+      }
+
+      if (isDedicated && typeof connection.commit === 'function') {
+        await connection.commit();
+      }
+
+      return {
+        id: shiftId,
+        staff_id: shift.staff_id,
+        department_code: shift.department_code,
+        start_time: shift.start_time,
+        end_time: newEndStr,
+        scheduled_end_time: scheduledEndStr,
+        previous_end_time: shift.end_time,
+        overrun_minutes: parsedOverrunMinutes,
+        reason,
+        clinical_case_ref,
+        overrun_approval_status: overrunApprovalStatus,
+        status: shift.status,
+        circadian_warning: circadianWarning
+      };
+    } catch (error) {
+      if (isDedicated && typeof connection.rollback === 'function') {
+        await connection.rollback();
+      }
+      throw error;
+    } finally {
+      if (isDedicated && typeof connection.release === 'function') {
+        connection.release();
+      }
+    }
+  },
+
+  /**
+   * Phê duyệt giờ vượt trực lâm sàng (Dành cho Trưởng khoa / HR / Ban Giám đốc)
+   */
+  async approveShiftOverrun(shiftId, payload, actor = {}) {
+    const { decision = 'APPROVED', adjusted_minutes = null, notes = null } = payload;
+    let connection = pool;
+    let isDedicated = false;
+    if (typeof pool.getConnection === 'function') {
+      try {
+        const conn = await pool.getConnection();
+        if (conn) {
+          connection = conn;
+          isDedicated = true;
+        }
+      } catch (connErr) {
+        connection = pool;
+      }
     }
 
-    return {
-      id: shiftId,
-      staff_id: shift.staff_id,
-      department_code: shift.department_code,
-      start_time: shift.start_time,
-      end_time: newEndStr,
-      previous_end_time: shift.end_time,
-      overrun_minutes,
-      reason,
-      status: shift.status
-    };
+    try {
+      if (isDedicated && typeof connection.beginTransaction === 'function') {
+        await connection.beginTransaction();
+      }
+
+      const [shiftRows] = await connection.query(
+        'SELECT * FROM Shifts WHERE id = ? FOR UPDATE',
+        [shiftId]
+      );
+
+      if (!shiftRows || shiftRows.length === 0) {
+        const err = new Error(`Ca trực với ID "${shiftId}" không tồn tại.`);
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const shift = shiftRows[0];
+      const finalDecision = decision === 'REJECTED' ? 'REJECTED' : 'APPROVED';
+      const finalMinutes = adjusted_minutes !== null ? Number(adjusted_minutes) : Number(shift.overrun_minutes || 0);
+      const approverId = actor?.employee_code || actor?.id || 'HEAD_OF_DEPT';
+
+      // 1. Cập nhật Shifts
+      await connection.execute(
+        `UPDATE Shifts SET 
+           overrun_approval_status = ?,
+           overrun_approved_by = ?,
+           overrun_approved_at = CURRENT_TIMESTAMP,
+           overrun_minutes = ?,
+           overrun_notes = CONCAT(COALESCE(overrun_notes, ''), '\n[DUYỆT BỞI ', ?, ']: ', ?),
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [finalDecision, approverId, finalMinutes, approverId, notes || 'Đã xác nhận giờ vượt trực chuyên môn', shiftId]
+      );
+
+      // 2. Cập nhật Attendances tương ứng
+      await connection.execute(
+        `UPDATE Attendances SET 
+           overrun_approval_status = ?,
+           overrun_approved_by = ?,
+           overrun_approved_at = CURRENT_TIMESTAMP,
+           overtime_minutes = ?
+         WHERE shift_id = ?`,
+        [finalDecision, approverId, finalMinutes, shiftId]
+      );
+
+      // 3. Log Audit
+      try {
+        const auditId = randomUUID();
+        await connection.execute(
+          `INSERT INTO Audit_Logs (id, actor_id, actor_name, action, resource_type, resource_id, new_values) 
+           VALUES (?, ?, ?, 'APPROVE_SHIFT_OVERRUN', 'Shifts', ?, ?)`,
+          [
+            auditId,
+            approverId,
+            actor?.name || 'Trưởng khoa / Quản lý phê duyệt',
+            shiftId,
+            JSON.stringify({
+              decision: finalDecision,
+              adjusted_minutes: finalMinutes,
+              notes
+            })
+          ]
+        );
+      } catch (auditErr) {
+        console.warn('[approveShiftOverrun] Failed to log audit:', auditErr.message);
+      }
+
+      if (isDedicated && typeof connection.commit === 'function') {
+        await connection.commit();
+      }
+
+      return {
+        id: shiftId,
+        overrun_approval_status: finalDecision,
+        overrun_minutes: finalMinutes,
+        approved_by: approverId
+      };
+    } catch (error) {
+      if (isDedicated && typeof connection.rollback === 'function') {
+        await connection.rollback();
+      }
+      throw error;
+    } finally {
+      if (isDedicated && typeof connection.release === 'function') {
+        connection.release();
+      }
+    }
+  },
+
+  /**
+   * Lấy danh sách các ca trực đang chờ phê duyệt giờ vượt trực
+   */
+  async getPendingOverrunShifts(departmentCode = null) {
+    let sql = `
+      SELECT 
+        s.id, s.staff_id, s.department_code, s.start_time, s.end_time, s.scheduled_end_time,
+        s.shift_type, s.status, s.is_overrun, s.overrun_minutes, s.overrun_reason,
+        s.clinical_case_ref, s.overrun_notes, s.overrun_approval_status,
+        e.first_name, e.last_name, e.role AS staff_role,
+        d.department_name
+      FROM Shifts s
+      JOIN Employees e ON s.staff_id = e.employee_code
+      LEFT JOIN Departments d ON s.department_code = d.department_code
+      WHERE s.is_overrun = TRUE 
+        AND s.overrun_approval_status = 'PENDING_APPROVAL'
+    `;
+    const params = [];
+
+    if (departmentCode && departmentCode !== 'ALL') {
+      sql += ' AND s.department_code = ?';
+      params.push(departmentCode);
+    }
+
+    sql += ' ORDER BY s.end_time DESC LIMIT 100';
+
+    const [rows] = await pool.query(sql, params);
+    return rows.map((r) => ({
+      ...r,
+      staff_name: `${r.last_name} ${r.first_name}`.trim()
+    }));
   },
 
   /**
