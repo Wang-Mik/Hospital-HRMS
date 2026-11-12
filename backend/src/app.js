@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import routes from './routes/index.js';
 import setupSwagger from './swagger.js';
+import { metricsMiddleware } from './metrics/metricsRegistry.js';
 
 dotenv.config();
 
@@ -80,6 +81,9 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// Prometheus HTTP Metrics Collector
+app.use(metricsMiddleware);
 
 // Swagger OpenAPI Documentation
 setupSwagger(app);

@@ -47,4 +47,20 @@ export async function testConnection() {
   }
 }
 
+/**
+ * Retrieve real-time MySQL connection pool metrics for Prometheus monitoring
+ * @returns {{ all: number, free: number, queued: number }}
+ */
+export function getPoolStats() {
+  const p = pool?.pool;
+  if (!p) {
+    return { all: 0, free: 0, queued: 0 };
+  }
+  return {
+    all: Array.isArray(p._allConnections) ? p._allConnections.length : 0,
+    free: Array.isArray(p._freeConnections) ? p._freeConnections.length : 0,
+    queued: Array.isArray(p._connectionQueue) ? p._connectionQueue.length : 0
+  };
+}
+
 export default pool;
