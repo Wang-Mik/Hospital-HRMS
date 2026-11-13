@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import leaveController from '../controllers/leaveController.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { leaveBalanceSchema } from '../validations/leaveValidation.js';
 
 const router = Router();
 
@@ -51,6 +53,6 @@ router.get('/:staff_id', leaveController.getLeaveBalancesByStaffIdAndYear);
  *       400:
  *         description: Missing mandatory fields
  */
-router.post('/', leaveController.setLeaveBalance);
+router.post('/', validateRequest({ body: leaveBalanceSchema }), leaveController.setLeaveBalance);
 
 export default router;

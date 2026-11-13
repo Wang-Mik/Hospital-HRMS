@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import notificationController from '../controllers/notificationController.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { createNotificationSchema } from '../validations/notificationValidation.js';
 
 const router = Router();
 
@@ -68,6 +70,6 @@ router.patch('/:id/read', notificationController.markNotificationAsRead);
  *       400:
  *         description: Validation error or missing fields
  */
-router.post('/', notificationController.createNotification);
+router.post('/', validateRequest({ body: createNotificationSchema }), notificationController.createNotification);
 
 export default router;

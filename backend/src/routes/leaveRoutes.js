@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import leaveController from '../controllers/leaveController.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { submitLeaveSchema, updateLeaveStatusSchema } from '../validations/leaveValidation.js';
 
 const router = Router();
 
@@ -43,10 +45,10 @@ const router = Router();
  *       200:
  *         description: Leave request list
  */
-router.post('/', leaveController.submitLeaveRequest);
+router.post('/', validateRequest({ body: submitLeaveSchema }), leaveController.submitLeaveRequest);
 router.get('/', leaveController.getAllLeaveRequests);
-router.patch('/requests/:id/status', leaveController.updateLeaveRequestStatus);
-router.patch('/:id/status', leaveController.updateLeaveRequestStatus);
+router.patch('/requests/:id/status', validateRequest({ body: updateLeaveStatusSchema }), leaveController.updateLeaveRequestStatus);
+router.patch('/:id/status', validateRequest({ body: updateLeaveStatusSchema }), leaveController.updateLeaveRequestStatus);
 
 /**
  * @swagger

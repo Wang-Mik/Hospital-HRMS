@@ -1,5 +1,12 @@
 import { Router } from 'express';
 import { handoverController } from '../controllers/handoverController.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import {
+  createHandoverSchema,
+  updateHandoverSchema,
+  signHandoverSchema,
+  createChecklistItemSchema
+} from '../validations/handoverValidation.js';
 
 const router = Router();
 
@@ -87,7 +94,7 @@ const router = Router();
  *       200:
  *         description: Handover reports list retrieved
  */
-router.post('/', handoverController.createHandover);
+router.post('/', validateRequest({ body: createHandoverSchema }), handoverController.createHandover);
 router.get('/', handoverController.getAllHandovers);
 
 /**
@@ -229,8 +236,8 @@ router.delete('/checklists/:itemId', handoverController.deleteChecklistItem);
  *         description: Handover not found
  */
 router.get('/:id', handoverController.getHandoverById);
-router.put('/:id', handoverController.updateHandover);
-router.patch('/:id', handoverController.updateHandover);
+router.put('/:id', validateRequest({ body: updateHandoverSchema }), handoverController.updateHandover);
+router.patch('/:id', validateRequest({ body: updateHandoverSchema }), handoverController.updateHandover);
 router.delete('/:id', handoverController.deleteHandover);
 
 /**
@@ -266,7 +273,7 @@ router.delete('/:id', handoverController.deleteHandover);
  *       404:
  *         description: Handover not found
  */
-router.post('/:id/sign', handoverController.signHandover);
+router.post('/:id/sign', validateRequest({ body: signHandoverSchema }), handoverController.signHandover);
 
 /**
  * @swagger
@@ -304,6 +311,6 @@ router.post('/:id/sign', handoverController.signHandover);
  *       404:
  *         description: Handover not found
  */
-router.post('/:id/checklists', handoverController.addChecklistItem);
+router.post('/:id/checklists', validateRequest({ body: createChecklistItemSchema }), handoverController.addChecklistItem);
 
 export default router;

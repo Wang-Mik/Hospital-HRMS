@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { taskController } from '../controllers/taskController.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { createTaskSchema, updateTaskSchema } from '../validations/taskValidation.js';
 
 const router = Router();
 
@@ -83,7 +85,7 @@ const router = Router();
  *       200:
  *         description: Task list retrieved successfully
  */
-router.post('/', taskController.createTask);
+router.post('/', validateRequest({ body: createTaskSchema }), taskController.createTask);
 router.get('/', taskController.getAllTasks);
 
 /**
@@ -178,8 +180,8 @@ router.get('/', taskController.getAllTasks);
  *         description: Task not found
  */
 router.get('/:id', taskController.getTaskById);
-router.put('/:id', taskController.updateTask);
-router.patch('/:id', taskController.updateTask);
+router.put('/:id', validateRequest({ body: updateTaskSchema }), taskController.updateTask);
+router.patch('/:id', validateRequest({ body: updateTaskSchema }), taskController.updateTask);
 router.delete('/:id', taskController.deleteTask);
 
 export default router;

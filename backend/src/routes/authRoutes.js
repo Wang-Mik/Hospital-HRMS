@@ -2,6 +2,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { authController } from '../controllers/authController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { registerSchema, loginSchema } from '../validations/authValidation.js';
 
 const router = Router();
 
@@ -71,7 +73,7 @@ export const authLimiter = rateLimit({
  *       500:
  *         description: Internal server error
  */
-router.post('/register', authController.register);
+router.post('/register', validateRequest({ body: registerSchema }), authController.register);
 
 /**
  * @swagger
@@ -130,7 +132,7 @@ router.post('/register', authController.register);
  *       500:
  *         description: Internal server error
  */
-router.post('/login', authLimiter, authController.login);
+router.post('/login', authLimiter, validateRequest({ body: loginSchema }), authController.login);
 
 /**
  * @swagger

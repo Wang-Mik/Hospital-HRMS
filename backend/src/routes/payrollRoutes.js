@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import payrollController from '../controllers/payrollController.js';
 import { requireRole } from '../middlewares/authMiddleware.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import {
+  createPayrollRunSchema,
+  updatePayrollRunStatusSchema,
+  createPaySlipSchema,
+  paymentElectionSchema
+} from '../validations/payrollValidation.js';
 
 const router = Router();
 
@@ -35,10 +42,10 @@ const hrOnly = requireRole('HR_MANAGER', 'SUPER_ADMIN');
  *       200:
  *         description: Payroll run list retrieved successfully
  */
-router.post('/runs', hrOnly, payrollController.createPayrollRun);
-router.post('/run', hrOnly, payrollController.createPayrollRun);
+router.post('/runs', hrOnly, validateRequest({ body: createPayrollRunSchema }), payrollController.createPayrollRun);
+router.post('/run', hrOnly, validateRequest({ body: createPayrollRunSchema }), payrollController.createPayrollRun);
 router.get('/runs', payrollController.getAllPayrollRuns);
-router.patch('/runs/:id/status', hrOnly, payrollController.updatePayrollRunStatus);
+router.patch('/runs/:id/status', hrOnly, validateRequest({ body: updatePayrollRunStatusSchema }), payrollController.updatePayrollRunStatus);
 router.post('/runs/generate', hrOnly, payrollController.generatePayrollRun);
 
 /**
@@ -107,7 +114,7 @@ router.put('/rates/:staff_id', hrOnly, payrollController.updatePayRate);
  *       400:
  *         description: Missing run_id or staff_id
  */
-router.post('/payslips', hrOnly, payrollController.createPaySlip);
+router.post('/payslips', hrOnly, validateRequest({ body: createPaySlipSchema }), payrollController.createPaySlip);
 
 /**
  * @swagger
@@ -148,7 +155,7 @@ router.post('/payslips', hrOnly, payrollController.createPaySlip);
  *       200:
  *         description: Payment elections list
  */
-router.post('/elections', payrollController.addPaymentElection);
+router.post('/elections', validateRequest({ body: paymentElectionSchema }), payrollController.addPaymentElection);
 router.get('/elections/:staff_id', payrollController.getPaymentElectionsByStaffId);
 
 export default router;

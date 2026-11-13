@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { shiftController } from '../controllers/shiftController.js';
 import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import {
+  scheduleShiftSchema,
+  recordOverrunSchema,
+  approveOverrunSchema
+} from '../validations/shiftValidation.js';
 
 const router = Router();
 
@@ -73,9 +79,9 @@ router.post('/approve-batch', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MA
 router.get('/fill-gap/candidates', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.getFillGapCandidates);
 router.post('/fill-gap/dispatch', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.dispatchSurgeCover);
 router.get('/overrun/pending', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'CHIEF_NURSE'), shiftController.getPendingOverrunShifts);
-router.post('/:id/overrun/approve', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'CHIEF_NURSE'), shiftController.approveShiftOverrun);
-router.post('/:id/overrun', verifyToken, requireRole('DOCTOR', 'NURSE', 'DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'CHIEF_NURSE', 'TECHNICIAN'), shiftController.recordShiftOverrun);
-router.post('/', verifyToken, shiftController.scheduleShift);
+router.post('/:id/overrun/approve', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'CHIEF_NURSE'), validateRequest({ body: approveOverrunSchema }), shiftController.approveShiftOverrun);
+router.post('/:id/overrun', verifyToken, requireRole('DOCTOR', 'NURSE', 'DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'CHIEF_NURSE', 'TECHNICIAN'), validateRequest({ body: recordOverrunSchema }), shiftController.recordShiftOverrun);
+router.post('/', verifyToken, validateRequest({ body: scheduleShiftSchema }), shiftController.scheduleShift);
 router.get('/', verifyToken, shiftController.getAllShifts);
 
 /**

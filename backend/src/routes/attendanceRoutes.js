@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { attendanceController } from '../controllers/attendanceController.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { clockInSchema, clockOutSchema } from '../validations/attendanceValidation.js';
 
 const router = Router();
 
@@ -39,7 +41,7 @@ const router = Router();
  *       409:
  *         description: Active clock-in session exists
  */
-router.post('/clock-in', attendanceController.clockIn);
+router.post('/clock-in', validateRequest({ body: clockInSchema }), attendanceController.clockIn);
 
 /**
  * @swagger
@@ -62,7 +64,7 @@ router.post('/clock-in', attendanceController.clockIn);
  *       404:
  *         description: Attendance record not found
  */
-router.post('/:id/clock-out', attendanceController.clockOut);
+router.post('/:id/clock-out', validateRequest({ body: clockOutSchema }), attendanceController.clockOut);
 
 /**
  * @swagger

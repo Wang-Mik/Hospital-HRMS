@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { employeeController } from '../controllers/employeeController.js';
 import { requireRole } from '../middlewares/authMiddleware.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import {
+  createEmployeeSchema,
+  emergencyContactSchema,
+  documentUploadSchema
+} from '../validations/employeeValidation.js';
 
 const router = Router();
 const hrOnly = requireRole('HR_MANAGER', 'SUPER_ADMIN');
@@ -74,7 +80,7 @@ router.post('/emergency-contacts', employeeController.addEmergencyContact);
  *       200:
  *         description: List of emergency contacts
  */
-router.post('/:staff_id/emergency-contacts', employeeController.addEmergencyContact);
+router.post('/:staff_id/emergency-contacts', validateRequest({ body: emergencyContactSchema }), employeeController.addEmergencyContact);
 router.get('/:staff_id/emergency-contacts', employeeController.getEmergencyContactsByStaffId);
 
 /**
@@ -145,7 +151,7 @@ router.post('/documents', employeeController.uploadDocument);
  *       200:
  *         description: List of documents attached to staff
  */
-router.post('/:staff_id/documents', employeeController.uploadDocument);
+router.post('/:staff_id/documents', validateRequest({ body: documentUploadSchema }), employeeController.uploadDocument);
 router.get('/:staff_id/documents', employeeController.getDocumentsByStaffId);
 
 /**
@@ -197,7 +203,7 @@ router.post('/licenses', hrOnly, employeeController.createLicense);
 router.patch('/licenses/:id/status', hrOnly, employeeController.updateLicenseStatus);
 router.get('/:id/dossier', employeeController.getEmployeeFullDossier);
 router.get('/:id', employeeController.getEmployeeWithActiveLicenses);
-router.post('/', hrOnly, employeeController.createEmployee);
+router.post('/', hrOnly, validateRequest({ body: createEmployeeSchema }), employeeController.createEmployee);
 router.patch('/:id/admin-update', hrOnly, employeeController.adminUpdateEmployee);
 router.patch('/:staff_id/profile', employeeController.updateProfile);
 router.post('/:staff_id/avatar', employeeController.updateAvatar);

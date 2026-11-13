@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { surgeDispatchController } from '../controllers/surgeDispatchController.js';
 import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import {
+  createDispatchSchema,
+  logCallSchema,
+  resolveDispatchSchema
+} from '../validations/surgeDispatchValidation.js';
 
 const router = Router();
 
@@ -17,6 +23,7 @@ router.post(
   '/',
   verifyToken,
   requireRole('DEPARTMENT_HEAD', 'DOCTOR', 'CHIEF_NURSE', 'SUPER_ADMIN', 'HR_MANAGER'),
+  validateRequest({ body: createDispatchSchema }),
   surgeDispatchController.createDispatch
 );
 
@@ -32,6 +39,7 @@ router.post(
   '/:id/log-call',
   verifyToken,
   requireRole('DEPARTMENT_HEAD', 'DOCTOR', 'CHIEF_NURSE', 'SUPER_ADMIN', 'HR_MANAGER'),
+  validateRequest({ body: logCallSchema }),
   surgeDispatchController.logCallResult
 );
 
@@ -40,6 +48,7 @@ router.post(
   '/:id/resolve',
   verifyToken,
   requireRole('DEPARTMENT_HEAD', 'DOCTOR', 'CHIEF_NURSE', 'SUPER_ADMIN', 'HR_MANAGER'),
+  validateRequest({ body: resolveDispatchSchema }),
   surgeDispatchController.resolveDispatch
 );
 
