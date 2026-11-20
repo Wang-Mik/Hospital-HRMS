@@ -1,4 +1,5 @@
 import payrollService from '../services/payrollService.js';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles.js';
 
 export const payrollController = {
   /**
@@ -70,10 +71,10 @@ export const payrollController = {
     }
 
     // Ownership check: regular staff can only inspect their own pay slips
+    const isPayrollOperator = hasAnyRole(req.user, ROLE_GROUPS.PAYROLL_OPERATORS);
     if (
       req.user &&
-      req.user.role !== 'SUPER_ADMIN' &&
-      req.user.role !== 'HR_MANAGER' &&
+      !isPayrollOperator &&
       req.user.employee_code !== staff_id
     ) {
       return res.status(403).json({
@@ -84,11 +85,15 @@ export const payrollController = {
 
     try {
       const rows = await payrollService.getPaySlipsByStaffId(staff_id);
+      const visibleRows = isPayrollOperator
+        ? rows
+        : rows.filter((r) => r.status !== 'DRAFT');
+
       return res.status(200).json({
         success: true,
         staff_id,
-        count: rows.length,
-        data: rows
+        count: visibleRows.length,
+        data: visibleRows
       });
     } catch (error) {
       console.error(`[payrollController.getPaySlipsByStaffId Error] staff_id ${staff_id}:`, error);
@@ -183,18 +188,115 @@ export const payrollController = {
   },
 
   /**
+   * GET /api/payroll/runs/:id/slips
+   */
+  async getPaySlipsByRunId(req, res) {
+    const { id } = req.params;
+    try {
+      const result = await payrollService.getPaySlipsByRunId(id);
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error(`[payrollController.getPaySlipsByRunId Error] ID ${id}:`, error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve pay slips for payroll run'
+      });
+    }
+  },
+
+  /**
+   * GET /api/payroll/runs/:id/export-timesheets
+   */
+  async exportRunTimesheets(req, res) {
+    const { id } = req.params;
+    try {
+      const result = await payrollService.exportRunTimesheets(id);
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error(`[payrollController.exportRunTimesheets Error] ID ${id}:`, error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to export timesheets for accounting'
+      });
+    }
+  },
+
+  /**
+   * POST /api/payroll/runs/:id/import-slips
+   */
+  async importPaySlipsForRun(req, res) {
+    const { id } = req.params;
+    try {
+      const actor = { ...(req.user || {}), ip: req.ip };
+      const result = await payrollService.importPaySlipsForRun(id, req.body, actor);
+      return res.status(201).json({
+        success: true,
+        message: `Đã nhập thành công ${result.imported_count} phiếu lương từ bảng lương Kế toán.`,
+        data: result
+      });
+    } catch (error) {
+      console.error(`[payrollController.importPaySlipsForRun Error] ID ${id}:`, error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to import payroll slips from accounting'
+      });
+    }
+  },
+
+  /**
+   * GET /api/payroll/runs/:id/bank-disbursement
+   */
+  async getRunBankDisbursement(req, res) {
+    const { id } = req.params;
+    try {
+      const result = await payrollService.getRunBankDisbursement(id);
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error(`[payrollController.getRunBankDisbursement Error] ID ${id}:`, error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to build bank disbursement list'
+      });
+    }
+  },
+
+  /**
+   * POST /api/payroll/payslips/:id/report-issue
+   */
+  async reportPaySlipDiscrepancy(req, res) {
+    const { id } = req.params;
+    const { message } = req.body;
+    try {
+      const actor = { ...(req.user || {}), ip: req.ip };
+      const result = await payrollService.reportPaySlipDiscrepancy(id, message, actor);
+      return res.status(201).json({
+        success: true,
+        message: 'Đã gửi yêu cầu đối soát phiếu lương đến Phòng Tổ chức Cán bộ & Tài chính Kế toán.',
+        data: result
+      });
+    } catch (error) {
+      console.error(`[payrollController.reportPaySlipDiscrepancy Error] ID ${id}:`, error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to submit payslip discrepancy report'
+      });
+    }
+  },
+
+  /**
    * POST /api/payroll/payslips
    */
   async createPaySlip(req, res) {
-    const {
-      run_id,
-      staff_id,
-      base_pay = 0.00,
-      night_differential = 0.00,
-      overtime_pay = 0.00,
-      net_pay = 0.00,
-      status = 'DRAFT'
-    } = req.body;
+    const { run_id, staff_id } = req.body;
 
     if (!run_id || !staff_id) {
       return res.status(400).json({
@@ -204,15 +306,7 @@ export const payrollController = {
     }
 
     try {
-      const data = await payrollService.createPaySlip({
-        run_id,
-        staff_id,
-        base_pay,
-        night_differential,
-        overtime_pay,
-        net_pay,
-        status
-      });
+      const data = await payrollService.createPaySlip(req.body);
 
       return res.status(201).json({
         success: true,
@@ -288,8 +382,7 @@ export const payrollController = {
     // Ownership check: regular staff can only inspect their own payment elections
     if (
       req.user &&
-      req.user.role !== 'SUPER_ADMIN' &&
-      req.user.role !== 'HR_MANAGER' &&
+      !hasAnyRole(req.user, ROLE_GROUPS.PAYROLL_OPERATORS) &&
       req.user.employee_code !== staff_id
     ) {
       return res.status(403).json({
@@ -383,7 +476,8 @@ export const payrollController = {
     }
 
     try {
-      const updated = await payrollService.updatePayrollRunStatus(id, status);
+      const actor = { ...(req.user || {}), ip: req.ip };
+      const updated = await payrollService.updatePayrollRunStatus(id, status, actor);
       return res.status(200).json({
         success: true,
         message: `Payroll run status updated to ${status} successfully.`,

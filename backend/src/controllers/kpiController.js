@@ -1,4 +1,5 @@
 import kpiService from '../services/kpiService.js';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles.js';
 
 export const kpiController = {
   /**
@@ -38,7 +39,7 @@ export const kpiController = {
       if (
         requestedStaffId &&
         req.user &&
-        (req.user.role === 'HR_MANAGER' || req.user.role === 'SUPER_ADMIN')
+        hasAnyRole(req.user, ROLE_GROUPS.HR_OPERATIONS)
       ) {
         staffId = requestedStaffId;
       }

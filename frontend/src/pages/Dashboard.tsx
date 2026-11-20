@@ -34,14 +34,15 @@ import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
 import { SurgeDispatchModal } from '../components/SurgeDispatchModal';
 import { ActiveSurgeAlertBanner } from '../components/ActiveSurgeAlertBanner';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles';
 
 export const Dashboard: React.FC = () => {
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
-  const isAdmin = user?.role === 'SUPER_ADMIN';
-  const isHR = user?.role === 'HR_MANAGER';
+  const isHRorAdmin = hasAnyRole(user, ROLE_GROUPS.HR_OPERATIONS);
+  const isAdmin = hasAnyRole(user, ROLE_GROUPS.EXECUTIVE);
+  const isHR = hasAnyRole(user, ROLE_GROUPS.HR_TEAM);
 
   // Smart Clinical Surge Dispatcher State
   const [isSurgeModalOpen, setIsSurgeModalOpen] = useState<boolean>(false);

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../i18n/useTranslation';
+import { ROLE_GROUPS, hasAnyRole } from '../../constants/roles';
 
 interface RailItem {
   label: string;
@@ -46,8 +47,8 @@ export const Sidebar: React.FC = () => {
     { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
   ];
 
-  // 2. Quản Trị Nhân Sự (HR_MANAGER)
-  // Quy chuẩn: Quản trị nhân sự chỉ có HR (/hr), KHÔNG có trang quản trị hệ thống (/admin)
+  // 2. Quản Trị Nhân Sự & Ban Giám Đốc Điều Hành (HR_MANAGER, HEAD_OF_HR, HR_STAFF, HOSPITAL_DIRECTOR, VICE_DIRECTOR)
+  // Quy chuẩn: Quản trị nhân sự & điều hành có HR (/hr) và Bảng lương (/payroll), KHÔNG có trang IAM hệ thống (/admin)
   const hrRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
     { label: t('nav.hr_management', 'Nhân Sự'), to: '/hr', icon: UserCheck },
@@ -61,7 +62,18 @@ export const Sidebar: React.FC = () => {
     { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
   ];
 
-  // 3. Khối Lâm Sàng & Khám Chữa Bệnh (DOCTOR, NURSE, DEPARTMENT_HEAD...)
+  // 3. Phòng Tài Chính Kế Toán (ACCOUNTANT)
+  // Tập trung quản lý bảng lương, xuất công/trực, đối chiếu tài khoản ngân hàng chuyển khoản
+  const accountantRailItems: RailItem[] = [
+    { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
+    { label: t('nav.payroll', 'Bảng Lương'), to: '/payroll', icon: CreditCard },
+    { label: t('nav.directory', 'Danh Bạ'), to: '/employees', icon: Users },
+    { label: t('nav.timeoff', 'Nghỉ Phép'), to: '/leave', icon: Calendar },
+    { label: t('nav.notifications', 'Thông Báo'), to: '/notifications', icon: Bell },
+    { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
+  ];
+
+  // 4. Khối Lâm Sàng & Khám Chữa Bệnh (DOCTOR, NURSE, DEPARTMENT_HEAD, CHIEF_NURSE...)
   const clinicalRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
     { label: t('nav.shifts', 'Lịch Làm Việc & Trực'), to: '/shifts', icon: CalendarDays },
@@ -76,7 +88,7 @@ export const Sidebar: React.FC = () => {
     { label: t('nav.personal', 'Hồ Sơ'), to: '/profile', icon: User }
   ];
 
-  // 4. Khối Kỹ Thuật Viên Cận Lâm Sàng & Dược (TECHNICIAN, PHARMACIST)
+  // 5. Khối Kỹ Thuật Viên Cận Lâm Sàng & Dược (TECHNICIAN, PHARMACIST)
   // Quy chuẩn bệnh viện: Kỹ thuật viên & Dược sĩ không tham gia giao ban viện (/briefings)
   const technicalRailItems: RailItem[] = [
     { label: t('nav.dashboard', 'Trang Chủ'), to: '/', icon: Home },
@@ -100,8 +112,10 @@ export const Sidebar: React.FC = () => {
   const activeRailItems =
     role === 'SUPER_ADMIN'
       ? adminRailItems
-      : role === 'HR_MANAGER'
+      : hasAnyRole(role, ['HR_MANAGER', 'HEAD_OF_HR', 'HR_STAFF', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR'])
       ? hrRailItems
+      : hasAnyRole(role, ROLE_GROUPS.ACCOUNTING)
+      ? accountantRailItems
       : isTechnicianOrPharmacist
       ? technicalRailItems
       : clinicalRailItems;

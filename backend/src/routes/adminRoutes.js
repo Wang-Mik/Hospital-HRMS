@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import adminController from '../controllers/adminController.js';
 import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
+import { ROLE_GROUPS } from '../constants/roles.js';
 
 const router = Router();
 
 // Enterprise System Admin Routes - Protected by JWT
 router.use(verifyToken);
 
-// Allow both Executive Board (SUPER_ADMIN) and HR Director (HR_MANAGER) to read system overview statistics for Dashboard
-router.get('/overview', requireRole('SUPER_ADMIN', 'HR_MANAGER'), adminController.getOverview);
+// Allow Executive Board & HR Operations to read system overview statistics for Dashboard
+router.get('/overview', requireRole(...ROLE_GROUPS.HR_OPERATIONS), adminController.getOverview);
 
 // Strictly protect all administrative operations, IAM accounts, and role modifications for SUPER_ADMIN only
 router.use(requireRole('SUPER_ADMIN'));

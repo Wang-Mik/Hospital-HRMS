@@ -1,17 +1,23 @@
 import { Router } from 'express';
 import payrollController from '../controllers/payrollController.js';
 import { requireRole } from '../middlewares/authMiddleware.js';
+import { ROLE_GROUPS } from '../constants/roles.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import {
   createPayrollRunSchema,
   updatePayrollRunStatusSchema,
+  generatePayrollRunSchema,
+  updatePayRateSchema,
+  reportPaySlipIssueSchema,
   createPaySlipSchema,
+  importPaySlipsSchema,
   paymentElectionSchema
 } from '../validations/payrollValidation.js';
 
 const router = Router();
 
-const hrOnly = requireRole('HR_MANAGER', 'SUPER_ADMIN');
+const payrollOperators = requireRole(...ROLE_GROUPS.PAYROLL_OPERATORS);
+const payrollApprovers = requireRole(...ROLE_GROUPS.PAYROLL_APPROVERS);
 
 /**
  * @swagger
@@ -42,11 +48,11 @@ const hrOnly = requireRole('HR_MANAGER', 'SUPER_ADMIN');
  *       200:
  *         description: Payroll run list retrieved successfully
  */
-router.post('/runs', hrOnly, validateRequest({ body: createPayrollRunSchema }), payrollController.createPayrollRun);
-router.post('/run', hrOnly, validateRequest({ body: createPayrollRunSchema }), payrollController.createPayrollRun);
-router.get('/runs', payrollController.getAllPayrollRuns);
-router.patch('/runs/:id/status', hrOnly, validateRequest({ body: updatePayrollRunStatusSchema }), payrollController.updatePayrollRunStatus);
-router.post('/runs/generate', hrOnly, payrollController.generatePayrollRun);
+router.post('/runs', payrollOperators, validateRequest({ body: createPayrollRunSchema }), payrollController.createPayrollRun);
+router.post('/run', payrollOperators, validateRequest({ body: createPayrollRunSchema }), payrollController.createPayrollRun);
+router.get('/runs', payrollOperators, payrollController.getAllPayrollRuns);
+router.patch('/runs/:id/status', payrollApprovers, validateRequest({ body: updatePayrollRunStatusSchema }), payrollController.updatePayrollRunStatus);
+router.post('/runs/generate', payrollOperators, validateRequest({ body: generatePayrollRunSchema }), payrollController.generatePayrollRun);
 
 /**
  * @swagger
@@ -67,7 +73,11 @@ router.post('/runs/generate', hrOnly, payrollController.generatePayrollRun);
  *       404:
  *         description: Payroll run not found
  */
-router.get('/runs/:id', payrollController.getPayrollRunById);
+router.get('/runs/:id', payrollOperators, payrollController.getPayrollRunById);
+router.get('/runs/:id/slips', payrollOperators, payrollController.getPaySlipsByRunId);
+router.get('/runs/:id/export-timesheets', payrollOperators, payrollController.exportRunTimesheets);
+router.get('/runs/:id/bank-disbursement', payrollOperators, payrollController.getRunBankDisbursement);
+router.post('/runs/:id/import-slips', payrollOperators, validateRequest({ body: importPaySlipsSchema }), payrollController.importPaySlipsForRun);
 
 /**
  * @swagger
@@ -87,10 +97,11 @@ router.get('/runs/:id', payrollController.getPayrollRunById);
  *         description: Pay slip history
  */
 router.get('/payslips/:staff_id', payrollController.getPaySlipsByStaffId);
+router.post('/payslips/:id/report-issue', validateRequest({ body: reportPaySlipIssueSchema }), payrollController.reportPaySlipDiscrepancy);
 router.get('/staff/:staff_id/payslips', payrollController.getPaySlipsByStaffId);
-router.get('/rates', hrOnly, payrollController.getAllPayRates);
+router.get('/rates', payrollOperators, payrollController.getAllPayRates);
 router.get('/rates/:staff_id', payrollController.getPayRateByStaffId);
-router.put('/rates/:staff_id', hrOnly, payrollController.updatePayRate);
+router.put('/rates/:staff_id', payrollApprovers, validateRequest({ body: updatePayRateSchema }), payrollController.updatePayRate);
 
 /**
  * @swagger
@@ -114,7 +125,7 @@ router.put('/rates/:staff_id', hrOnly, payrollController.updatePayRate);
  *       400:
  *         description: Missing run_id or staff_id
  */
-router.post('/payslips', hrOnly, validateRequest({ body: createPaySlipSchema }), payrollController.createPaySlip);
+router.post('/payslips', payrollOperators, validateRequest({ body: createPaySlipSchema }), payrollController.createPaySlip);
 
 /**
  * @swagger

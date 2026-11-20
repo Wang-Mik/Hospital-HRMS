@@ -13,15 +13,21 @@ import {
   Building2,
   CheckCircle2,
   FileText,
-  ShieldCheck,
   Plus,
-  Info
+  Info,
+  Upload,
+  Download,
+  AlertTriangle
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollApi } from '../api/payrollApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles';
+import { AccountingImportModal } from '../components/payroll/AccountingImportModal';
+import { RunInspectionModal } from '../components/payroll/RunInspectionModal';
+import { exportTimesheetsToCsv } from '../utils/payrollCsv';
 
 export interface PaySlipItem {
   id: string;
@@ -37,12 +43,18 @@ export interface PaySlipItem {
   night_differential: number;
   overtime_hours: number;
   overtime_pay: number;
+  on_call_allowance: number;
+  surgery_allowance: number;
+  kpi_bonus: number;
   gross_pay: number;
   tax_deductions: number;
   social_insurance: number;
+  other_deductions: number;
   net_pay: number;
   payment_date: string;
-  status: 'PAID' | 'PENDING' | 'PROCESSING';
+  status: 'PAID' | 'PENDING' | 'PROCESSING' | 'CALCULATED' | 'DRAFT';
+  import_source?: 'SYSTEM_AUTO' | 'ACCOUNTING_IMPORT' | 'MANUAL';
+  notes?: string | null;
 }
 
 export interface PayrollRunItem {
@@ -72,7 +84,8 @@ export const PayrollManagement: React.FC = () => {
   const currentStaffId = user?.employee_code || 'EMP-DOC-001';
   const currentStaffName = user?.full_name || t('payroll.default_staff_name', 'BS.CKII Nguyễn Văn An');
   const currentDept = user?.department || t('payroll.default_dept', 'Khoa Cấp Cứu & Hồi Sức Tim Mạch');
-  const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN';
+  const isHR = hasAnyRole(user, ROLE_GROUPS.PAYROLL_OPERATORS);
+  const canApprovePayroll = hasAnyRole(user, ROLE_GROUPS.PAYROLL_APPROVERS);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const queryTab = searchParams.get('tab') as 'slips' | 'runs' | 'elections' | null;
@@ -118,13 +131,21 @@ export const PayrollManagement: React.FC = () => {
   // Modals
   const [selectedSlip, setSelectedSlip] = useState<PaySlipItem | null>(null);
   const [showRunModal, setShowRunModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importTargetRunId, setImportTargetRunId] = useState<string | undefined>(undefined);
+  const [inspectRunId, setInspectRunId] = useState<string | null>(null);
   const [showElectionModal, setShowElectionModal] = useState(false);
   const [actionAlert, setActionAlert] = useState<string | null>(null);
 
   // New Run state
-  const [newRunPeriod, setNewRunPeriod] = useState('16/09/2026 – 30/09/2026');
-  const [newRunStart, setNewRunStart] = useState('2026-09-16');
-  const [newRunEnd, setNewRunEnd] = useState('2026-09-30');
+  const [runCreationMode, setRunCreationMode] = useState<'DRAFT' | 'SYSTEM_AUTO'>('DRAFT');
+  const [newRunStart, setNewRunStart] = useState('2026-11-01');
+  const [newRunEnd, setNewRunEnd] = useState('2026-11-30');
+
+  // Payslip discrepancy reporting state
+  const [showIssueForm, setShowIssueForm] = useState(false);
+  const [issueMessage, setIssueMessage] = useState('');
+  const [issueFeedback, setIssueFeedback] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
 
   // New Election state
   const [bankName, setBankName] = useState('Vietcombank');
@@ -135,6 +156,7 @@ export const PayrollManagement: React.FC = () => {
   const { data: serverRuns, isLoading: isRunsLoading } = useQuery({
     queryKey: ['payrollRuns'],
     queryFn: () => payrollApi.getRuns(),
+    enabled: isHR,
     staleTime: 15000
   });
 
@@ -158,16 +180,42 @@ export const PayrollManagement: React.FC = () => {
 
   // Mutations
   const createRunMutation = useMutation({
-    mutationFn: (payload: { start_date: string; end_date: string }) =>
-      payrollApi.createRun(payload),
-    onSuccess: () => {
+    mutationFn: (payload: { start_date: string; end_date: string; mode: 'DRAFT' | 'SYSTEM_AUTO' }) =>
+      payload.mode === 'SYSTEM_AUTO'
+        ? payrollApi.generateRun({ start_date: payload.start_date, end_date: payload.end_date })
+        : payrollApi.createRun({ start_date: payload.start_date, end_date: payload.end_date }),
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
       setShowRunModal(false);
-      setActionAlert(t('payroll.cycle_created_success', 'Chu kỳ quyết toán lương bệnh viện đã được tạo thành công!'));
-      setTimeout(() => setActionAlert(null), 4000);
+      setActionAlert(
+        vars.mode === 'SYSTEM_AUTO'
+          ? t('payroll.cycle_generated_success', 'Đã khởi tạo và tự động tính lương dự kiến cho toàn bộ nhân sự!')
+          : t('payroll.cycle_created_success', 'Chu kỳ quyết toán lương nháp đã được tạo. Bạn có thể xuất bảng công cho Kế toán!')
+      );
+      setTimeout(() => setActionAlert(null), 5000);
     },
     onError: (err: any) => {
       setActionAlert(`${t('common.error', 'Lỗi')}: ${err.response?.data?.message || err.message}`);
+    }
+  });
+
+  const reportIssueMutation = useMutation({
+    mutationFn: ({ slipId, message }: { slipId: string; message: string }) =>
+      payrollApi.reportPaySlipIssue(slipId, message),
+    onSuccess: (res) => {
+      setShowIssueForm(false);
+      setIssueMessage('');
+      setIssueFeedback({
+        type: 'success',
+        text: `Đã gửi phản ánh sai sót tới ${res?.notified_count || 1} cán bộ HR & Kế toán để đối soát.`
+      });
+    },
+    onError: (err: any) => {
+      setIssueFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || err.message || 'Không thể gửi phản ánh sai sót.'
+      });
     }
   });
 
@@ -185,19 +233,34 @@ export const PayrollManagement: React.FC = () => {
     }
   });
 
-  // Map server slips with dynamic VND calculations
+  // Map server slips preserving real DB accounting figures
   const slips: PaySlipItem[] = (serverSlips && serverSlips.length > 0)
     ? serverSlips.map((s: any) => {
         const basePay = Number(s.base_pay) || 0;
         const nightDiff = Number(s.night_differential) || 0;
         const otPay = Number(s.overtime_pay) || 0;
-        const grossPay = basePay + nightDiff + otPay;
-        // Bảo hiểm bắt buộc theo luật lao động VN (10.5%: 8% BHXH, 1.5% BHYT, 1% BHTN)
-        const si = Math.round(basePay * 0.105);
-        // Thuế TNCN tạm tính theo biểu lũy tiến từng phần
-        const taxable = Math.max(0, grossPay - si - 11000000);
-        const tax = Math.round(taxable * 0.10);
-        const netPay = Number(s.net_pay) || Math.max(0, grossPay - tax - si);
+        const onCallAllowance = Number(s.on_call_allowance) || 0;
+        const surgeryAllowance = Number(s.surgery_allowance) || 0;
+        const kpiBonus = Number(s.kpi_bonus) || 0;
+        const grossPay = basePay + nightDiff + otPay + onCallAllowance + surgeryAllowance + kpiBonus;
+
+        const dbSi = Number(s.social_insurance) || 0;
+        const dbTax = Number(s.tax_deductions) || 0;
+        const dbOther = Number(s.other_deductions) || 0;
+        const dbNetPay = Number(s.net_pay) || 0;
+        const isAccountingImport = s.import_source === 'ACCOUNTING_IMPORT';
+        const hasDbDeductions = dbSi > 0 || dbTax > 0 || dbOther > 0;
+
+        // Chỉ ước lượng dự phòng cho các phiếu lương seed cũ chưa lưu cột khấu trừ trong DB
+        let si = dbSi;
+        let tax = dbTax;
+        if (!isAccountingImport && !hasDbDeductions && dbNetPay > 0 && dbNetPay < grossPay) {
+          si = Math.round(basePay * 0.105);
+          const taxable = Math.max(0, grossPay - si - 11000000);
+          tax = Math.round(taxable * 0.10);
+        }
+
+        const netPay = dbNetPay > 0 ? dbNetPay : Math.max(0, grossPay - tax - si - dbOther);
         const periodLabel = s.run_start_date && s.run_end_date
           ? `${s.run_start_date} – ${s.run_end_date}`
           : (s.run_id || t('payroll.kpi_default_period', 'Kỳ Quyết Toán'));
@@ -222,12 +285,18 @@ export const PayrollManagement: React.FC = () => {
           night_differential: nightDiff,
           overtime_hours: otHours,
           overtime_pay: otPay,
+          on_call_allowance: onCallAllowance,
+          surgery_allowance: surgeryAllowance,
+          kpi_bonus: kpiBonus,
           gross_pay: grossPay,
           tax_deductions: tax,
           social_insurance: si,
+          other_deductions: dbOther,
           net_pay: netPay,
           payment_date: s.payment_date || (s.created_at ? s.created_at.split('T')[0] : ''),
-          status: s.status || 'PAID'
+          status: s.status || 'PAID',
+          import_source: s.import_source || 'SYSTEM_AUTO',
+          notes: s.notes || null
         };
       })
     : [];
@@ -262,7 +331,8 @@ export const PayrollManagement: React.FC = () => {
     e.preventDefault();
     createRunMutation.mutate({
       start_date: newRunStart,
-      end_date: newRunEnd
+      end_date: newRunEnd,
+      mode: runCreationMode
     });
   };
 
@@ -300,16 +370,29 @@ export const PayrollManagement: React.FC = () => {
             {t('payroll.page_desc', 'Bảng lương điện tử, phụ cấp ca trực cấp cứu, tài khoản ngân hàng nhận chuyển khoản lương')}
           </p>
         </div>
-        <div className="d-flex gap-2">
+        <div className="d-flex flex-wrap gap-2">
           {activeTab === 'runs' && isHR && (
-            <button
-              type="button"
-              className="wd-pill-btn-primary"
-              onClick={() => setShowRunModal(true)}
-            >
-              <Plus size={15} />
-              <span>{t('payroll.initiate_cycle_btn', 'Khởi Tạo Chu Kỳ Quyết Toán')}</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className="wd-pill-btn-outline"
+                onClick={() => {
+                  setImportTargetRunId(undefined);
+                  setShowImportModal(true);
+                }}
+              >
+                <Upload size={15} />
+                <span>{t('payroll.import_accounting_btn', 'Nhập Bảng Lương Kế Toán')}</span>
+              </button>
+              <button
+                type="button"
+                className="wd-pill-btn-primary"
+                onClick={() => setShowRunModal(true)}
+              >
+                <Plus size={15} />
+                <span>{t('payroll.initiate_cycle_btn', 'Khởi Tạo Chu Kỳ Quyết Toán')}</span>
+              </button>
+            </>
           )}
           {activeTab === 'elections' && (
             <button
@@ -708,18 +791,43 @@ export const PayrollManagement: React.FC = () => {
                         <td className="fw-bold font-mono text-dark">{formatCurrency(run.total_disbursed)}</td>
                         <td className="text-secondary">{run.executed_at}</td>
                         <td>
-                          <span className={run.status === 'COMPLETED' ? 'wd-badge-success' : 'wd-badge-warning'}>
-                            {run.status === 'COMPLETED' ? t('payroll.status_completed', 'Hoàn Tất') : t('payroll.status_processing', 'Đang Xử Lý')}
+                          <span className={run.status === 'COMPLETED' || run.status === 'APPROVED' ? 'wd-badge-success' : run.status === 'DRAFT' ? 'wd-badge-neutral' : 'wd-badge-warning'}>
+                            {run.status === 'COMPLETED'
+                              ? t('payroll.status_completed', 'Hoàn Tất')
+                              : run.status === 'APPROVED'
+                              ? t('payroll.status_approved', 'Đã Duyệt')
+                              : run.status === 'DRAFT'
+                              ? t('payroll.status_draft', 'Bản Nháp')
+                              : t('payroll.status_processing', 'Đang Xử Lý')}
                           </span>
                         </td>
                         <td className="text-end">
-                          <button
-                            type="button"
-                            className="wd-pill-btn-outline"
-                            onClick={() => setActionAlert(`${t('payroll.inspect_btn', 'Kiểm Tra')} ${run.id}`)}
-                          >
-                            {t('payroll.inspect_btn', 'Kiểm Tra')}
-                          </button>
+                          <div className="d-inline-flex gap-1.5">
+                            <button
+                              type="button"
+                              className="wd-pill-btn-outline"
+                              title="Xuất bảng tổng hợp công, ca đêm, vượt trực và KPI gửi Kế toán"
+                              onClick={async () => {
+                                try {
+                                  const exportData = await payrollApi.exportTimesheets(run.id);
+                                  exportTimesheetsToCsv(exportData);
+                                  setActionAlert(`Đã xuất bảng công trực & KPI kỳ ${run.period_label} gửi Phòng Kế toán.`);
+                                } catch (err: any) {
+                                  setActionAlert(`${t('common.error', 'Lỗi')}: ${err.response?.data?.message || err.message}`);
+                                }
+                              }}
+                            >
+                              <Download size={13} />
+                              <span>{t('payroll.export_ts_btn', 'Xuất Công')}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="wd-pill-btn-outline"
+                              onClick={() => setInspectRunId(run.id)}
+                            >
+                              {t('payroll.inspect_btn', 'Kiểm Tra')}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -733,7 +841,17 @@ export const PayrollManagement: React.FC = () => {
 
       {/* Itemized Pay Slip Modal */}
       {selectedSlip && (
-        <Modal show={true} onHide={() => setSelectedSlip(null)} size="lg" centered>
+        <Modal
+          show={true}
+          onHide={() => {
+            setSelectedSlip(null);
+            setShowIssueForm(false);
+            setIssueMessage('');
+            setIssueFeedback(null);
+          }}
+          size="lg"
+          centered
+        >
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <div className="d-flex align-items-center gap-2">
               <Building2 size={20} style={{ color: 'var(--wd-blue)' }} />
@@ -802,6 +920,24 @@ export const PayrollManagement: React.FC = () => {
                   <td className="text-end font-mono">{formatCurrency(selectedSlip.base_hourly_rate * 1.5)}</td>
                   <td className="text-end fw-semibold font-mono" style={{ color: 'var(--wd-amber)' }}>+{formatCurrency(selectedSlip.overtime_pay)}</td>
                 </tr>
+                <tr>
+                  <td>{t('payroll.item_on_call', 'Phụ Cấp Thường Trực 24/24 (QĐ 73)')}</td>
+                  <td className="text-center font-mono">&mdash;</td>
+                  <td className="text-end font-mono">&mdash;</td>
+                  <td className="text-end fw-semibold font-mono" style={{ color: 'var(--wd-blue)' }}>+{formatCurrency(selectedSlip.on_call_allowance)}</td>
+                </tr>
+                <tr>
+                  <td>{t('payroll.item_surgery', 'Phụ Cấp Phẫu Thuật / Thủ Thuật (QĐ 73)')}</td>
+                  <td className="text-center font-mono">&mdash;</td>
+                  <td className="text-end font-mono">&mdash;</td>
+                  <td className="text-end fw-semibold font-mono" style={{ color: 'var(--wd-blue)' }}>+{formatCurrency(selectedSlip.surgery_allowance)}</td>
+                </tr>
+                <tr>
+                  <td>{t('payroll.item_kpi_bonus', 'Thu Nhập Tăng Thêm & Thưởng KPI')}</td>
+                  <td className="text-center font-mono">&mdash;</td>
+                  <td className="text-end font-mono">&mdash;</td>
+                  <td className="text-end fw-semibold font-mono" style={{ color: 'var(--wd-green)' }}>+{formatCurrency(selectedSlip.kpi_bonus)}</td>
+                </tr>
                 <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
                   <td colSpan={3}>{t('payroll.item_gross_income', 'Tổng Thu Nhập Trước Khấu Trừ')}</td>
                   <td className="text-end font-mono">{formatCurrency(selectedSlip.gross_pay)}</td>
@@ -827,14 +963,26 @@ export const PayrollManagement: React.FC = () => {
                   <td>{t('payroll.item_insurance', 'Bảo Hiểm Bắt Buộc')}</td>
                   <td className="text-end font-mono" style={{ color: 'var(--wd-red)' }}>-{formatCurrency(selectedSlip.social_insurance)}</td>
                 </tr>
+                {selectedSlip.other_deductions > 0 && (
+                  <tr>
+                    <td>{t('payroll.item_other_deductions', 'Khấu Trừ Khác (Công Đoàn / Tạm Ứng)')}</td>
+                    <td className="text-end font-mono" style={{ color: 'var(--wd-red)' }}>-{formatCurrency(selectedSlip.other_deductions)}</td>
+                  </tr>
+                )}
                 <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
                   <td>{t('payroll.item_total_deductions', 'Tổng Khấu Trừ Nghĩa Vụ')}</td>
                   <td className="text-end font-mono" style={{ color: 'var(--wd-red)' }}>
-                    -{formatCurrency(selectedSlip.tax_deductions + selectedSlip.social_insurance)}
+                    -{formatCurrency(selectedSlip.tax_deductions + selectedSlip.social_insurance + selectedSlip.other_deductions)}
                   </td>
                 </tr>
               </tbody>
             </table>
+
+            {selectedSlip.notes && (
+              <div className="p-2.5 rounded-2 border mb-3 small text-muted" style={{ backgroundColor: '#f8fafc', borderColor: 'var(--wd-border)' }}>
+                <strong>Ghi chú Kế toán / HR:</strong> {selectedSlip.notes}
+              </div>
+            )}
 
             {/* Net Pay Final Box */}
             <div className="p-3 rounded-2 border d-flex align-items-center justify-content-between" style={{ backgroundColor: 'var(--wd-green-bg)', borderColor: 'var(--wd-green-border)' }}>
@@ -850,20 +998,83 @@ export const PayrollManagement: React.FC = () => {
                 {formatCurrency(selectedSlip.net_pay)}
               </div>
             </div>
+
+            {issueFeedback && (
+              <Alert variant={issueFeedback.type} className="small py-2 mt-3 mb-0">
+                {issueFeedback.text}
+              </Alert>
+            )}
+
+            {showIssueForm && (
+              <div className="mt-3 p-3 rounded-2 border" style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}>
+                <label className="wd-label mb-1">Mô tả chi tiết sai sót cần Kế toán / HR đối soát</label>
+                <textarea
+                  rows={3}
+                  className="wd-input w-100 mb-2"
+                  value={issueMessage}
+                  onChange={(e) => setIssueMessage(e.target.value)}
+                  placeholder="Ví dụ: Thiếu 4 giờ trực đêm ngày 15/11 hoặc sai hệ số phụ cấp phẫu thuật..."
+                />
+                <div className="d-flex justify-content-end gap-2">
+                  <button
+                    type="button"
+                    className="wd-pill-btn-outline"
+                    onClick={() => {
+                      setShowIssueForm(false);
+                      setIssueMessage('');
+                    }}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    className="wd-pill-btn-primary"
+                    disabled={reportIssueMutation.isPending || issueMessage.trim().length < 5}
+                    onClick={() => {
+                      setIssueFeedback(null);
+                      reportIssueMutation.mutate({
+                        slipId: selectedSlip.id,
+                        message: issueMessage.trim()
+                      });
+                    }}
+                  >
+                    {reportIssueMutation.isPending ? 'Đang gửi...' : 'Gửi Yêu Cầu Đối Soát'}
+                  </button>
+                </div>
+              </div>
+            )}
           </Modal.Body>
-          <Modal.Footer className="border-top py-2.5 d-flex justify-content-between" style={{ borderColor: 'var(--wd-border)' }}>
-            <button
-              type="button"
-              className="wd-pill-btn-outline"
-              onClick={() => window.print()}
-            >
-              <FileText size={14} />
-              <span>{t('payroll.btn_print_slip', 'In Bảng Kê Lương')}</span>
-            </button>
+          <Modal.Footer className="border-top py-2.5 d-flex flex-wrap justify-content-between gap-2" style={{ borderColor: 'var(--wd-border)' }}>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="wd-pill-btn-outline"
+                onClick={() => window.print()}
+              >
+                <FileText size={14} />
+                <span>{t('payroll.btn_print_slip', 'In Bảng Kê Lương')}</span>
+              </button>
+              <button
+                type="button"
+                className="wd-pill-btn-outline"
+                onClick={() => {
+                  setIssueFeedback(null);
+                  setShowIssueForm((prev) => !prev);
+                }}
+              >
+                <AlertTriangle size={14} />
+                <span>{t('payroll.btn_report_issue', 'Báo Sai Sót / Đối Soát')}</span>
+              </button>
+            </div>
             <button
               type="button"
               className="wd-pill-btn"
-              onClick={() => setSelectedSlip(null)}
+              onClick={() => {
+                setSelectedSlip(null);
+                setShowIssueForm(false);
+                setIssueMessage('');
+                setIssueFeedback(null);
+              }}
             >
               {t('payroll.btn_close', 'Đóng')}
             </button>
@@ -876,18 +1087,44 @@ export const PayrollManagement: React.FC = () => {
         <Form onSubmit={handleInitiateRun}>
           <Modal.Header closeButton className="border-bottom py-3" style={{ borderColor: 'var(--wd-border)' }}>
             <Modal.Title className="fw-bold fs-6 text-dark">
-              {t('payroll.modal_run_title', 'Khởi Tạo Chu Kỳ Quyết Toán Lương Bán Nguyệt')}
+              {t('payroll.modal_run_title', 'Khởi Tạo Chu Kỳ Quyết Toán Lương')}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
             <Form.Group className="mb-3">
-              <label className="wd-label">{t('payroll.lbl_period_name', 'Tên Chu Kỳ')}</label>
-              <input
-                required
-                value={newRunPeriod}
-                onChange={(e) => setNewRunPeriod(e.target.value)}
-                className="wd-input w-100"
-              />
+              <label className="wd-label">{t('payroll.lbl_run_mode', 'Phương Thức Khởi Tạo')}</label>
+              <div className="d-flex flex-column gap-2">
+                <label className="p-2.5 rounded-2 border d-flex align-items-start gap-2 cursor-pointer" style={{ borderColor: runCreationMode === 'DRAFT' ? 'var(--wd-blue)' : 'var(--wd-border)', backgroundColor: runCreationMode === 'DRAFT' ? '#eff6ff' : '#fff' }}>
+                  <input
+                    type="radio"
+                    name="runCreationMode"
+                    checked={runCreationMode === 'DRAFT'}
+                    onChange={() => setRunCreationMode('DRAFT')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="fw-semibold text-dark small">Tạo kỳ lương Nháp để Kế toán tính & nhập bảng lương (Khuyên dùng)</div>
+                    <div className="text-muted" style={{ fontSize: '12px' }}>
+                      Tạo đợt quyết toán trống (DRAFT) để xuất CSV công/trực/KPI cho Phòng TCKT tính lương, thuế TNCN, BHXH rồi nhập ngược file từ Kế toán vào.
+                    </div>
+                  </div>
+                </label>
+                <label className="p-2.5 rounded-2 border d-flex align-items-start gap-2 cursor-pointer" style={{ borderColor: runCreationMode === 'SYSTEM_AUTO' ? 'var(--wd-blue)' : 'var(--wd-border)', backgroundColor: runCreationMode === 'SYSTEM_AUTO' ? '#eff6ff' : '#fff' }}>
+                  <input
+                    type="radio"
+                    name="runCreationMode"
+                    checked={runCreationMode === 'SYSTEM_AUTO'}
+                    onChange={() => setRunCreationMode('SYSTEM_AUTO')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="fw-semibold text-dark small">Hệ thống tự động tổng hợp tạm tính từ Bảng công & KPI</div>
+                    <div className="text-muted" style={{ fontSize: '12px' }}>
+                      Tự động quét giờ công thực tế, ca đêm, vượt trực và đơn giá Pay_Rates để sinh sẵn phiếu lương tạm tính.
+                    </div>
+                  </div>
+                </label>
+              </div>
             </Form.Group>
 
             <Row className="g-3 mb-3">
@@ -914,7 +1151,9 @@ export const PayrollManagement: React.FC = () => {
             </Row>
 
             <div className="p-3 rounded-2 small text-muted border" style={{ backgroundColor: '#f9fafb', borderColor: 'var(--wd-border)' }}>
-              {t('payroll.run_calculation_note', 'Hệ thống sẽ tự động tổng hợp toàn bộ dữ liệu chấm công vân tay, đối chiếu phụ cấp ca đêm và thù lao phẫu thuật ngoài giờ cho toàn bộ cán bộ y tế.')}
+              {runCreationMode === 'DRAFT'
+                ? 'Sau khi tạo kỳ nháp, nhấn nút Kiểm tra / Đối soát hoặc Xuất Bảng Công để gửi số liệu cho Phòng Kế toán.'
+                : t('payroll.run_calculation_note', 'Hệ thống sẽ tự động tổng hợp toàn bộ dữ liệu chấm công, ca trực đêm, giờ vượt trực và KPI cho toàn bộ cán bộ y tế.')}
             </div>
           </Modal.Body>
           <Modal.Footer className="border-top py-2.5" style={{ borderColor: 'var(--wd-border)' }}>
@@ -1009,6 +1248,33 @@ export const PayrollManagement: React.FC = () => {
           </Modal.Footer>
         </Form>
       </Modal>
+
+      {/* Accounting Payroll Batch Import Modal */}
+      <AccountingImportModal
+        show={showImportModal}
+        onHide={() => setShowImportModal(false)}
+        runs={runs}
+        initialRunId={importTargetRunId}
+        onSuccess={(msg) => {
+          setActionAlert(msg);
+          setTimeout(() => setActionAlert(null), 5000);
+        }}
+      />
+
+      {/* Run Detail Inspection & Approval Modal */}
+      <RunInspectionModal
+        runId={inspectRunId}
+        onHide={() => setInspectRunId(null)}
+        canApprove={canApprovePayroll}
+        onOpenImport={(runId) => {
+          setImportTargetRunId(runId);
+          setShowImportModal(true);
+        }}
+        onStatusUpdated={(msg) => {
+          setActionAlert(msg);
+          setTimeout(() => setActionAlert(null), 5000);
+        }}
+      />
     </Container>
   );
 };

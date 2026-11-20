@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { surgeDispatchController } from '../controllers/surgeDispatchController.js';
 import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
+import { ROLE_GROUPS } from '../constants/roles.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import {
   createDispatchSchema,
@@ -9,12 +10,13 @@ import {
 } from '../validations/surgeDispatchValidation.js';
 
 const router = Router();
+const canDispatchSurge = requireRole(...ROLE_GROUPS.SURGE_DISPATCHERS);
 
 // Candidate recommendation query
 router.get(
   '/candidates/:departmentCode',
   verifyToken,
-  requireRole('DEPARTMENT_HEAD', 'DOCTOR', 'CHIEF_NURSE', 'SUPER_ADMIN', 'HR_MANAGER'),
+  canDispatchSurge,
   surgeDispatchController.getCandidates
 );
 
@@ -22,7 +24,7 @@ router.get(
 router.post(
   '/',
   verifyToken,
-  requireRole('DEPARTMENT_HEAD', 'DOCTOR', 'CHIEF_NURSE', 'SUPER_ADMIN', 'HR_MANAGER'),
+  canDispatchSurge,
   validateRequest({ body: createDispatchSchema }),
   surgeDispatchController.createDispatch
 );
@@ -34,11 +36,11 @@ router.get(
   surgeDispatchController.getActiveDispatches
 );
 
-// Dispatcher logs call result from Cockpit
+// Dispatcher logs call result
 router.post(
   '/:id/log-call',
   verifyToken,
-  requireRole('DEPARTMENT_HEAD', 'DOCTOR', 'CHIEF_NURSE', 'SUPER_ADMIN', 'HR_MANAGER'),
+  canDispatchSurge,
   validateRequest({ body: logCallSchema }),
   surgeDispatchController.logCallResult
 );
@@ -47,7 +49,7 @@ router.post(
 router.post(
   '/:id/resolve',
   verifyToken,
-  requireRole('DEPARTMENT_HEAD', 'DOCTOR', 'CHIEF_NURSE', 'SUPER_ADMIN', 'HR_MANAGER'),
+  canDispatchSurge,
   validateRequest({ body: resolveDispatchSchema }),
   surgeDispatchController.resolveDispatch
 );

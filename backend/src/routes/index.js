@@ -84,8 +84,8 @@ router.use('/api/v1/hr', verifyToken, hrRoutes);
 router.use('/api/surge-dispatches', surgeDispatchRoutes);
 router.use('/api/v1/surge-dispatches', surgeDispatchRoutes);
 
-// Hospital HR & Enterprise System Admin Routes (Restricted to SUPER_ADMIN)
-router.use('/api/admin', verifyToken, requireRole('SUPER_ADMIN'), adminRoutes);
-router.use('/api/v1/admin', verifyToken, requireRole('SUPER_ADMIN'), adminRoutes);
+// Hospital HR & Enterprise System Admin Routes (Protected internally by adminRoutes RBAC)
+router.use('/api/admin', verifyToken, adminRoutes);
+router.use('/api/v1/admin', verifyToken, adminRoutes);
 
 export default router;

@@ -24,6 +24,7 @@ import { employeeApi } from '../api/employeeApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles';
 
 interface LeaveBalanceItem {
   id: string;
@@ -45,8 +46,8 @@ interface UpcomingLeave {
 export const TimeOffLeaves: React.FC = () => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
-  const isHRorAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'HR_MANAGER';
-  const isDeptHead = user?.role === 'DEPARTMENT_HEAD';
+  const isHRorAdmin = hasAnyRole(user, ROLE_GROUPS.HOSPITAL_APPROVERS);
+  const isDeptHead = hasAnyRole(user, ROLE_GROUPS.DEPARTMENT_LEADERS);
   const currentStaffId = user?.employee_code || 'EMP-DOC-001';
   const { t, lang } = useTranslation();
 

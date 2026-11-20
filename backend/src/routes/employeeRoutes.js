@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { employeeController } from '../controllers/employeeController.js';
 import { requireRole } from '../middlewares/authMiddleware.js';
+import { ROLE_GROUPS } from '../constants/roles.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import {
   createEmployeeSchema,
@@ -9,7 +10,7 @@ import {
 } from '../validations/employeeValidation.js';
 
 const router = Router();
-const hrOnly = requireRole('HR_MANAGER', 'SUPER_ADMIN');
+const hrOnly = requireRole(...ROLE_GROUPS.HR_OPERATIONS);
 
 /**
  * @swagger

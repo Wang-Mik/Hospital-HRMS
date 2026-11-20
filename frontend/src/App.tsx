@@ -4,6 +4,7 @@ import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { PageLoadingFallback } from './components/common/PageLoadingFallback';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { ROLE_GROUPS } from './constants/roles';
 
 // Lazy-loaded route components for optimal Lighthouse Performance & TBT reduction
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
@@ -52,7 +53,7 @@ export const App: React.FC = () => {
               <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
                 <Route path="admin" element={<SystemManagement />} />
               </Route>
-              <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HR_MANAGER']} />}>
+              <Route element={<ProtectedRoute allowedRoles={[...ROLE_GROUPS.HR_OPERATIONS]} />}>
                 <Route path="hr" element={<HRManagement />} />
               </Route>
 

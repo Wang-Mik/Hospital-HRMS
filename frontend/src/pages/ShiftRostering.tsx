@@ -384,8 +384,8 @@ export const ShiftRostering: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Role Restriction: HR, Leadership, Department Head, and Delegated Ward Secretary can manage shifts
-  const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN' || user?.role === 'HEAD_OF_HR' || user?.role === 'HOSPITAL_DIRECTOR' || user?.role === 'VICE_DIRECTOR';
-  const isDeptHead = user?.role === 'DEPARTMENT_HEAD';
+  const isHR = ['HR_MANAGER', 'SUPER_ADMIN', 'HEAD_OF_HR', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'HEAD_OF_GENERAL_PLANNING', 'HEAD_OF_NURSING'].includes(user?.role || '');
+  const isDeptHead = user?.role === 'DEPARTMENT_HEAD' || user?.role === 'CHIEF_NURSE';
   const userDeptCode = user?.department_code || 'DEP-HSTC';
 
   // Ward Secretary Delegation Query

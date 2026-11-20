@@ -35,6 +35,7 @@ import { kpiApi, MonthlyKpiRecord, IncidentCauseType } from '../api/kpiApi';
 import { useAuthStore } from '../store/authStore';
 import { useTranslation } from '../i18n/useTranslation';
 import { TheoryOfNextLoader } from '../components/common/TheoryOfNextLoader';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles';
 
 export interface EmployeeItem {
   id: number;
@@ -46,7 +47,7 @@ export interface EmployeeItem {
   department_code?: string;
   department_id?: number;
   department_name: string;
-  role: 'SUPER_ADMIN' | 'HR_MANAGER' | 'DEPARTMENT_HEAD' | 'DOCTOR' | 'NURSE' | 'TECHNICIAN' | 'STAFF';
+  role: string;
   specialty: string | null;
   hire_date: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ON_LEAVE';
@@ -76,9 +77,10 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
   const queryClient = useQueryClient();
   const { t, lang } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const isDeptLeader = ['DEPARTMENT_HEAD', 'CHIEF_NURSE'].includes(user?.role || '');
-  const isHrOrAdmin = ['SUPER_ADMIN', 'HR_MANAGER'].includes(user?.role || '');
-  const canEvaluateKpi = isDeptLeader || isHrOrAdmin;
+  const isDeptLeader = hasAnyRole(user, ROLE_GROUPS.DEPARTMENT_LEADERS);
+  const isHrOrAdmin = hasAnyRole(user, ROLE_GROUPS.HR_OPERATIONS);
+  const isClinicalQa = hasAnyRole(user, ROLE_GROUPS.CLINICAL_QA);
+  const canEvaluateKpi = isDeptLeader || isHrOrAdmin || isClinicalQa;
 
   const defaultKpiDept = isDeptLeader ? (user?.department_code || 'DEP-CC-HSTC') : 'ALL';
   const [activeTab, setActiveTab] = useState<'staff' | 'licenses' | 'kpi'>(defaultTab);
@@ -346,6 +348,18 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
         return <span className="wd-badge-success">{t('directory.role_nurse', 'Điều Dưỡng')}</span>;
       case 'HR_MANAGER':
         return <span className="wd-badge-neutral">{t('directory.role_hr_manager', 'Quản Trị HR')}</span>;
+      case 'HEAD_OF_HR':
+        return <span className="wd-badge-neutral">{t('directory.role_head_of_hr', 'Trưởng Phòng TCCB')}</span>;
+      case 'HR_STAFF':
+        return <span className="wd-badge-neutral">{t('directory.role_hr_staff', 'Chuyên Viên TCCB')}</span>;
+      case 'ACCOUNTANT':
+        return <span className="wd-badge-blue">{t('directory.role_accountant', 'Kế Toán TCKT')}</span>;
+      case 'HOSPITAL_DIRECTOR':
+        return <span className="wd-badge-blue">{t('directory.role_director', 'Giám Đốc Viện')}</span>;
+      case 'VICE_DIRECTOR':
+        return <span className="wd-badge-blue">{t('directory.role_vice_director', 'Phó Giám Đốc')}</span>;
+      case 'CHIEF_NURSE':
+        return <span className="wd-badge-success">{t('directory.role_chief_nurse', 'Điều Dưỡng Trưởng')}</span>;
       default:
         return <span className="wd-badge-neutral">{role}</span>;
     }
@@ -1167,8 +1181,13 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ defaultTab = 'st
                 >
                   <option value="DOCTOR">{t('directory.role_doctor', 'Bác Sĩ')}</option>
                   <option value="NURSE">{t('directory.role_nurse', 'Điều Dưỡng')}</option>
+                  <option value="CHIEF_NURSE">{t('directory.role_chief_nurse', 'Điều Dưỡng Trưởng')}</option>
                   <option value="DEPARTMENT_HEAD">{t('directory.role_dept_head', 'Trưởng Khoa')}</option>
+                  <option value="TECHNICIAN">{t('directory.role_technician', 'Kỹ Thuật Viên')}</option>
                   <option value="HR_MANAGER">{t('directory.role_hr_manager', 'Nhân Sự HR')}</option>
+                  <option value="HR_STAFF">{t('directory.role_hr_staff', 'Chuyên Viên TCCB')}</option>
+                  <option value="ACCOUNTANT">{t('directory.role_accountant', 'Kế Toán TCKT')}</option>
+                  <option value="STAFF">{t('directory.role_staff', 'Nhân Viên Hành Chính')}</option>
                 </select>
               </Col>
               <Col xs={6}>

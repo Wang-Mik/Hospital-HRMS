@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { shiftController } from '../controllers/shiftController.js';
 import { verifyToken, requireRole } from '../middlewares/authMiddleware.js';
+import { ROLE_GROUPS } from '../constants/roles.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import {
   scheduleShiftSchema,
@@ -71,16 +72,16 @@ const router = Router();
  *       200:
  *         description: Shift list retrieved successfully
  */
-router.post('/auto-rotate', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.autoRotateTeams);
-router.post('/batch', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN'), shiftController.batchScheduleShifts);
+router.post('/auto-rotate', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_ADMIN_OPERATORS), shiftController.autoRotateTeams);
+router.post('/batch', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_ADMIN_OPERATORS), shiftController.batchScheduleShifts);
 router.get('/departments/:code/delegate', verifyToken, shiftController.getDepartmentRosterDelegate);
-router.post('/departments/:code/delegate', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'HEAD_OF_HR'), shiftController.setDepartmentRosterDelegate);
-router.post('/approve-batch', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'HEAD_OF_HR'), shiftController.approveDepartmentShifts);
-router.get('/fill-gap/candidates', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.getFillGapCandidates);
-router.post('/fill-gap/dispatch', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN'), shiftController.dispatchSurgeCover);
-router.get('/overrun/pending', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'CHIEF_NURSE'), shiftController.getPendingOverrunShifts);
-router.post('/:id/overrun/approve', verifyToken, requireRole('DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'HOSPITAL_DIRECTOR', 'VICE_DIRECTOR', 'CHIEF_NURSE'), validateRequest({ body: approveOverrunSchema }), shiftController.approveShiftOverrun);
-router.post('/:id/overrun', verifyToken, requireRole('DOCTOR', 'NURSE', 'DEPARTMENT_HEAD', 'HR_MANAGER', 'SUPER_ADMIN', 'CHIEF_NURSE', 'TECHNICIAN'), validateRequest({ body: recordOverrunSchema }), shiftController.recordShiftOverrun);
+router.post('/departments/:code/delegate', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_APPROVERS), shiftController.setDepartmentRosterDelegate);
+router.post('/approve-batch', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_APPROVERS), shiftController.approveDepartmentShifts);
+router.get('/fill-gap/candidates', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_APPROVERS), shiftController.getFillGapCandidates);
+router.post('/fill-gap/dispatch', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_APPROVERS), shiftController.dispatchSurgeCover);
+router.get('/overrun/pending', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_APPROVERS), shiftController.getPendingOverrunShifts);
+router.post('/:id/overrun/approve', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_APPROVERS), validateRequest({ body: approveOverrunSchema }), shiftController.approveShiftOverrun);
+router.post('/:id/overrun', verifyToken, requireRole(...ROLE_GROUPS.CLINICAL_STAFF), validateRequest({ body: recordOverrunSchema }), shiftController.recordShiftOverrun);
 router.post('/', verifyToken, validateRequest({ body: scheduleShiftSchema }), shiftController.scheduleShift);
 router.get('/', verifyToken, shiftController.getAllShifts);
 
@@ -104,6 +105,6 @@ router.get('/', verifyToken, shiftController.getAllShifts);
  *         description: Shift not found
  */
 router.get('/:id', verifyToken, shiftController.getShiftById);
-router.delete('/:id', verifyToken, requireRole('HR_MANAGER', 'SUPER_ADMIN', 'DEPARTMENT_HEAD'), shiftController.deleteShift);
+router.delete('/:id', verifyToken, requireRole(...ROLE_GROUPS.ROSTER_APPROVERS), shiftController.deleteShift);
 
 export default router;

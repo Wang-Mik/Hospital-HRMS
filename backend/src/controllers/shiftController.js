@@ -1,5 +1,6 @@
 import pool from '../db.js';
 import shiftService from '../services/shiftService.js';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles.js';
 
 async function getStaffDepartment(employeeCode) {
   if (!employeeCode) return null;
@@ -41,6 +42,7 @@ export const shiftController = {
         'HOSPITAL_DIRECTOR',
         'VICE_DIRECTOR',
         'HEAD_OF_GENERAL_PLANNING',
+        'HEAD_OF_NURSING',
         'HEAD_OF_HR'
       ].includes(req.user.role);
 
@@ -346,7 +348,7 @@ export const shiftController = {
 
       // Scoped authorization: DEPARTMENT_HEAD can only cancel shifts in their own department.
       // HR_MANAGER and SUPER_ADMIN have hospital-wide authority.
-      if (req.user && req.user.role === 'DEPARTMENT_HEAD') {
+      if (req.user && hasAnyRole(req.user, ROLE_GROUPS.DEPARTMENT_LEADERS)) {
         const shift = await shiftService.getShiftById(id);
         if (!shift) {
           return res.status(404).json({
@@ -389,7 +391,7 @@ export const shiftController = {
 
       // Allow DEPARTMENT_HEAD to default to their own department if not passed
       let targetDept = department_code || department_id;
-      if (!targetDept && req.user && req.user.role === 'DEPARTMENT_HEAD') {
+      if (!targetDept && req.user && hasAnyRole(req.user, ROLE_GROUPS.DEPARTMENT_LEADERS)) {
         targetDept = await getStaffDepartment(req.user.employee_code);
       }
 
@@ -432,7 +434,7 @@ export const shiftController = {
       } = req.body;
 
       let targetDept = department_code || department_id;
-      if (!targetDept && req.user && req.user.role === 'DEPARTMENT_HEAD') {
+      if (!targetDept && req.user && hasAnyRole(req.user, ROLE_GROUPS.DEPARTMENT_LEADERS)) {
         targetDept = await getStaffDepartment(req.user.employee_code);
       }
 

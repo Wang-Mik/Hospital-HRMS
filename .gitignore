@@ -33,6 +33,7 @@ frontend/.env
 LightHouse/
 docs/reports/
 docs/references/
+docs/features/
 *.xlsx
 *.xls
 docs/*.xlsx

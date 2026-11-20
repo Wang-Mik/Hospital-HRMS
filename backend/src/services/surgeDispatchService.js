@@ -1,5 +1,6 @@
 import pool from '../db.js';
 import { randomUUID } from 'crypto';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles.js';
 
 const ROLE_TITLE_MAP = {
   SUPER_ADMIN: 'Ban Giám Đốc / Quản trị',
@@ -468,8 +469,11 @@ export const surgeDispatchService = {
     }
 
     // RBAC Guard: Trưởng khoa / Bác sĩ chỉ được phép phát lệnh điều động cho chính khoa mình
-    const isHospitalCoordinator =
-      actor.role === 'SUPER_ADMIN' || actor.role === 'HR_MANAGER';
+    const isHospitalCoordinator = hasAnyRole(actor, [
+      ...ROLE_GROUPS.EXECUTIVE,
+      ...ROLE_GROUPS.HR_TEAM,
+      ...ROLE_GROUPS.CLINICAL_QA
+    ]);
     if (
       !isHospitalCoordinator &&
       actor.department_code &&

@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import pool from '../db.js';
 import auditService from './auditService.js';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles.js';
 
 export const leaveService = {
   /**
@@ -214,25 +215,25 @@ export const leaveService = {
       throw err;
     }
 
-    if (actor.role === 'DEPARTMENT_HEAD') {
-      // Department Head can only review requests from their own department
+    if (hasAnyRole(actor, ROLE_GROUPS.DEPARTMENT_LEADERS)) {
+      // Department Head / Chief Nurse can only review requests from their own department
       if (actor.department_code && leaveReq.department_code && actor.department_code !== leaveReq.department_code) {
-        const err = new Error('Trưởng khoa chỉ có quyền xét duyệt đơn nghỉ phép của nhân sự thuộc khoa của mình.');
+        const err = new Error('Trưởng khoa / Điều dưỡng trưởng chỉ có quyền xét duyệt đơn nghỉ phép của nhân sự thuộc khoa của mình.');
         err.statusCode = 403;
         throw err;
       }
 
-      // Department Head can only set DEPT_APPROVED or REJECTED
+      // Department Head / Chief Nurse can only set DEPT_APPROVED or REJECTED
       if (status !== 'DEPT_APPROVED' && status !== 'REJECTED') {
-        const err = new Error('Trưởng khoa chỉ có thẩm quyền Phê Duyệt Cấp Khoa (DEPT_APPROVED) hoặc Từ Chối (REJECTED). Việc xác nhận hồ sơ vào quỹ viện do HR thực hiện.');
+        const err = new Error('Trưởng khoa chỉ có thẩm quyền Phê Duyệt Cấp Khoa (DEPT_APPROVED) hoặc Từ Chối (REJECTED). Việc xác nhận hồ sơ vào quỹ viện do HR / Lãnh đạo viện thực hiện.');
         err.statusCode = 403;
         throw err;
       }
-    } else if (actor.role === 'HR_MANAGER' || actor.role === 'SUPER_ADMIN') {
+    } else if (hasAnyRole(actor, ROLE_GROUPS.HOSPITAL_APPROVERS)) {
       // HR / Executive can confirm (APPROVED) or reject (REJECTED)
       // HR can also set DEPT_APPROVED if assisting
     } else {
-      const err = new Error('Chỉ Trưởng khoa lâm sàng hoặc Phòng Nhân Sự mới có thẩm quyền xét duyệt đơn nghỉ phép.');
+      const err = new Error('Chỉ Trưởng khoa lâm sàng hoặc Phòng Nhân Sự / Ban Giám Đốc mới có thẩm quyền xét duyệt đơn nghỉ phép.');
       err.statusCode = 403;
       throw err;
     }

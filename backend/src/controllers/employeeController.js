@@ -1,4 +1,5 @@
 import employeeService from '../services/employeeService.js';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles.js';
 
 export const employeeController = {
   /**
@@ -249,8 +250,7 @@ export const employeeController = {
     const staff_id = req.params.staff_id || req.params.id;
     if (
       req.user &&
-      req.user.role !== 'SUPER_ADMIN' &&
-      req.user.role !== 'HR_MANAGER' &&
+      !hasAnyRole(req.user, ROLE_GROUPS.HR_OPERATIONS) &&
       req.user.employee_code !== staff_id
     ) {
       return res.status(403).json({
@@ -282,8 +282,7 @@ export const employeeController = {
     const staff_id = req.params.staff_id || req.params.id;
     if (
       req.user &&
-      req.user.role !== 'SUPER_ADMIN' &&
-      req.user.role !== 'HR_MANAGER' &&
+      !hasAnyRole(req.user, ROLE_GROUPS.HR_OPERATIONS) &&
       req.user.employee_code !== staff_id
     ) {
       return res.status(403).json({

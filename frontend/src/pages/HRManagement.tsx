@@ -46,9 +46,13 @@ import { hrApi, EmploymentContract, SocialInsurance, CommendationDiscipline } fr
 import { kpiApi, MonthlyKpiRecord, IncidentCauseType } from '../api/kpiApi';
 import { useTranslation } from '../i18n/useTranslation';
 import { ConfirmModal, ConfirmDetailItem } from '../components/common/ConfirmModal';
+import { useAuthStore } from '../store/authStore';
+import { ROLE_GROUPS, hasAnyRole } from '../constants/roles';
 
 export const HRManagement: React.FC = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const canApprovePayroll = hasAnyRole(user, ROLE_GROUPS.PAYROLL_APPROVERS);
   const { t, lang } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -376,6 +380,7 @@ export const HRManagement: React.FC = () => {
       adminApi.generatePayrollRun(start_date, end_date),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
       queryClient.invalidateQueries({ queryKey: ['admin-overview'] });
       setShowNewRunModal(false);
       showToast(t('admin.modal_create_run_title', 'Khởi Tạo Kỳ Lương Mới Bệnh Viện'));
@@ -390,6 +395,8 @@ export const HRManagement: React.FC = () => {
       adminApi.updatePayrollRunStatus(id, status),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payrollRuns'] });
+      queryClient.invalidateQueries({ queryKey: ['payslips'] });
       showToast(`${t('admin.toast_run_status_changed', 'Trạng thái kỳ lương đã chuyển sang')} ${vars.status}`);
     }
   });
@@ -1086,21 +1093,30 @@ export const HRManagement: React.FC = () => {
 
           {/* Payroll Runs Section */}
           <div className="wd-card p-3">
-            <div className="d-flex align-items-center justify-content-between mb-3">
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
               <div>
                 <h3 className="h5 fw-bold mb-1">{t('admin.payroll_cycles_title', 'Danh Sách Chu Kỳ Lương Bệnh Viện')}</h3>
                 <p className="text-muted small mb-0">
                   {t('admin.payroll_cycles_desc', 'Theo dõi trạng thái chốt bảng lương, phê duyệt và thanh toán chuyển khoản.')}
                 </p>
               </div>
-              <button
-                type="button"
-                className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
-                onClick={() => setShowNewRunModal(true)}
-              >
-                <Plus size={15} />
-                <span>{t('admin.btn_create_run', 'Tạo Kỳ Lương')}</span>
-              </button>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <Link
+                  to="/payroll?tab=runs"
+                  className="wd-pill-btn-outline text-decoration-none d-inline-flex align-items-center gap-1.5"
+                >
+                  <Eye size={15} />
+                  <span>{t('admin.btn_open_payroll_workspace', 'Đối Soát & Nhập/Xuất Lương')}</span>
+                </Link>
+                <button
+                  type="button"
+                  className="wd-pill-btn-primary d-flex align-items-center gap-1.5"
+                  onClick={() => setShowNewRunModal(true)}
+                >
+                  <Plus size={15} />
+                  <span>{t('admin.btn_create_run', 'Tạo Kỳ Lương')}</span>
+                </button>
+              </div>
             </div>
 
             <div className="table-responsive">
@@ -1122,40 +1138,58 @@ export const HRManagement: React.FC = () => {
                         {run.start_date?.slice(0, 10)} - {run.end_date?.slice(0, 10)}
                       </td>
                       <td className="fw-bold text-success font-mono">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(run.total_gross || 0))}
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(run.total_disbursed || 0))}
                       </td>
                       <td>
                         <Badge
-                          bg={run.status === 'COMPLETED' ? 'success' : run.status === 'APPROVED' ? 'primary' : 'warning'}
-                          text={run.status === 'DRAFT' ? 'dark' : 'white'}
+                          bg={
+                            run.status === 'COMPLETED'
+                              ? 'success'
+                              : run.status === 'APPROVED'
+                              ? 'primary'
+                              : run.status === 'PROCESSING'
+                              ? 'info'
+                              : 'warning'
+                          }
+                          text={run.status === 'DRAFT' || run.status === 'PROCESSING' ? 'dark' : 'white'}
                           className="fw-normal px-2.5 py-1"
                         >
-                          {run.status === 'COMPLETED' ? t('payroll.status_paid', 'Đã Chi Trả') : run.status === 'APPROVED' ? t('payroll.status_approved', 'Đã Duyệt') : t('payroll.status_draft', 'Bản Nháp')}
+                          {run.status === 'COMPLETED'
+                            ? t('payroll.status_paid', 'Đã Chi Trả')
+                            : run.status === 'APPROVED'
+                            ? t('payroll.status_approved', 'Đã Duyệt')
+                            : run.status === 'PROCESSING'
+                            ? t('payroll.status_processing', 'Chờ HR / GĐ Duyệt')
+                            : t('payroll.status_draft', 'Bản Nháp')}
                         </Badge>
                       </td>
                       <td className="text-end">
-                        {run.status !== 'COMPLETED' && (
-                          <div className="d-flex align-items-center justify-content-end gap-1.5">
-                            {run.status === 'DRAFT' && (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary py-1 px-2"
-                                onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'APPROVED' })}
-                              >
-                                {t('admin.btn_approve_run', 'Phê Duyệt')}
-                              </button>
-                            )}
-                            {run.status === 'APPROVED' && (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-success py-1 px-2"
-                                onClick={() => handleConfirmCompletePayout(run.id)}
-                              >
-                                {t('admin.btn_complete_payout', 'Hoàn Tất Chi Lương')}
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        <div className="d-flex align-items-center justify-content-end gap-1.5">
+                          <Link
+                            to="/payroll?tab=runs"
+                            className="btn btn-sm btn-outline-secondary py-1 px-2 text-decoration-none"
+                          >
+                            {t('common.details', 'Chi tiết')}
+                          </Link>
+                          {canApprovePayroll && (run.status === 'DRAFT' || run.status === 'PROCESSING') && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary py-1 px-2"
+                              onClick={() => updateRunStatusMutation.mutate({ id: run.id, status: 'APPROVED' })}
+                            >
+                              {t('admin.btn_approve_run', 'Phê Duyệt')}
+                            </button>
+                          )}
+                          {canApprovePayroll && (run.status === 'APPROVED' || run.status === 'PROCESSING') && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-success py-1 px-2"
+                              onClick={() => handleConfirmCompletePayout(run.id)}
+                            >
+                              {t('admin.btn_complete_payout', 'Hoàn Tất Chi Lương')}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
